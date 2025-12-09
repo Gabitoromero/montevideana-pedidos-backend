@@ -7,7 +7,7 @@ import { errorHandler } from './shared/middlewares/errorHandler.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import usuarioRoutes from './modules/usuarios/usuario.routes.js';
 import tipoEstadoRoutes from './modules/estados/tipoEstado.routes.js';
-import estadoNecesarioRoutes from './modules/estadoNecesario/estadoNecesario.routes.js';
+import estadoNecesarioRoutes from './modules/reglas/estadoNecesario.routes.js';
 import movimientoRoutes from './modules/movimientos/movimiento.routes.js';
 import chessRoutes from './modules/chess/chess.routes.js';
 

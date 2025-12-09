@@ -9,12 +9,12 @@ export class EstadoNecesarioController {
     const em = fork();
 
     // Verificar que ambos estados existan
-    const estado = await em.findOne(TipoEstado, { codEstado: data.codEstado });
+    const estado = await em.findOne(TipoEstado, { id: data.codEstado });
     if (!estado) {
       throw AppError.notFound(`Estado con código ${data.codEstado} no encontrado`);
     }
 
-    const necesario = await em.findOne(TipoEstado, { codEstado: data.codNecesario });
+    const necesario = await em.findOne(TipoEstado, { id: data.codNecesario });
     if (!necesario) {
       throw AppError.notFound(`Estado necesario con código ${data.codNecesario} no encontrado`);
     }

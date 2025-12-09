@@ -4,8 +4,43 @@ POST http://localhost:3000/api/estados
 Content-Type: application/json
 
 {
-  "codEstado": 1,
-  "nombreEstado": "Pendiente"
+  "nombreEstado": "PENDIENTE"
+}
+
+### Crear Tipo de Estado
+POST http://localhost:3000/api/estados
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nombreEstado": "EN PREPARACION"
+}
+
+### Crear Tipo de Estado
+POST http://localhost:3000/api/estados
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nombreEstado": "PREPARADO"
+}
+
+### Crear Tipo de Estado
+POST http://localhost:3000/api/estados
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nombreEstado": "PAGADO"
+}
+
+### Crear Tipo de Estado
+POST http://localhost:3000/api/estados
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nombreEstado": "ENTREGADO"
 }
 
 ###
@@ -17,22 +52,22 @@ GET http://localhost:3000/api/estados
 ###
 
 ### Obtener tipo de estado por código
-GET http://localhost:3000/api/estados/1
+GET http://localhost:3000/api/estados/4
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Actualizar tipo de estado
-PATCH http://localhost:3000/api/estados/1
+PUT http://localhost:3000/api/estados/4
 //Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "nombreEstado": "En Proceso"
+  "nombreEstado": "EN PREPARACION"
 }
 
 ###
 
 ### Eliminar tipo de estado
-DELETE http://localhost:3000/api/estados/1
+DELETE http://localhost:3000/api/estados/4
 //Authorization: Bearer {{accessToken}}

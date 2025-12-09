@@ -8,7 +8,7 @@ const router = Router();
 const controller = new TipoEstadoController();
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware);
+//router.use(authMiddleware);
 
 // Crear tipo de estado
 router.post(
@@ -39,11 +39,11 @@ router.get(
 
 // Obtener tipo de estado por código
 router.get(
-  '/:codEstado',
+  '/:idEstado',
   validateSchema(tipoEstadoIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.findByCodigo(req.params.codEstado as unknown as number);
+      const result = await controller.findByCodigo(req.params.idEstado as unknown as number);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -52,13 +52,13 @@ router.get(
 );
 
 // Actualizar tipo de estado
-router.patch(
-  '/:codEstado',
+router.put(
+  '/:idEstado',
   validateSchema(tipoEstadoIdSchema, 'params'),
   validateSchema(updateTipoEstadoSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.update(req.params.codEstado as unknown as number, req.body);
+      const result = await controller.update(req.params.idEstado as unknown as number, req.body);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -68,11 +68,11 @@ router.patch(
 
 // Eliminar tipo de estado
 router.delete(
-  '/:codEstado',
+  '/:idEstado',
   validateSchema(tipoEstadoIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.delete(req.params.codEstado as unknown as number);
+      const result = await controller.delete(req.params.idEstado as unknown as number);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);

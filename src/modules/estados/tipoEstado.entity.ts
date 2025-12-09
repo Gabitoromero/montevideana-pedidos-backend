@@ -4,7 +4,7 @@ import { Movimiento } from '../movimientos/movimiento.entity.js';
 @Entity({ tableName: 'tipos_estado' })
 export class TipoEstado {
   @PrimaryKey({type: 'number'})
-  codEstado!: number;
+  id!: number;
 
   @Property({ nullable: false, unique: true, type: 'string' })
   nombreEstado!: string;

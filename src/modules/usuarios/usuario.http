@@ -43,11 +43,12 @@ Content-Type: {{contentType}}
 
 {
   "nombre": "Juan Carlos",
-  "sector": "Logística"
+  "sector": "Logística",
+  "password": "abcd"
 }
 
 ###
 
 ### Eliminar usuario
-DELETE {{baseUrl}}/usuarios/1
+DELETE {{baseUrl}}/usuarios/2
 //Authorization: Bearer {{accessToken}}

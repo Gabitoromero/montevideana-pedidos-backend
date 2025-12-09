@@ -92,7 +92,7 @@ export class UsuarioController {
       throw AppError.notFound(`Usuario con ID ${id} no encontrado`);
     }
 
-    await em.removeAndFlush(usuario);
+    await em.remove(usuario).flush();
 
     return { message: 'Usuario eliminado exitosamente' };
   }

@@ -1,0 +1,38 @@
+### Crear Tipo de Estado
+POST http://localhost:3000/api/estados
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "codEstado": 1,
+  "nombreEstado": "Pendiente"
+}
+
+###
+
+### Obtener todos los tipos de estado
+GET http://localhost:3000/api/estados
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener tipo de estado por código
+GET http://localhost:3000/api/estados/1
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Actualizar tipo de estado
+PATCH http://localhost:3000/api/estados/1
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nombreEstado": "En Proceso"
+}
+
+###
+
+### Eliminar tipo de estado
+DELETE http://localhost:3000/api/estados/1
+//Authorization: Bearer {{accessToken}}

@@ -1,0 +1,47 @@
+### Crear Movimiento (Transición de estado)
+POST http://localhost:3000/api/movimientos
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "usuarioId": 1,
+  "nroPedido": "PED-2024-001",
+  "estadoInicial": 1,
+  "estadoFinal": 2
+}
+
+###
+
+### Obtener todos los movimientos
+GET http://localhost:3000/api/movimientos
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener movimientos con filtros
+GET http://localhost:3000/api/movimientos?usuarioId=1&estadoFinal=2
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener movimientos por rango de fechas
+GET http://localhost:3000/api/movimientos?desde=2024-01-01T00:00:00Z&hasta=2024-12-31T23:59:59Z
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener movimiento por ID
+GET http://localhost:3000/api/movimientos/1
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener historial completo de un pedido
+GET http://localhost:3000/api/movimientos/pedido/PED-2024-001
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener estado actual de un pedido
+GET http://localhost:3000/api/movimientos/pedido/PED-2024-001/estado-actual
+//Authorization: Bearer {{accessToken}}

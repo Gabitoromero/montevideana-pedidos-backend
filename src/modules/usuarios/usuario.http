@@ -1,0 +1,40 @@
+### Crear Usuario
+POST http://localhost:3000/api/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "sector": "Producción",
+  "password": "password123"
+}
+
+###
+
+### Obtener todos los usuarios
+GET http://localhost:3000/api/usuarios
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener usuario por ID
+GET http://localhost:3000/api/usuarios/1
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Actualizar usuario
+PATCH http://localhost:3000/api/usuarios/1
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Juan Carlos",
+  "sector": "Logística"
+}
+
+###
+
+### Eliminar usuario
+DELETE http://localhost:3000/api/usuarios/1
+//Authorization: Bearer {{accessToken}}

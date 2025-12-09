@@ -1,0 +1,21 @@
+### Obtener pedido por número desde CHESS
+GET http://localhost:3000/api/chess/pedidos/PED-2024-001
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener todos los pedidos desde CHESS
+GET http://localhost:3000/api/chess/pedidos
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener pedidos con filtros
+GET http://localhost:3000/api/chess/pedidos?desde=2024-01-01&hasta=2024-12-31&cliente=Cliente123
+//Authorization: Bearer {{accessToken}}
+
+###
+
+### Buscar pedidos
+GET http://localhost:3000/api/chess/pedidos/search?q=PED-2024
+//Authorization: Bearer {{accessToken}}

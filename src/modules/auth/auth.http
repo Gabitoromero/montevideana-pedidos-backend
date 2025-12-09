@@ -1,0 +1,24 @@
+### Login
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "password": "password123"
+}
+
+###
+
+### Refresh Token
+# POST http://localhost:3000/api/auth/refresh
+# Content-Type: application/json
+
+# {
+#   "refreshToken": "{{refreshToken}}"
+# }
+
+###
+
+### Get Current User (Me)
+GET http://localhost:3000/api/auth/me
+//Authorization: Bearer {{accessToken}}

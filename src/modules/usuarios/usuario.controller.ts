@@ -17,7 +17,7 @@ export class UsuarioController {
       passwordHash
     });
 
-    await em.persistAndFlush(usuario);
+    await em.persist(usuario).flush();
 
     return {
       id: usuario.id,
@@ -30,6 +30,10 @@ export class UsuarioController {
   async findAll() {
     const em = fork();
     const usuarios = await em.find(Usuario, {});
+    
+    if (usuarios.length === 0) {
+      throw AppError.notFound('No hay usuarios registrados');
+    }
 
     return usuarios.map((u: Usuario) => ({
       id: u.id,

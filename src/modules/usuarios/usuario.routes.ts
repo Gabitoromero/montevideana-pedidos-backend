@@ -22,10 +22,7 @@ router.post(
 );
 
 // Obtener todos los usuarios (requiere autenticación)
-router.get(
-  '/',
-  authMiddleware,
-  async (req: Request, res: Response, next: NextFunction) => {
+router.get( '/', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await controller.findAll();
       res.status(200).json({ success: true, data: result });
@@ -38,7 +35,6 @@ router.get(
 // Obtener usuario por ID
 router.get(
   '/:id',
-  authMiddleware,
   validateSchema(usuarioIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -51,9 +47,8 @@ router.get(
 );
 
 // Actualizar usuario
-router.patch(
+router.put(
   '/:id',
-  authMiddleware,
   validateSchema(usuarioIdSchema, 'params'),
   validateSchema(updateUsuarioSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -69,7 +64,6 @@ router.patch(
 // Eliminar usuario
 router.delete(
   '/:id',
-  authMiddleware,
   validateSchema(usuarioIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

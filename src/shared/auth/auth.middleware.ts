@@ -11,24 +11,24 @@ declare global {
 }
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  // try {
-  //   const authHeader = req.headers.authorization;
+  try {
+    const authHeader = req.headers.authorization;
 
-  //   if (!authHeader) {
-  //     throw AppError.unauthorized('Token no proporcionado');
-  //   }
+    if (!authHeader) {
+      throw AppError.unauthorized('Token no proporcionado');
+    }
 
-  //   const [bearer, token] = authHeader.split(' ');
+    const [bearer, token] = authHeader.split(' ');
 
-  //   if (bearer !== 'Bearer' || !token) {
-  //     throw AppError.unauthorized('Formato de token inválido');
-  //   }
+    if (bearer !== 'Bearer' || !token) {
+      throw AppError.unauthorized('Formato de token inválido');
+    }
 
-  //   const payload = JwtUtil.verifyAccessToken(token);
-  //   req.user = payload;
+    // const payload = JwtUtil.verifyAccessToken(token);
+    // req.user = payload;
 
-  //   next();
-  // } catch (error) {
-  //   next(error);
-  // }
+    next();
+  } catch (error) {
+    next(error);
+  }
 };

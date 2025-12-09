@@ -1,32 +1,45 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+@contentType = application/json
+
 ### Crear Usuario
-POST http://localhost:3000/api/usuarios
-Content-Type: application/json
+POST {{baseUrl}}/usuarios
+Content-Type: {{contentType}}
 
 {
   "nombre": "Juan",
   "apellido": "Pérez",
   "sector": "Producción",
-  "password": "password123"
+  "password": "1234"
 }
 
-###
+### Crear Usuario
+POST {{baseUrl}}/usuarios
+Content-Type: {{contentType}}
+
+{
+  "nombre": "Pedro",
+  "apellido": "Gonzales",
+  "sector": "Producción",
+  "password": "1234"
+}
 
 ### Obtener todos los usuarios
-GET http://localhost:3000/api/usuarios
+GET {{baseUrl}}/usuarios
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Obtener usuario por ID
-GET http://localhost:3000/api/usuarios/1
+GET {{baseUrl}}/usuarios/1
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Actualizar usuario
-PATCH http://localhost:3000/api/usuarios/1
+PUT {{baseUrl}}/usuarios/1
 //Authorization: Bearer {{accessToken}}
-Content-Type: application/json
+Content-Type: {{contentType}}
 
 {
   "nombre": "Juan Carlos",
@@ -36,5 +49,5 @@ Content-Type: application/json
 ###
 
 ### Eliminar usuario
-DELETE http://localhost:3000/api/usuarios/1
+DELETE {{baseUrl}}/usuarios/1
 //Authorization: Bearer {{accessToken}}

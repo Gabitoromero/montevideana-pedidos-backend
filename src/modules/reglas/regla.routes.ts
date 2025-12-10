@@ -1,15 +1,15 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { EstadoNecesarioController } from './regla.controller.js';
+import { ReglaController } from './regla.controller.js';
 import { validateSchema } from '../../shared/middlewares/validateSchema.js';
 import {
-  createEstadoNecesarioSchema,
-  estadoNecesarioIdSchema,
+  createReglaSchema,
+  reglaIdSchema,
   estadoByCodSchema,
 } from './regla.schema.js';
 import { authMiddleware } from '../../shared/auth/auth.middleware.js';
 
 const router = Router();
-const controller = new EstadoNecesarioController();
+const controller = new ReglaController();
 
 // Todas las rutas requieren autenticación
 //router.use(authMiddleware);
@@ -17,7 +17,7 @@ const controller = new EstadoNecesarioController();
 // Crear regla de estado necesario
 router.post(
   '/',
-  validateSchema(createEstadoNecesarioSchema, 'body'),
+  validateSchema(createReglaSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await controller.create(req.body);
@@ -59,7 +59,7 @@ router.get(
 // Eliminar regla
 router.delete(
   '/:id',
-  validateSchema(estadoNecesarioIdSchema, 'params'),
+  validateSchema(reglaIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await controller.delete(req.params.id as unknown as number);

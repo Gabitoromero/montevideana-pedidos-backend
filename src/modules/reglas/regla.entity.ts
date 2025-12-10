@@ -1,8 +1,8 @@
 import { Entity, PrimaryKey, ManyToOne } from '@mikro-orm/core';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
 
-@Entity({ tableName: 'estados_necesarios' })
-export class EstadoNecesario {
+@Entity({ tableName: 'reglas' })
+export class Regla {
   @PrimaryKey({ type: 'number', autoincrement: true })
   id!: number;
   // "Para pasar a ESTE estado..."

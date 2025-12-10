@@ -2,13 +2,13 @@ import { fork } from '../../shared/db/orm.js';
 import { Movimiento } from './movimiento.entity.js';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
-import { EstadoNecesarioController } from '../reglas/regla.controller.js';
+import { ReglaController } from '../reglas/regla.controller.js';
 import { CreateMovimientoDTO, MovimientoQueryDTO } from './movimiento.schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { DateUtil } from '../../shared/utils/date.js';
 
 export class MovimientoController {
-  private estadoNecesarioController = new EstadoNecesarioController();
+  private reglaController = new ReglaController();
 
   /*
   async create(data: CreateMovimientoDTO) {

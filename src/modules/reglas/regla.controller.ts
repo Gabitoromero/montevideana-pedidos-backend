@@ -1,12 +1,12 @@
 import { fork } from '../../shared/db/orm.js';
-import { EstadoNecesario } from './regla.entity.js';
+import { Regla } from './regla.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
-import { CreateEstadoNecesarioDTO } from './regla.schema.js';
+import { CreateReglaDTO } from './regla.schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
 
-export class EstadoNecesarioController {
+export class ReglaController {
   
-  async create(data: CreateEstadoNecesarioDTO) {
+  async create(data: CreateReglaDTO) {
     const em = fork();
 
     // Verificar que ambos estados existen
@@ -21,7 +21,7 @@ export class EstadoNecesarioController {
     }
 
     // Verificar que la regla no existe ya
-    const existe = await em.findOne(EstadoNecesario, {
+    const existe = await em.findOne(Regla, {
       idEstado: data.idEstado,
       idEstadoNecesario: data.idEstadoNecesario
     });
@@ -32,7 +32,7 @@ export class EstadoNecesarioController {
       );
     }
 
-    const regla = em.create(EstadoNecesario, {
+    const regla = em.create(Regla, {
       idEstado: data.idEstado,
       idEstadoNecesario: data.idEstadoNecesario
     });
@@ -54,7 +54,7 @@ export class EstadoNecesarioController {
 
   async findAll() {
     const em = fork();
-    const reglas = await em.find(EstadoNecesario, {}, {
+    const reglas = await em.find(Regla, {}, {
       populate: ['idEstado', 'idEstadoNecesario']
     });
 
@@ -79,7 +79,7 @@ export class EstadoNecesarioController {
       throw AppError.notFound(`Estado ${idEstado} no encontrado`);
     }
 
-    const reglas = await em.find(EstadoNecesario, 
+    const reglas = await em.find(Regla, 
       { idEstado: estado.id },
       { populate: ['idEstadoNecesario'] }
     );
@@ -98,7 +98,7 @@ export class EstadoNecesarioController {
 
   async delete(id: number) {
     const em = fork();
-    const regla = await em.findOne(EstadoNecesario, { id });
+    const regla = await em.findOne(Regla, { id });
 
     if (!regla) {
       throw AppError.notFound(`Regla con ID ${id} no encontrada`);
@@ -118,7 +118,7 @@ export class EstadoNecesarioController {
       throw AppError.notFound(`Estado final ${idEstadoFinal} no encontrado`);
     }
 
-    const reglasEstadoFinal = await em.find(EstadoNecesario, 
+    const reglasEstadoFinal = await em.find(Regla, 
       { idEstado: estadoFinal.id },
       { populate: ['idEstadoNecesario'] }
     );

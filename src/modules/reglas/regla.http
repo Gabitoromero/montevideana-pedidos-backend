@@ -1,28 +1,28 @@
 ### Crear Regla de Estado Necesario
 # Para pasar al estado 3, primero debe haber pasado por el estado 1
-POST http://localhost:3000/api/estados-necesarios
+POST http://localhost:3000/api/reglas
 //Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "codEstado": 3,
-  "codNecesario": 1
+  "idEstado": 5,
+  "idEstadoNecesario": 4
 }
 
 ###
 
 ### Obtener todas las reglas
-GET http://localhost:3000/api/estados-necesarios
+GET http://localhost:3000/api/reglas
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Obtener reglas para un estado específico
-GET http://localhost:3000/api/estados-necesarios/estado/3
+GET http://localhost:3000/api/reglas/estado/3
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Eliminar regla
-DELETE http://localhost:3000/api/estados-necesarios/1
+DELETE http://localhost:3000/api/reglas/1
 //Authorization: Bearer {{accessToken}}

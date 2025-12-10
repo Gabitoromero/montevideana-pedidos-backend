@@ -7,9 +7,9 @@ POST {{baseUrl}}/usuarios
 Content-Type: {{contentType}}
 
 {
-  "nombre": "Juan",
-  "apellido": "Pérez",
-  "sector": "Producción",
+  "nombre": "Sistema",
+  "apellido": "Automático",
+  "sector": "CHESS",
   "password": "1234"
 }
 
@@ -20,6 +20,17 @@ Content-Type: {{contentType}}
 {
   "nombre": "Pedro",
   "apellido": "Gonzales",
+  "sector": "Producción",
+  "password": "1234"
+}
+
+### Crear Usuario
+POST {{baseUrl}}/usuarios
+Content-Type: {{contentType}}
+
+{
+  "nombre": "Lionel",
+  "apellido": "Messi",
   "sector": "Producción",
   "password": "1234"
 }

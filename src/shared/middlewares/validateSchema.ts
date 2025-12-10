@@ -9,7 +9,17 @@ export const validateSchema = (schema: ZodSchema, target: ValidationTarget = 'bo
     try {
       const dataToValidate = req[target];
       const validated = schema.parse(dataToValidate);
-      req[target] = validated;
+      
+      // En Express 5, req.query y req.params son read-only
+      // Usamos Object.assign para modificar las propiedades sin reasignar
+      if (target === 'body') {
+        req.body = validated;
+      } else if (target === 'params') {
+        Object.assign(req.params, validated);
+      } else if (target === 'query') {
+        Object.assign(req.query, validated);
+      }
+      
       next();
     } catch (error) {
       if (error instanceof ZodError) {

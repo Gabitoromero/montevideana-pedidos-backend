@@ -6,6 +6,7 @@ import {
   movimientoIdSchema,
   movimientoPorPedidoSchema,
   movimientoQuerySchema,
+  inicializarChessSchema,
 } from './movimiento.schema.js';
 import { authMiddleware } from '../../shared/auth/auth.middleware.js';
 
@@ -13,7 +14,7 @@ const router = Router();
 const controller = new MovimientoController();
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware);
+//router.use(authMiddleware);
 
 // Crear movimiento (transición de estado)
 router.post(
@@ -21,8 +22,8 @@ router.post(
   validateSchema(createMovimientoSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // const result = await controller.create(req.body);
-      // res.status(201).json({ success: true, data: result });
+      const result = await controller.create(req.body);
+      res.status(201).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }
@@ -79,6 +80,20 @@ router.get(
     try {
       const result = await controller.getEstadoActual(req.params.nroPedido);
       res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Inicializar pedido desde CHESS (Usuario Sistema)
+router.post(
+  '/inicializar-chess',
+  validateSchema(inicializarChessSchema, 'body'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await controller.inicializarDesdeChess(req.body.nroPedido);
+      res.status(201).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

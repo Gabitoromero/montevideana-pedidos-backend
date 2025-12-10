@@ -4,13 +4,13 @@ import { TipoEstado } from '../estados/tipoEstado.entity.js';
 
 @Entity({ tableName: 'movimientos' })
 export class Movimiento {
-  @PrimaryKey( {type: 'number'} )
-  id!: number;
+  @PrimaryKey({ type: 'number', autoincrement: true })
+  id?: number;
 
-  @Property({ nullable: false, unique: false, type: 'Date' })
+  @Property({ nullable: false, type: 'datetime' })
   fechaHora: Date = new Date();
 
-  @Property({ nullable: false, unique: false, type: 'string' })
+  @Property({ nullable: false, type: 'string' })
   nroPedido!: string;
 
   @ManyToOne(() => TipoEstado, { nullable: false })
@@ -21,7 +21,4 @@ export class Movimiento {
 
   @ManyToOne(() => Usuario, { nullable: false })
   usuario!: Rel<Usuario>;
-
-  // @Property({ onCreate: () => new Date() })
-  // createdAt: Date = new Date();
 }

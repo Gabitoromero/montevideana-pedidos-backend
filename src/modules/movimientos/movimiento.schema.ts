@@ -26,7 +26,12 @@ export const movimientoQuerySchema = z.object({
   hasta: z.string().datetime().optional(),
 });
 
+export const inicializarChessSchema = z.object({
+  nroPedido: z.string().min(1, 'El número de pedido es requerido'),
+});
+
 export type CreateMovimientoDTO = z.infer<typeof createMovimientoSchema>;
 export type MovimientoIdDTO = z.infer<typeof movimientoIdSchema>;
 export type MovimientoPorPedidoDTO = z.infer<typeof movimientoPorPedidoSchema>;
 export type MovimientoQueryDTO = z.infer<typeof movimientoQuerySchema>;
+export type InicializarChessDTO = z.infer<typeof inicializarChessSchema>;

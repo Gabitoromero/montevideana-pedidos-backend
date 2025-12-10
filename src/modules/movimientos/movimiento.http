@@ -1,20 +1,26 @@
-### Crear Movimiento (Transición de estado)
-POST http://localhost:3000/api/movimientos
-//Authorization: Bearer {{accessToken}}
-Content-Type: application/json
+@baseUrl = http://localhost:3000/api
+@contentType = application/json
+
+### ========================================
+### INICIALIZACIÓN DESDE CHESS
+### ========================================
+
+### 1. Inicializar pedido desde CHESS (Usuario Sistema automático)
+# Estado 0 (CHESS) → Estado 1 (Pendiente)
+POST {{baseUrl}}/movimientos/inicializar-chess
+Content-Type: {{contentType}}
 
 {
-  "usuarioId": 1,
-  "nroPedido": "PED-2024-001",
-  "estadoInicial": 1,
-  "estadoFinal": 2
+  "nroPedido": "PED-2025-001"
 }
 
-###
+### 2. Inicializar otro pedido
+POST {{baseUrl}}/movimientos/inicializar-chess
+Content-Type: {{contentType}}
 
-### Obtener todos los movimientos
-GET http://localhost:3000/api/movimientos
-//Authorization: Bearer {{accessToken}}
+{
+  "nroPedido": "PED-2025-002"
+}
 
 ###
 

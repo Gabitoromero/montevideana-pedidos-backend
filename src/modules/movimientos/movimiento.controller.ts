@@ -10,7 +10,7 @@ import { DateUtil } from '../../shared/utils/date.js';
 export class MovimientoController {
   private reglaController = new ReglaController();
 
-  /*
+  
   async create(data: CreateMovimientoDTO) {
     const em = fork();
 
@@ -21,19 +21,19 @@ export class MovimientoController {
     }
 
     // 2. Validar que ambos estados existen
-    const estadoInicial = await em.findOne(TipoEstado, { codEstado: data.estadoInicial });
+    const estadoInicial = await em.findOne(TipoEstado, { id: data.estadoInicial });
     if (!estadoInicial) {
       throw AppError.notFound(`Estado inicial con código ${data.estadoInicial} no encontrado`);
     }
 
-    const estadoFinal = await em.findOne(TipoEstado, { codEstado: data.estadoFinal });
+    const estadoFinal = await em.findOne(TipoEstado, { id: data.estadoFinal });
     if (!estadoFinal) {
       throw AppError.notFound(`Estado final con código ${data.estadoFinal} no encontrado`);
     }
 
     // 3. Validar que la transición es legal según las reglas de EstadoNecesario
-    const esTransicionLegal = await this.estadoNecesarioController.validateTransition(
-      data.nroPedido,
+    const esTransicionLegal = await this.reglaController.validarTransicion(
+      data.estadoInicial,
       data.estadoFinal
     );
 
@@ -45,25 +45,27 @@ export class MovimientoController {
 
     // 4. Crear el movimiento
     const movimiento = em.create(Movimiento, {
-      fechaHora: DateUtil.now(),
+      fechaHora: new Date(),
       nroPedido: data.nroPedido,
-      estadoInicial: data.estadoInicial,
-      estadoFinal: data.estadoFinal,
-      estadoInicialRef: estadoInicial,
-      estadoFinalRef: estadoFinal,
-      usuario,
+      estadoInicial: estadoInicial,
+      estadoFinal: estadoFinal,
+      usuario: usuario
     });
 
-    await em.persistAndFlush(movimiento);
+    await em.persist(movimiento).flush();
 
     return {
       id: movimiento.id,
       fechaHora: movimiento.fechaHora,
       nroPedido: movimiento.nroPedido,
-      estadoInicial: movimiento.estadoInicial,
-      estadoFinal: movimiento.estadoFinal,
-      nombreEstadoInicial: estadoInicial.nombreEstado,
-      nombreEstadoFinal: estadoFinal.nombreEstado,
+      estadoInicial: {
+        idEstado: estadoInicial.id,
+        nombreEstado: estadoInicial.nombreEstado
+      },
+      estadoFinal: {
+        idEstado: estadoFinal.id,
+        nombreEstado: estadoFinal.nombreEstado
+      },
       usuario: {
         id: usuario.id,
         nombre: usuario.nombre,
@@ -72,7 +74,7 @@ export class MovimientoController {
       },
     };
   }
-    */
+    
 
   async findAll(filters?: MovimientoQueryDTO) {
     const em = fork();
@@ -107,6 +109,10 @@ export class MovimientoController {
         orderBy: { fechaHora: 'DESC' },
       }
     );
+
+    if (!movimientos || movimientos.length === 0) {
+      throw AppError.notFound(`No se encontraron movimientos que coincidan con los filtros proporcionados`);
+    }
 
     return movimientos.map((m) => ({
       id: m.id,
@@ -181,26 +187,130 @@ export class MovimientoController {
     }));
   }
 
-  async getEstadoActual(nroPedido: string) {
-    const em = fork();
-    const ultimoMovimiento = await em.findOne(
-      Movimiento,
-      { nroPedido },
-      {
-        populate: ['estadoFinal'],
-        orderBy: { fechaHora: 'DESC' },
-      }
-    );
+  // async getEstadoActual(nroPedido: string) {
+  //   const em = fork();
+  //   const ultimoMovimiento = await em.find(
+  //     Movimiento,
+  //     { nroPedido },
+  //     {
+  //       populate: ['estadoFinal'],
+  //       orderBy: { fechaHora: 'DESC' },
+  //       limit: 1
+  //     }
+  //   );
 
-    if (!ultimoMovimiento) {
-      throw AppError.notFound(`No se encontraron movimientos para el pedido ${nroPedido}`);
+  //   if (!ultimoMovimiento) {
+  //     throw AppError.notFound(`No se encontraron movimientos para el pedido ${nroPedido}`);
+  //   }
+
+  //   return {
+  //     nroPedido,
+  //     estadoActual: ultimoMovimiento.estadoFinal,
+  //     nombreEstadoActual: ultimoMovimiento.estadoFinal.nombreEstado,
+  //     fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
+  //   };
+  // }
+  async getEstadoActual(nroPedido: string) {
+  const em = fork();
+  
+  // Buscar TODOS los movimientos del pedido, ordenados DESC
+  const movimientos = await em.find(
+    Movimiento,
+    { nroPedido },
+    {
+      populate: ['estadoFinal'],
+      orderBy: { fechaHora: 'DESC' },
+      limit: 1  // Solo traer el primero (el más reciente)
+    }
+  );
+
+  if (!movimientos || movimientos.length === 0) {
+    throw AppError.notFound(`No se encontraron movimientos para el pedido ${nroPedido}`);
+  }
+
+  const ultimoMovimiento = movimientos[0];
+
+  return {
+    nroPedido,
+    estadoActual: 
+    {
+      //idEstado: ultimoMovimiento.estadoFinal.id,
+      nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado
+    },
+    fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
+  };
+  }
+
+  /**
+   * Inicializa un pedido desde CHESS con el usuario Sistema
+   * Estado 0 (CHESS) → Estado 1 (Pendiente)
+   */
+  async inicializarDesdeChess(nroPedido: string) {
+    const em = fork();
+    const USUARIO_SISTEMA_ID = 1; // ID del usuario "Sistema"
+    const ESTADO_CHESS_ID = 6;     // Estado inicial de CHESS
+    const ESTADO_PENDIENTE_ID = 1; // Estado Pendiente
+
+    // 1. Verificar que el usuario Sistema existe
+    const usuarioSistema = await em.findOne(Usuario, { id: USUARIO_SISTEMA_ID });
+    if (!usuarioSistema) {
+      throw AppError.internal(
+        'Usuario Sistema no encontrado. Debe existir un usuario con ID 1 para inicializar pedidos desde CHESS.'
+      );
     }
 
+    // 2. Verificar que los estados existen
+    const estadoChess = await em.findOne(TipoEstado, { id: ESTADO_CHESS_ID });
+    if (!estadoChess) {
+      throw AppError.internal(
+        'Estado CHESS (0) no encontrado. Debe existir en la base de datos.'
+      );
+    }
+
+    const estadoPendiente = await em.findOne(TipoEstado, { id: ESTADO_PENDIENTE_ID });
+    if (!estadoPendiente) {
+      throw AppError.internal(
+        'Estado PENDIENTE (1) no encontrado. Debe existir en la base de datos.'
+      );
+    }
+
+    // 3. Verificar que el pedido no existe ya
+    const pedidoExistente = await em.findOne(Movimiento, { nroPedido });
+    if (pedidoExistente) {
+      throw AppError.conflict(
+        `El pedido ${nroPedido} ya existe en el sistema. No se puede inicializar nuevamente.`
+      );
+    }
+
+    // 4. Crear el movimiento inicial (sin validar reglas porque es automático)
+    const movimiento = em.create(Movimiento, {
+      fechaHora: new Date(),
+      nroPedido: nroPedido,
+      estadoInicial: estadoChess,
+      estadoFinal: estadoPendiente,
+      usuario: usuarioSistema
+    });
+
+    await em.persist(movimiento).flush();
+
     return {
-      nroPedido,
-      estadoActual: ultimoMovimiento.estadoFinal,
-      nombreEstadoActual: ultimoMovimiento.estadoFinal.nombreEstado,
-      fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
+      id: movimiento.id,
+      nroPedido: movimiento.nroPedido,
+      estadoInicial: {
+        idEstado: estadoChess.id,
+        nombreEstado: estadoChess.nombreEstado
+      },
+      estadoFinal: {
+        idEstado: estadoPendiente.id,
+        nombreEstado: estadoPendiente.nombreEstado
+      },
+      usuario: {
+        id: usuarioSistema.id,
+        nombre: usuarioSistema.nombre
+      },
+      mensaje: 'Pedido inicializado desde CHESS correctamente'
     };
   }
+
 }
+

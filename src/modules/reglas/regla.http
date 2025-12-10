@@ -18,11 +18,11 @@ GET http://localhost:3000/api/reglas
 ###
 
 ### Obtener reglas para un estado específico
-GET http://localhost:3000/api/reglas/estado/3
+GET http://localhost:3000/api/reglas/estado/8
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Eliminar regla
-DELETE http://localhost:3000/api/reglas/1
+DELETE http://localhost:3000/api/reglas/8
 //Authorization: Bearer {{accessToken}}

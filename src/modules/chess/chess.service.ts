@@ -1,8 +1,7 @@
 import { AppError } from '../../shared/errors/AppError.js';
 import axios, { AxiosInstance } from 'axios';
+import { ChessVentaRaw } from './chess.interfaces.js';
 
-const CHESS_API_URL = process.env.CHESS_API_URL || 'http://localhost:8080/api';
-const CHESS_API_KEY = process.env.CHESS_API_KEY || '';
 
 export interface ChessPedido {
   nroPedido: string;
@@ -25,31 +24,31 @@ export class ChessService {
   private sessionId: string | null = null;
 //
   constructor() {
-      //1. Validamos que la URL exista para no arrancar el servidor "ciegos"
-     const baseURL = process.env.CHESS_API_URL;
+    //1. Validamos que la URL exista para no arrancar el servidor "ciegos"
+    const baseURL = process.env.CHESS_API_URL;
     
-     if (!baseURL) {
-       console.warn('⚠️ ADVERTENCIA: CHESS_API_URL no está definida en el .env');
-     }
+    if (!baseURL) {
+      console.warn('⚠️ ADVERTENCIA: CHESS_API_URL no está definida en el .env');
+    }
 
       //2. Creamos la instancia configurada
-     this.api = axios.create({
-       baseURL: baseURL,
-       timeout: 10000, // 10 segundos. Si CHESS tarda más, cortamos para no colgar nuestro server.
-       headers: {
-         'Content-Type': 'application/json',
-         'Accept': 'application/json',
-       },
-     });
+    this.api = axios.create({
+      baseURL: baseURL,
+      timeout: 10000, // 10 segundos. Si CHESS tarda más, cortamos para no colgar nuestro server.
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
   }
-
+/*
   private async fetchFromChess(endpoint: string): Promise<any> {
     try {
-      const url = `${CHESS_API_URL}${endpoint}`;
+      const url = `${process.env.CHESS_API_URL}${endpoint}`;
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CHESS_API_KEY}`,
+          'Authorization': `Bearer ${process.env.CHESS_API_KEY}`,
         },
       });
 
@@ -91,7 +90,7 @@ export class ChessService {
     const data = await this.fetchFromChess(`/pedidos/search?q=${encodeURIComponent(searchTerm)}`);
     return data;
   }
-
+*/
   public async testConnection(): Promise<{ 
     success: boolean; 
     sessionId: string | null;
@@ -126,21 +125,22 @@ public async login(): Promise<void> {
       const cookies = response.headers['set-cookie'];
       
       if (!cookies || cookies.length === 0) {
-        throw new Error('CHESS no devolvió cookies de sesión');
+        throw new AppError('CHESS no devolvió cookies de sesión');
       }
 
      //Buscar cookie que empiece con sessionId=
       const sessionCookie = cookies.find((c: string) => c.startsWith("JSESSIONID="));
       if (!sessionCookie) {
-        throw new Error("CHESS no devolvió sessionId.");
+        throw new AppError("CHESS no devolvió sessionId.");
       }
 
      //Parsear valor real del sessionId
-      const sessionId = sessionCookie.split(";")[0]; // "sessionId=XYZ123"
+      const sessionId = sessionCookie.split(";")[0];  // "JSESSIONID=ABC123"
+        //.split("=")[1]; // "sessionId=XYZ123"
 
       this.sessionId = sessionId;
 
-      console.log(`✅ Login en CHESS exitoso. Sesión guardada. SessionId: ${this.sessionId.substring(0, 30)}...`);
+      console.log(`✅ Login en CHESS exitoso. Sesión guardada. ${this.sessionId.substring(0, 30)}...`);
 
     } catch (error: any) {
 
@@ -174,20 +174,13 @@ public async login(): Promise<void> {
     }
   }
 
-  /**
-    * Verifica si hay una sesión activa guardada.
-    */
   public hasActiveSession(): boolean {
     return this.sessionId !== null;
   }
-
-    /**
-   * Método privado para hacer peticiones autenticadas a CHESS
-   */
+  /* // Método genérico para hacer peticiones con autenticación y manejo de sesión
   private async requestWithAuth(endpoint: string, method: 'GET' | 'POST' = 'GET', data?: any): Promise<any> {
     // Si no hay sesión activa, hacemos login primero
-    if (!this.sessionId) {
-      console.log('⚠️ No hay sesión activa. Iniciando login...');
+    if (!this.hasActiveSession()) {
       await this.login();
     }
   
@@ -225,6 +218,72 @@ public async login(): Promise<void> {
   
       throw error;
     }
+  }*/
+
+  private async requestWithAuth<T>(requestFn: () => Promise<T>): Promise<T> {
+    // Si no tenemos cookie, nos logueamos primero
+    if (!this.hasActiveSession()) {
+      await this.login();
+    }
+
+    try {
+    console.log(`🔐 Intentando request con sessionId: ${this.sessionId?.substring(0, 40)}...`);
+    return await requestFn();
+    } catch (error: any) {
+      // Si el error es 401 (Unauthorized) o 403 (Forbidden), la cookie venció.
+      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+        console.warn('⚠️ Sesión CHESS caducada. Renovando credenciales...');
+        
+        this.sessionId = null; // Borramos cookie vieja
+        await this.login();        // Obtenemos nueva
+        return await requestFn();  // 🔄 Reintentamos la petición original
+      }
+      
+      // Si es otro error (ej: 500 o 404), lo lanzamos hacia arriba
+      throw error;
+    }
+  }
+
+  public async getVentasDelDia(
+    fechaDesde: string,
+    fechaHasta?: string,
+    options?: {
+      empresas?: string;
+      detallado?: boolean;
+      nroLote?: number;
+    }
+  ): Promise<ChessVentaRaw[]> {
+    // Usamos el wrapper requestWithAuth
+    return this.requestWithAuth(async () => {
+      // Si no se proporciona fechaHasta, usar la misma que fechaDesde
+      const fechaFinal = fechaHasta || fechaDesde;
+      
+      // Configuración específica de esta llamada
+      const config = {
+        headers: {
+          Cookie: this.sessionId, // Inyectamos la cookie
+        },
+        params: {
+          fechaDesde: fechaDesde,        
+          fechaHasta: fechaFinal,        
+          empresas: options?.empresas,   
+          detallado: options?.detallado ?? true,  
+          nroLote: options?.nroLote ?? 0 
+        }
+      };
+
+      console.log(`📡 Consultando ventas CHESS:`, config.params);
+      console.log(`🍪 Cookie: ${this.sessionId?.substring(0, 40)}...`);
+    
+      const response = await this.api.get('web/api/chess/v1/ventas', config);
+
+      console.log(`✅ Ventas obtenidas: ${response.data?.length || 0} registros`);
+
+      // Asumimos que la respuesta es un array directo o está dentro de una propiedad data
+      const ventas = Array.isArray(response.data) ? response.data : response.data.data || [];
+      
+      return ventas;
+    });
   }
 }
 

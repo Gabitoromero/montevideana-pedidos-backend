@@ -3,24 +3,29 @@ POST http://localhost:3000/api/chess/test-connection
 
 ###
 
-### Obtener pedido por número desde CHESS
-GET http://localhost:3000/api/chess/pedidos/PED-2024-001
-//Authorization: Bearer {{accessToken}}
+### Obtener ventas del día de hoy (detallado)
+GET http://localhost:3000/api/chess/ventas
+
+### Obtener ventas de un rango de fechas
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2025-12-01&fechaHasta=2025-12-16
 
 ###
 
-### Obtener todos los pedidos desde CHESS
-GET http://localhost:3000/api/chess/pedidos
-//Authorization: Bearer {{accessToken}}
+### Obtener ventas resumidas (sin detalle)
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2024-12-16&detallado=false
 
 ###
 
-### Obtener pedidos con filtros
-GET http://localhost:3000/api/chess/pedidos?desde=2024-01-01&hasta=2024-12-31&cliente=Cliente123
-//Authorization: Bearer {{accessToken}}
+### Obtener ventas de empresa específica
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2024-12-16&empresas=1
 
 ###
 
-### Buscar pedidos
-GET http://localhost:3000/api/chess/pedidos/search?q=PED-2024
+### Obtener segundo lote de ventas (paginación)
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2024-12-16&nroLote=1
+
+###
+
+### Obtener ventas con todos los parámetros
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2024-12-01&fechaHasta=2024-12-16&empresas=1&detallado=true&nroLote=0
 //Authorization: Bearer {{accessToken}}

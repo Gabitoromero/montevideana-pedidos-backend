@@ -3,22 +3,31 @@ import { ChessService } from './chess.service.js';
 export class ChessController {
   private chessService = new ChessService();
 
-  async getPedido(nroPedido: string) {
-    const pedido = await this.chessService.getPedido(nroPedido);
-    return pedido;
-  }
-
-  async getAllPedidos(params?: { desde?: string; hasta?: string; cliente?: string }) {
-    const pedidos = await this.chessService.getAllPedidos(params);
-    return pedidos;
-  }
-
-  async searchPedidos(searchTerm: string) {
-    const pedidos = await this.chessService.searchPedidos(searchTerm);
-    return pedidos;
-  }
-
   async testConnection() {
     return await this.chessService.testConnection();
+  }
+
+  async getVentasDelDia(params?: {
+    fechaDesde?: string;
+    fechaHasta?: string;
+    empresas?: string;
+    detallado?: boolean;
+    nroLote?: number;
+  }) {
+    // Si no se proporciona fechaDesde, usar HOY
+    const fechaDesde = params?.fechaDesde || new Date().toISOString().split('T')[0];
+    const fechaHasta = params?.fechaHasta;
+    
+    const ventas = await this.chessService.getVentasDelDia(
+      fechaDesde,
+      fechaHasta,
+      {
+        empresas: params?.empresas,
+        detallado: params?.detallado,
+        nroLote: params?.nroLote
+      }
+    );
+    
+    return ventas;
   }
 }

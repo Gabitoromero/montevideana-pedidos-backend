@@ -1,3 +1,8 @@
+### Test de conexión con CHESS (temporal)
+POST http://localhost:3000/api/chess/test-connection
+
+###
+
 ### Obtener pedido por número desde CHESS
 GET http://localhost:3000/api/chess/pedidos/PED-2024-001
 //Authorization: Bearer {{accessToken}}

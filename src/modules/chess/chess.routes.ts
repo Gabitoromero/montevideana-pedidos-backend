@@ -6,7 +6,20 @@ const router = Router();
 const controller = new ChessController();
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware);
+//router.use(authMiddleware);
+
+// Test de conexión a CHESS (temporal - para validar autenticación)
+router.post(
+  '/test-connection',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await controller.testConnection();
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 // Obtener pedido por número desde CHESS
 router.get(

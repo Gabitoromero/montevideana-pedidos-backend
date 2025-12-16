@@ -17,4 +17,8 @@ export class ChessController {
     const pedidos = await this.chessService.searchPedidos(searchTerm);
     return pedidos;
   }
+
+  async testConnection() {
+    return await this.chessService.testConnection();
+  }
 }

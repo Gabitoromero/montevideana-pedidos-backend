@@ -22,6 +22,28 @@ Content-Type: {{contentType}}
   "nroPedido": "PED-2025-002"
 }
 
+
+### Nuevo movimiento
+POST {{baseUrl}}/movimientos/
+Content-Type: {{contentType}}
+
+{
+  "usuarioId": 1,
+  "nroPedido": "PED-2025-002",
+  "estadoInicial": 1,
+  "estadoFinal": 2
+}
+
+### Nuevo movimiento
+POST {{baseUrl}}/movimientos/
+Content-Type: {{contentType}}
+
+{
+  "usuarioId": 1,
+  "nroPedido": "PED-2025-002",
+  "estadoInicial": 4,
+  "estadoFinal": 5
+}
 ###
 
 ### Obtener movimientos con filtros
@@ -31,23 +53,23 @@ GET http://localhost:3000/api/movimientos?usuarioId=1&estadoFinal=2
 ###
 
 ### Obtener movimientos por rango de fechas
-GET http://localhost:3000/api/movimientos?desde=2024-01-01T00:00:00Z&hasta=2024-12-31T23:59:59Z
+GET http://localhost:3000/api/movimientos?desde=2025-12-10T14:14:30Z&hasta=2025-12-31T23:59:59Z
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Obtener movimiento por ID
-GET http://localhost:3000/api/movimientos/1
+GET http://localhost:3000/api/movimientos/5
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Obtener historial completo de un pedido
-GET http://localhost:3000/api/movimientos/pedido/PED-2024-001
+GET http://localhost:3000/api/movimientos/pedido/PED-2025-002
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Obtener estado actual de un pedido
-GET http://localhost:3000/api/movimientos/pedido/PED-2024-001/estado-actual
+GET http://localhost:3000/api/movimientos/pedido/PED-2025-001/estado-actual
 //Authorization: Bearer {{accessToken}}

@@ -12,7 +12,7 @@
     "start:pm2": "pm2 start ecosystem.config.cjs",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
-    "bd" : "mysql -u root -p montevideana_pedidos < scripts/init-sistema.sql"
+    "bd": "mysql -u root -p montevideana_pedidos < scripts/init-sistema.sql"
   },
   "keywords": [
     "montevideana",
@@ -23,9 +23,10 @@
   ],
   "author": "RomeroSoft",
   "license": "ISC",
-  "packageManager": "pnpm@10.9.0",
+  "packageManager": "pnpm@10.26.0",
   "dependencies": {
     "@mikro-orm/reflection": "^6.3.13",
+    "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

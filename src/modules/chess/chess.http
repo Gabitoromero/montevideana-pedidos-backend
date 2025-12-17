@@ -1,3 +1,7 @@
+### CHESS
+http://176.52.134.66:8080/web/api/chess/v1/auth/login
+http://176.52.134.66:8080/web/api/chess/v1/ventas/?fechaDesde=2025-11-01&fechaHasta=2025-11-20
+
 ### Test de conexión con CHESS (temporal)
 POST http://localhost:3000/api/chess/test-connection
 
@@ -5,7 +9,7 @@ POST http://localhost:3000/api/chess/test-connection
 GET http://localhost:3000/api/chess/ventas
 
 ### Obtener ventas de un rango de fechas
-GET http://localhost:3000/api/chess/ventas?fechaDesde=2025-11-01&fechaHasta=2025-11-20
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2025/11/01&fechaHasta=2025/11/02
 
 ###
 
@@ -25,5 +29,9 @@ GET http://localhost:3000/api/chess/ventas?fechaDesde=2024-12-16&nroLote=1
 ###
 
 ### Obtener ventas con todos los parámetros
-GET http://localhost:3000/api/chess/ventas?fechaDesde=2024-12-01&fechaHasta=2024-12-16&empresas=1&detallado=true&nroLote=0
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2025-12-01&fechaHasta=2025-12-16&detallado=true&nroLote=0
 //Authorization: Bearer {{accessToken}}
+
+###
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2025/12/17&fechaHasta=2025/12/17&empresas=1&detallado=true&nroLote=2
+

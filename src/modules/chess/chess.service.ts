@@ -30,7 +30,9 @@ export class ChessService {
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Accept': 'application/json', 
+          'Accept-Encoding': 'gzip, deflate, br', 
+          'Connection': 'keep-alive',
         },
       })
     );
@@ -213,7 +215,7 @@ export class ChessService {
       console.log(`📡 Consultando ventas CHESS:`, config.params);
       
       try {
-        const response = await this.api.get('web/api/chess/v1/ventas', config);
+        const response = await this.api.get('web/api/chess/v1/ventas/', config);
 
         console.log(`✅ Ventas obtenidas: ${Array.isArray(response.data) ? response.data.length : 'Objeto recibido'}`);
         

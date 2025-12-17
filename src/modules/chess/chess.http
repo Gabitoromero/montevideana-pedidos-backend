@@ -1,13 +1,11 @@
 ### Test de conexión con CHESS (temporal)
 POST http://localhost:3000/api/chess/test-connection
 
-###
-
 ### Obtener ventas del día de hoy (detallado)
 GET http://localhost:3000/api/chess/ventas
 
 ### Obtener ventas de un rango de fechas
-GET http://localhost:3000/api/chess/ventas?fechaDesde=2025-12-01&fechaHasta=2025-12-16
+GET http://localhost:3000/api/chess/ventas?fechaDesde=2025-11-01&fechaHasta=2025-11-20
 
 ###
 

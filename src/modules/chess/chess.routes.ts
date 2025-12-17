@@ -31,7 +31,7 @@ router.get(
       const result = await controller.getVentasDelDia({
         fechaDesde: fechaDesde as string,
         fechaHasta: fechaHasta as string,
-        empresas: empresas as string,
+        empresas: empresas as string || undefined,
         detallado: detallado === 'true',
         nroLote: nroLote ? parseInt(nroLote as string) : undefined
       });

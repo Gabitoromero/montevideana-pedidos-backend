@@ -1,245 +1,189 @@
 import { AppError } from '../../shared/errors/AppError.js';
 import axios, { AxiosInstance } from 'axios';
 import { ChessVentaRaw } from './chess.interfaces.js';
-
-
-export interface ChessPedido {
-  nroPedido: string;
-  cliente: string;
-  fecha: string;
-  estado: string;
-  items: ChessPedidoItem[];
-  total: number;
-}
-
-export interface ChessPedidoItem {
-  codigo: string;
-  descripcion: string;
-  cantidad: number;
-  precio: number;
-}
+import { CookieJar } from 'tough-cookie';
+import { wrapper } from 'axios-cookiejar-support';
 
 export class ChessService {
   private api: AxiosInstance;
-  private sessionId: string | null = null;
-//
+  private jar: CookieJar;
+
   constructor() {
-    //1. Validamos que la URL exista para no arrancar el servidor "ciegos"
     const baseURL = process.env.CHESS_API_URL;
     
     if (!baseURL) {
       console.warn('⚠️ ADVERTENCIA: CHESS_API_URL no está definida en el .env');
     }
 
-      //2. Creamos la instancia configurada
-    this.api = axios.create({
-      baseURL: baseURL,
-      timeout: 10000, // 10 segundos. Si CHESS tarda más, cortamos para no colgar nuestro server.
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+    // ✅ 1. Crear CookieJar
+    this.jar = new CookieJar(undefined, {
+      rejectPublicSuffixes: false,  // ✅ CLAVE: Permite IPs y sufijos públicos
+      looseMode: true  // ✅ Modo permisivo
     });
-  }
-/*
-  private async fetchFromChess(endpoint: string): Promise<any> {
-    try {
-      const url = `${process.env.CHESS_API_URL}${endpoint}`;
-      const response = await fetch(url, {
+    
+    // ✅ 2. Crear instancia de axios Y envolverla con wrapper
+    this.api = wrapper(
+      axios.create({
+        baseURL: baseURL,
+        timeout: 10000,
+        jar: this.jar,  // Ahora funciona porque usamos wrapper
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.CHESS_API_KEY}`,
+          'Accept': 'application/json',
         },
-      });
-
-      if (!response.ok) {
-        throw new Error(`CHESS API error: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (error instanceof Error) {
-        throw AppError.internal(`Error al conectar con CHESS: ${error.message}`);
-      }
-      throw AppError.internal('Error desconocido al conectar con CHESS');
-    }
+      })
+    );
   }
 
-  async getPedido(nroPedido: string): Promise<ChessPedido> {
-    const data = await this.fetchFromChess(`/pedidos/${nroPedido}`);
-    return data;
-  }
-
-  async getAllPedidos(params?: { desde?: string; hasta?: string; cliente?: string }): Promise<ChessPedido[]> {
-    let endpoint = '/pedidos';
-    const queryParams = new URLSearchParams();
-
-    if (params?.desde) queryParams.append('desde', params.desde);
-    if (params?.hasta) queryParams.append('hasta', params.hasta);
-    if (params?.cliente) queryParams.append('cliente', params.cliente);
-
-    if (queryParams.toString()) {
-      endpoint += `?${queryParams.toString()}`;
-    }
-
-    const data = await this.fetchFromChess(endpoint);
-    return data;
-  }
-
-  async searchPedidos(searchTerm: string): Promise<ChessPedido[]> {
-    const data = await this.fetchFromChess(`/pedidos/search?q=${encodeURIComponent(searchTerm)}`);
-    return data;
-  }
-*/
   public async testConnection(): Promise<{ 
     success: boolean; 
-    sessionId: string | null;
+    cookiesCount: number;
     message: string;
   }> {
     await this.login();
+    const cookies = await this.jar.getCookies(this.api.defaults.baseURL!);
+
+    const jsessionCookie = cookies.find(c => c.key === 'JSESSIONID');
+    if (jsessionCookie) {
+      console.log('🔐 Detalles de JSESSIONID:');
+      console.log('  - Valor:', jsessionCookie.value.substring(0, 30) + '...');
+      console.log('  - Path:', jsessionCookie.path);
+      console.log('  - Domain:', jsessionCookie.domain);
+      console.log('  - HttpOnly:', jsessionCookie.httpOnly);
+      console.log('  - Expira:', jsessionCookie.expires || 'Sesión (no expira)');
+    } else {
+      console.log('⚠️ No se encontró JSESSIONID');
+    }
+    
     return {
       success: true,
-      sessionId: this.sessionId ? this.sessionId.substring(0, 30) + '...' : null,  //Mostrar solo parte por seguridad
-      message: 'Conexión exitosa con CHESS. SessionId guardado en memoria.'
+      cookiesCount: cookies.length,
+      message: `Conexión exitosa con CHESS. ${cookies.length} cookie(s) almacenada(s).`
     };
   }
 
-public async login(): Promise<void> {
-    const username = process.env.CHESS_USER;
-    const password = process.env.CHESS_PASSWORD;
+ public async login(): Promise<void> {
+  const usuario = process.env.CHESS_USER;
+  const password = process.env.CHESS_PASSWORD;
 
-    if (!username || !password) {
-      throw new AppError('Credenciales de CHESS no configuradas en el backend', 500);
-    }
-
-    try {
-      console.log(`🔄 Conectando a CHESS en: ${this.api.defaults.baseURL}...`);
-      
-     //Hacemos el POST. Axios convierte el objeto a JSON automáticamente.
-      const response = await this.api.post('web/api/chess/v1/auth/login', {
-        username: username,
-        password: password,
-      }, { withCredentials: true });
-
-    // Capturamos la cookie "connect.sid" o similar que devuelve CHESS
-      const cookies = response.headers['set-cookie'];
-      
-      if (!cookies || cookies.length === 0) {
-        throw new AppError('CHESS no devolvió cookies de sesión');
-      }
-
-     //Buscar cookie que empiece con sessionId=
-      const sessionCookie = cookies.find((c: string) => c.startsWith("JSESSIONID="));
-      if (!sessionCookie) {
-        throw new AppError("CHESS no devolvió sessionId.");
-      }
-
-     //Parsear valor real del sessionId
-      const sessionId = sessionCookie.split(";")[0];  // "JSESSIONID=ABC123"
-        //.split("=")[1]; // "sessionId=XYZ123"
-
-      this.sessionId = sessionId;
-
-      console.log(`✅ Login en CHESS exitoso. Sesión guardada. ${this.sessionId.substring(0, 30)}...`);
-
-    } catch (error: any) {
-
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const message = error.message;
-        const url = error.config?.url;
-        
-        console.error('❌ Error en CHESS:');
-        console.error('  URL completa:', `${this.api.defaults.baseURL}/${url}`);
-        console.error('  Status:', status);
-        console.error('  Message:', message);
-        console.error('  Code:', error.code); // IMPORTANTE: puede ser ECONNREFUSED, ETIMEDOUT, etc.
-        
-        if (status === 401) {
-          throw new AppError('Usuario o contraseña de CHESS incorrectos', 401);
-        }
-        if (status === 404) {
-          throw new AppError('La URL de login de CHESS es incorrecta', 502);
-        }
-        if (error.code === 'ECONNREFUSED') {
-          throw new AppError('El servidor CHESS rechazó la conexión. Verifica que esté activo.', 502);
-        }
-        if (error.code === 'ETIMEDOUT') {
-          throw new AppError('Timeout al conectar con CHESS. El servidor no responde.', 504);
-        }
-      }
-      
-      console.error('❌ Error desconocido:', error);
-      throw new AppError(`No se pudo conectar con el ERP: ${error.message || 'Error desconocido'}`, 502);
-    }
+  if (!usuario || !password) {
+    throw new AppError('Credenciales de CHESS no configuradas en el backend', 500);
   }
 
-  public hasActiveSession(): boolean {
-    return this.sessionId !== null;
-  }
-  /* // Método genérico para hacer peticiones con autenticación y manejo de sesión
-  private async requestWithAuth(endpoint: string, method: 'GET' | 'POST' = 'GET', data?: any): Promise<any> {
-    // Si no hay sesión activa, hacemos login primero
-    if (!this.hasActiveSession()) {
-      await this.login();
+  try {
+    console.log(`🔄 Conectando a CHESS en: ${this.api.defaults.baseURL}...`);
+    console.log(`👤 Usuario: ${usuario}`);
+    
+    const response = await this.api.post('web/api/chess/v1/auth/login', {
+      usuario,
+      password,
+    });
+
+    console.log('✅ Login CHESS exitoso.');
+    console.log('📦 Response data:', response.data);
+    
+    // ✅ EXTRAER sessionId del BODY
+    const sessionId = response.data?.sessionId;
+    const expires = response.data?.expires;
+    
+    if (!sessionId) {
+      throw new AppError('CHESS no devolvió sessionId en la respuesta', 500);
     }
-  
-    try {
-      const response = await this.api.request({
-        method,
-        url: endpoint,
-        data,
-        headers: {
-          'Cookie': this.sessionId, // Enviamos el sessionId como cookie
-        },
-      });
-  
-      return response.data;
-  
-    } catch (error: any) {
-      // Si el error es 401, la sesión expiró -> reintentamos con nuevo login
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        console.log('🔄 Sesión expirada. Re-autenticando...');
-        this.sessionId = null;
-        await this.login();
-        
-        // Reintentamos la petición
-        const retryResponse = await this.api.request({
-          method,
-          url: endpoint,
-          data,
-          headers: {
-            'Cookie': this.sessionId,
-          },
-        });
-        
-        return retryResponse.data;
+
+    console.log(`🔐 SessionId recibido: ${sessionId.substring(0, 40)}...`);
+    
+    // ✅ GUARDAR MANUALMENTE en CookieJar con formato correcto
+    // Extraer solo el valor (sin "JSESSIONID=" porque ya está en el sessionId)
+    const sessionValue = sessionId.replace('JSESSIONID=', '');
+    const hostname = new URL(this.api.defaults.baseURL!).hostname;
+    
+    // ✅ Opciones para permitir IPs y dominios especiales
+    const cookieString = `JSESSIONID=${sessionValue}; Path=/; Domain=${hostname}`;
+    
+    await this.jar.setCookie(
+      cookieString, 
+      this.api.defaults.baseURL!,
+      {
+        loose: true,  // ✅ Permite cookies "sueltas" (no estrictas)
+        ignoreError: false  // Queremos saber si hay errores
       }
-  
-      throw error;
+    );
+    
+    // Verificar que se guardó
+    const cookies = await this.jar.getCookies(this.api.defaults.baseURL!);
+    console.log(`🍪 Cookies guardadas: ${cookies.length}`);
+    
+    const savedCookie = cookies.find(c => c.key === 'JSESSIONID');
+    if (savedCookie) {
+      console.log(`🔐 JSESSIONID en jar: ${savedCookie.value.substring(0, 40)}...`);
+    } else {
+      console.warn('⚠️ No se pudo guardar JSESSIONID en el jar');
     }
-  }*/
+
+  } catch (error: any) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const message = error.message;
+      const url = error.config?.url;
+      
+      console.error('❌ Error en CHESS:');
+      console.error('  URL completa:', `${this.api.defaults.baseURL}/${url}`);
+      console.error('  Status:', status);
+      console.error('  Message:', message);
+      console.error('  Response data:', error.response?.data);
+      
+      if (status === 401) {
+        throw new AppError('Usuario o contraseña de CHESS incorrectos', 401);
+      }
+      if (status === 404) {
+        throw new AppError('La URL de login de CHESS es incorrecta', 502);
+      }
+      if (error.code === 'ECONNREFUSED') {
+        throw new AppError('El servidor CHESS rechazó la conexión. Verifica que esté activo.', 502);
+      }
+      if (error.code === 'ETIMEDOUT') {
+        throw new AppError('Timeout al conectar con CHESS. El servidor no responde.', 504);
+      }
+    }
+    
+    console.error('❌ Error desconocido:', error);
+    throw new AppError(`No se pudo conectar con el ERP: ${error.message || 'Error desconocido'}`, 502);
+  }
+}
 
   private async requestWithAuth<T>(requestFn: () => Promise<T>): Promise<T> {
-    // Si no tenemos cookie, nos logueamos primero
-    if (!this.hasActiveSession()) {
+    // Verificar si hay cookies activas
+    const cookies = await this.jar.getCookies(this.api.defaults.baseURL!);
+    if (cookies.length === 0) {
+      console.log('🔐 No hay cookies. Haciendo login...');
       await this.login();
     }
 
     try {
-    console.log(`🔐 Intentando request con sessionId: ${this.sessionId?.substring(0, 40)}...`);
-    return await requestFn();
+      const currentCookies = await this.jar.getCookies(this.api.defaults.baseURL!);
+      const jsession = currentCookies.find(c => c.key === 'JSESSIONID');
+      console.log(`🔐 Intento 1 con JSESSIONID: ${jsession?.value.substring(0, 30)}...`);
+    
+      return await requestFn();
     } catch (error: any) {
-      // Si el error es 401 (Unauthorized) o 403 (Forbidden), la cookie venció.
+
       if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
         console.warn('⚠️ Sesión CHESS caducada. Renovando credenciales...');
+        await this.jar.removeAllCookies();
+        await this.login();
         
-        this.sessionId = null; // Borramos cookie vieja
-        await this.login();        // Obtenemos nueva
-        return await requestFn();  // 🔄 Reintentamos la petición original
+        // Verificar la cookie después del login
+        const newCookies = await this.jar.getCookies(this.api.defaults.baseURL!);
+        const newJsession = newCookies.find(c => c.key === 'JSESSIONID');
+        console.log(`🔐 Intento 2 con JSESSIONID: ${newJsession?.value.substring(0, 30)}...`);
+        
+        // Esperar un poquito para asegurar que el servidor procesó el login
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        return await requestFn();
       }
       
-      // Si es otro error (ej: 500 o 404), lo lanzamos hacia arriba
       throw error;
     }
   }
@@ -253,38 +197,38 @@ public async login(): Promise<void> {
       nroLote?: number;
     }
   ): Promise<ChessVentaRaw[]> {
-    // Usamos el wrapper requestWithAuth
     return this.requestWithAuth(async () => {
-      // Si no se proporciona fechaHasta, usar la misma que fechaDesde
       const fechaFinal = fechaHasta || fechaDesde;
       
-      // Configuración específica de esta llamada
       const config = {
-        headers: {
-          Cookie: this.sessionId, // Inyectamos la cookie
-        },
         params: {
-          fechaDesde: fechaDesde,        
-          fechaHasta: fechaFinal,        
-          empresas: options?.empresas,   
-          detallado: options?.detallado ?? true,  
-          nroLote: options?.nroLote ?? 0 
+          fechaDesde: fechaDesde,
+          fechaHasta: fechaFinal,
+          empresas: options?.empresas,
+          detallado: options?.detallado ?? true,
+          nroLote: options?.nroLote ?? 0
         }
       };
 
       console.log(`📡 Consultando ventas CHESS:`, config.params);
-      console.log(`🍪 Cookie: ${this.sessionId?.substring(0, 40)}...`);
-    
-      const response = await this.api.get('web/api/chess/v1/ventas', config);
-
-      console.log(`✅ Ventas obtenidas: ${response.data?.length || 0} registros`);
-
-      // Asumimos que la respuesta es un array directo o está dentro de una propiedad data
-      const ventas = Array.isArray(response.data) ? response.data : response.data.data || [];
       
-      return ventas;
+      try {
+        const response = await this.api.get('web/api/chess/v1/ventas', config);
+
+        console.log(`✅ Ventas obtenidas: ${Array.isArray(response.data) ? response.data.length : 'Objeto recibido'}`);
+        
+        const data = response.data;
+        return Array.isArray(data) ? data : (data.data || []);
+        
+      } catch (error: any) {
+        // ✅ Log detallado del error 500
+        if (axios.isAxiosError(error) && error.response?.status === 500) {
+          console.error('❌ Error 500 de CHESS:');
+          console.error('  Response data:', JSON.stringify(error.response.data, null, 2));
+          console.error('  Params enviados:', config.params);
+        }
+        throw error;  // Re-lanzar para que requestWithAuth lo maneje
+      }
     });
   }
 }
-
-

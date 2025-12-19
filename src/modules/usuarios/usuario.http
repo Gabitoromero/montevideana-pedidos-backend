@@ -7,7 +7,7 @@ POST {{baseUrl}}/usuarios
 Content-Type: {{contentType}}
 
 {
-  "username": "sistema",
+  "username": "jarvis",
   "nombre": "Sistema",
   "apellido": "Automático",
   "sector": "CHESS",
@@ -19,7 +19,7 @@ POST {{baseUrl}}/usuarios
 Content-Type: {{contentType}}
 
 {
-  "username": "pedro123",
+  "username": "peter",
   "nombre": "Pedro",
   "apellido": "Gonzales",
   "sector": "Producción",
@@ -31,7 +31,7 @@ POST {{baseUrl}}/usuarios
 Content-Type: {{contentType}}
 
 {
-  "username": "messi10",
+  "username": "goat",
   "nombre": "Lionel",
   "apellido": "Messi",
   "sector": "Producción",
@@ -56,7 +56,7 @@ PUT {{baseUrl}}/usuarios/1
 Content-Type: {{contentType}}
 
 {
-  "username": "juancarlos",
+  "username": "juanca",
   "nombre": "Juan Carlos",
   "sector": "Logística",
   "password": "abcd"

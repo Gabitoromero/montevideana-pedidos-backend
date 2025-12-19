@@ -8,11 +8,10 @@ import { AppError } from '../../shared/errors/AppError.js';
 
 export class AuthController {
   async login(data: LoginDTO) {
-    /*
     const em = fork();
 
-    // Buscar usuario por nombre
-    const usuario = await em.findOne(Usuario, { nombre: data.nombre });
+    // Buscar usuario por username
+    const usuario = await em.findOne(Usuario, { username: data.username });
 
     if (!usuario) {
       throw AppError.unauthorized('Credenciales inválidas');
@@ -28,7 +27,7 @@ export class AuthController {
     // Generar tokens
     const payload = {
       sub: usuario.id,
-      nombre: usuario.nombre,
+      username: usuario.username,
       sector: usuario.sector,
     };
 
@@ -40,16 +39,15 @@ export class AuthController {
       refreshToken,
       user: {
         id: usuario.id,
+        username: usuario.username,
         nombre: usuario.nombre,
         apellido: usuario.apellido,
         sector: usuario.sector,
       },
     };
-    */
   }
 
   async refresh(data: RefreshTokenDTO) {
-    /*
     // Verificar y decodificar el refresh token
     const payload = JwtUtil.verifyRefreshToken(data.refreshToken);
 
@@ -65,7 +63,7 @@ export class AuthController {
     // Generar nuevo access token
     const newPayload = {
       sub: usuario.id,
-      nombre: usuario.nombre,
+      username: usuario.username,
       sector: usuario.sector,
     };
 
@@ -75,12 +73,12 @@ export class AuthController {
       accessToken,
       user: {
         id: usuario.id,
+        username: usuario.username,
         nombre: usuario.nombre,
         apellido: usuario.apellido,
         sector: usuario.sector,
       },
     };
-    */
   }
 
   async me(userId: number) {
@@ -95,6 +93,7 @@ export class AuthController {
 
     return {
       id: usuario.id,
+      username: usuario.username,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,

@@ -1,4 +1,5 @@
 import { ChessService } from './chess.service.js';
+import { Request, Response, NextFunction } from 'express';
 
 export class ChessController {
   private chessService = new ChessService();
@@ -6,6 +7,24 @@ export class ChessController {
   async testConnection() {
     return await this.chessService.testConnection();
   }
+
+  // Agrega esta función exportada:
+  async getReporteRomina (req: Request, res: Response, next: NextFunction){
+  try {
+    // Si no pasan fecha, usamos HOY
+    const fecha = (req.query.fecha as string) || new Date().toISOString().split('T')[0];
+
+    const reporte = await this.chessService.getDiagnostico(fecha);
+
+    res.status(200).json({
+      ok: true,
+      mensaje: "Reporte generado para validación con cliente",
+      data: reporte
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
   async getVentasDelDia(params?: {
     fechaDesde?: string;

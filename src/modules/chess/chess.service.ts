@@ -1,6 +1,6 @@
 import { AppError } from '../../shared/errors/AppError.js';
 import axios, { AxiosInstance } from 'axios';
-import { ChessVentaRaw } from './chess.interfaces.js';
+import { ChessVentaRaw, ResumenDocumento, ReporteDiagnostico } from './chess.interfaces.js';
 import { CookieJar } from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
 
@@ -65,7 +65,7 @@ export class ChessService {
     };
   }
 
- public async login(): Promise<void> {
+  public async login(): Promise<void> {
   const usuario = process.env.CHESS_USER;
   const password = process.env.CHESS_PASSWORD;
 
@@ -188,6 +188,78 @@ export class ChessService {
       
       throw error;
     }
+  }
+
+  // src/modules/chess/chess.service.ts
+
+  // ... (tus imports y métodos anteriores)
+
+  /**
+   * 📊 Método exclusivo para generar el reporte de validación con el cliente
+   */
+  public async getDiagnostico(fecha: string): Promise<ReporteDiagnostico> {
+    return this.requestWithAuth(async () => {
+      console.log(`🕵️‍♂️ Generando diagnóstico para: ${fecha}`);
+
+      // 1. Obtenemos TOOOODOS los datos crudos (sin filtros raros)
+      const response = await this.api.get('/web/api/chess/v1/ventas', {
+        params: {
+          fechaDesde: fecha,
+          fechaHasta: fecha,
+          detallado: true,
+          nroLote: 0
+          // empresas: 1, // Descomenta si confirmaste que es necesario
+        }
+      });
+
+      // Aseguramos que sea un array
+      const rawData = (Array.isArray(response.data) ? response.data : response.data.data) as ChessVentaRaw[];
+      
+      if (!rawData) {
+        return { fecha, totalRegistros: 0, desglosePorTipo: [] };
+      }
+
+      // 2. Agrupamos y calculamos estadísticas
+      // Usamos un Map para ir acumulando los contadores por tipo de documento
+      const statsMap = new Map<string, ResumenDocumento>();
+
+      rawData.forEach((item) => {
+        const key = item.idDocumento; // Ej: "FCVTA"
+
+        if (!statsMap.has(key)) {
+          statsMap.set(key, {
+            tipo: key,
+            descripcion: item.dsDocumento || 'Sin descripción',
+            cantidadTotal: 0,
+            conPedidoAsociado: 0,
+            anulados: 0,
+            montoTotal: 0,
+            ejemploId: item.nrodoc // Guardamos el primero que vemos de ejemplo
+          });
+        }
+
+        const stat = statsMap.get(key)!;
+        stat.cantidadTotal++;
+        stat.montoTotal += item.subtotalFinal || 0;
+
+        if (item.idPedido > 0) {
+          stat.conPedidoAsociado++;
+        }
+
+        if (item.anulado === 'SI') {
+          stat.anulados++;
+        }
+      });
+
+      // 3. Convertimos el Map a Array y ordenamos por cantidad
+      const desglose = Array.from(statsMap.values()).sort((a, b) => b.cantidadTotal - a.cantidadTotal);
+
+      return {
+        fecha,
+        totalRegistros: rawData.length,
+        desglosePorTipo: desglose
+      };
+    });
   }
 
   public async getVentasDelDia(

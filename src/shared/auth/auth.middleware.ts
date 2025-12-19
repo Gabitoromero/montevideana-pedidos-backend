@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { JwtUtil, JwtPayload } from './jwt.js';
+import { JwtUtil, CustomJwtPayload } from './jwt.js';
 import { AppError } from '../errors/AppError.js';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: CustomJwtPayload;
     }
   }
 }
@@ -24,8 +24,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
       throw AppError.unauthorized('Formato de token inválido');
     }
 
-    // const payload = JwtUtil.verifyAccessToken(token);
-    // req.user = payload;
+    const payload = JwtUtil.verifyAccessToken(token);
+    req.user = payload;
 
     next();
   } catch (error) {

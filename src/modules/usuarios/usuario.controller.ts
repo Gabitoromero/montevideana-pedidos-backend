@@ -11,6 +11,7 @@ export class UsuarioController {
     const passwordHash = await HashUtil.hash(data.password);
 
     const usuario = em.create(Usuario, {
+      username: data.username,
       nombre: data.nombre,
       apellido: data.apellido,
       sector: data.sector,
@@ -21,6 +22,7 @@ export class UsuarioController {
 
     return {
       id: usuario.id,
+      username: usuario.username,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,
@@ -37,6 +39,7 @@ export class UsuarioController {
 
     return usuarios.map((u: Usuario) => ({
       id: u.id,
+      username: u.username,
       nombre: u.nombre,
       apellido: u.apellido,
       sector: u.sector,
@@ -53,6 +56,7 @@ export class UsuarioController {
 
     return {
       id: usuario.id,
+      username: usuario.username,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,
@@ -67,6 +71,7 @@ export class UsuarioController {
       throw AppError.notFound(`Usuario con ID ${id} no encontrado`);
     }
 
+    if (data.username) usuario.username = data.username;
     if (data.nombre) usuario.nombre = data.nombre;
     if (data.apellido) usuario.apellido = data.apellido;
     if (data.sector) usuario.sector = data.sector;
@@ -78,6 +83,7 @@ export class UsuarioController {
 
     return {
       id: usuario.id,
+      username: usuario.username,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,

@@ -6,6 +6,9 @@ export class Usuario {
   @PrimaryKey({type: 'number'})
   id!: number;
 
+  @Property({ nullable: false, unique: true, type: 'string' })
+  username!: string;
+
   @Property({ nullable: false, unique: false, type: 'string' })
   nombre!: string;
 

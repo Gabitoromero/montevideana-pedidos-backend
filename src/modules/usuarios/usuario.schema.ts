@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const createUsuarioSchema = z.object({
+  username: z.string().min(3, 'El username debe tener al menos 3 caracteres'),
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   apellido: z.string().min(3, 'El apellido debe tener al menos 3 caracteres'),
   sector: z.string().min(3, 'El sector debe tener al menos 3 caracteres'),
@@ -8,6 +9,7 @@ export const createUsuarioSchema = z.object({
 });
 
 export const updateUsuarioSchema = z.object({
+  username: z.string().min(3).optional(),
   nombre: z.string().min(3).optional(),
   apellido: z.string().min(3).optional(),
   sector: z.string().min(3).optional(),

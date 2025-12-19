@@ -43,6 +43,8 @@ router.get(
   }
 );
 
+router.get('/diagnostico', (req: Request, res: Response, next: NextFunction) => controller.getReporteRomina(req, res, next));
+
 // // Obtener pedido por número desde CHESS
 // router.get(
 //   '/pedidos/:nroPedido',

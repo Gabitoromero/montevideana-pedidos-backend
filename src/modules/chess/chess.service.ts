@@ -324,7 +324,7 @@ export class ChessService {
       if (venta.nombreCliente === 'CONSUMIDOR FINAL') return false;
 
       // 8. idFleteroCarga ≠ 0 (tiene fletero asignado)
-      if (!venta.idFleteroCarga || venta.idFleteroCarga === 0) return false;
+      if (venta.idFleteroCarga === 0) return false;
 
       // 9. dsSucursal = "CASA CENTRAL ROSARIO"
       if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') return false;
@@ -421,7 +421,7 @@ export class ChessService {
             pedido: nuevoPedido,
           });
 
-          await this.em.persistAndFlush([nuevoPedido, nuevoMovimiento]);
+          await this.em.persist([nuevoPedido, nuevoMovimiento]).flush();
 
           result.totalPedidosCreados++;
           result.totalMovimientosCreados++;

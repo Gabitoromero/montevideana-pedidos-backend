@@ -18,7 +18,7 @@ export class PedidoService {
       idPedido: typeof data.idPedido === 'string' ? parseInt(data.idPedido) : data.idPedido,
       dsFletero: data.dsFletero,
     });
-    await this.em.persistAndFlush(pedido);
+    await this.em.persist(pedido).flush();
     return pedido;
   }
 

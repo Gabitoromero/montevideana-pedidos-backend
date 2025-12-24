@@ -4,6 +4,15 @@ POST http://localhost:3000/api/estados
 Content-Type: application/json
 
 {
+  "nombreEstado": "CHESS"
+}
+
+### Crear Tipo de Estado
+POST http://localhost:3000/api/estados
+//Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
   "nombreEstado": "PENDIENTE"
 }
 

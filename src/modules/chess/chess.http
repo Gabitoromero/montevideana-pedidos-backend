@@ -35,3 +35,6 @@ GET http://localhost:3000/api/chess/ventas?fechaDesde=2025-12-01&fechaHasta=2025
 ###
 GET http://localhost:3000/api/chess/ventas?fechaDesde=2025/12/16&fechaHasta=2025/12/16&empresas=1&detallado=true&nroLote=2
 
+
+###
+POST http://localhost:3000/api/chess/sync

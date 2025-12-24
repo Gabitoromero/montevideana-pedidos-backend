@@ -1,6 +1,6 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { ChessService } from './chess.service.js';
-import type { MikroORM } from '@mikro-orm/core';
+import { MikroORM } from '@mikro-orm/core';
 import type { MySqlDriver } from '@mikro-orm/mysql';
 
 /**
@@ -8,11 +8,11 @@ import type { MySqlDriver } from '@mikro-orm/mysql';
  * Se ejecuta cada 10 minutos entre las 6:00 AM y 10:00 PM
  */
 export class ChessScheduler {
-  private chessService: ChessService;
+  private orm: MikroORM;
   private task: ScheduledTask | null = null;
 
-  constructor(chessService: ChessService) {
-    this.chessService = chessService;
+  constructor(orm: MikroORM) {
+    this.orm = orm;
   }
 
   /**
@@ -23,11 +23,19 @@ export class ChessScheduler {
     // */10 6-22 * * * = cada 10 minutos, entre las 6 y las 22 horas
     this.task = cron.schedule('*/10 6-22 * * *', async () => {
       console.log('\n🔄 ========== CRON: Iniciando sincronización automática ==========');
+      
+      // Crear un fork del EntityManager para esta ejecución
+      const em = this.orm.em.fork();
+      const chessService = new ChessService(em);
+      
       try {
-        await this.chessService.syncVentas();
+        await chessService.syncVentas();
       } catch (error: any) {
         console.error('❌ Error en sincronización automática:', error.message);
         console.error(error);
+      } finally {
+        // Limpiar el EntityManager después de la ejecución
+        await em.clear();
       }
     });
 
@@ -55,9 +63,8 @@ export class ChessScheduler {
 /**
  * Inicializar y exportar el scheduler
  */
-export async function initChessScheduler(orm: MikroORM<MySqlDriver>): Promise<ChessScheduler> {
-  const chessService = new ChessService(orm.em);
-  const scheduler = new ChessScheduler(chessService);
+export async function initChessScheduler(orm: MikroORM): Promise<ChessScheduler> {
+  const scheduler = new ChessScheduler(orm);
   scheduler.start();
   return scheduler;
 }

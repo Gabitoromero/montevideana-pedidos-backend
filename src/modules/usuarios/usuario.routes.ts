@@ -7,6 +7,8 @@ import { authMiddleware } from '../../shared/auth/auth.middleware.js';
 const router = Router();
 const controller = new UsuarioController();
 
+//router.use(authMiddleware);
+
 // Crear usuario (sin autenticación para permitir registro)
 router.post(
   '/',

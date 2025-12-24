@@ -63,7 +63,7 @@ PUT http://localhost:3000/api/estados/4
 Content-Type: application/json
 
 {
-  "nombreEstado": "EN PREPARACION"
+  "nombreEstado": "PAGADO"
 }
 
 ###

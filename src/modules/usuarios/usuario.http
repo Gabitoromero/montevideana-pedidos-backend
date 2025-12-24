@@ -84,7 +84,7 @@ GET {{baseUrl}}/usuarios
 ###
 
 ### Obtener usuario por ID
-GET {{baseUrl}}/usuarios/6
+GET {{baseUrl}}/usuarios/2
 //Authorization: Bearer {{accessToken}}
 
 ###
@@ -105,4 +105,9 @@ Content-Type: {{contentType}}
 
 ### Eliminar usuario
 DELETE {{baseUrl}}/usuarios/2
+//Authorization: Bearer {{accessToken}}
+
+
+### Dar de alta usuario
+PATCH {{baseUrl}}/usuarios/2/activar
 //Authorization: Bearer {{accessToken}}

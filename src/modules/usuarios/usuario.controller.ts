@@ -126,4 +126,18 @@ export class UsuarioController {
 
     return { message: 'Usuario desactivado exitosamente' };
   }
+
+  async darAlta(id: number) {
+    const em = fork();
+    const usuario = await em.findOne(Usuario, { id });
+
+    if (!usuario) {
+      throw AppError.notFound(`Usuario con ID ${id} no encontrado`);
+    }
+
+    usuario.activo = true;
+    await em.flush();
+
+    return { message: 'Usuario activado exitosamente' };
+  }
 }

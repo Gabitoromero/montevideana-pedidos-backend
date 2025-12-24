@@ -61,13 +61,27 @@ router.put(
   }
 );
 
-// Eliminar usuario
+// dar de baja usuario
 router.delete(
   '/:id',
   validateSchema(usuarioIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await controller.delete(req.params.id as unknown as number);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// dar de alta usuario
+router.patch(
+  '/:id/activar',
+  validateSchema(usuarioIdSchema, 'params'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await controller.darAlta(req.params.id as unknown as number);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);

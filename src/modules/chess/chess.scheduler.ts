@@ -1,6 +1,7 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { ChessService } from './chess.service.js';
-import { initORM } from '../../shared/db/orm.js';
+import type { MikroORM } from '@mikro-orm/core';
+import type { MySqlDriver } from '@mikro-orm/mysql';
 
 /**
  * Scheduler para sincronización automática de ventas CHESS
@@ -54,8 +55,7 @@ export class ChessScheduler {
 /**
  * Inicializar y exportar el scheduler
  */
-export async function initChessScheduler(): Promise<ChessScheduler> {
-  const orm = await initORM();
+export async function initChessScheduler(orm: MikroORM<MySqlDriver>): Promise<ChessScheduler> {
   const chessService = new ChessService(orm.em);
   const scheduler = new ChessScheduler(chessService);
   scheduler.start();

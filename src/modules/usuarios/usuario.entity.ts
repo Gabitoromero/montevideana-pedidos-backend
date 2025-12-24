@@ -26,7 +26,4 @@ export class Usuario {
 
   @OneToMany(() => Movimiento, (movimiento) => movimiento.usuario)
   movimientos = new Collection<Movimiento>(this);
-
-
-
 }

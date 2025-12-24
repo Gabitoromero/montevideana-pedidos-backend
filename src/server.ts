@@ -30,7 +30,7 @@ async function bootstrap() {
 
     // Iniciar scheduler de CHESS
     console.log('⏰ Iniciando scheduler de sincronización CHESS...');
-    const chessScheduler = await initChessScheduler();
+    const chessScheduler = await initChessScheduler(orm);
     console.log('✅ Scheduler CHESS activo');
 
     // Manejo de señales de cierre

@@ -2,17 +2,23 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { ChessController } from './chess.controller.js';
 import { authMiddleware } from '../../shared/auth/auth.middleware.js';
 import { RequestContext } from '@mikro-orm/core';
-import { initORM } from '../../shared/db/orm.js';
+import { getORM } from '../../shared/db/orm.js';
 
 const router = Router();
 
-// Inicializar ORM y controlador
-const orm = await initORM();
-const controller = new ChessController(orm.em);
+// Lazy initialization
+let controller: ChessController;
+
+const getController = () => {
+  if (!controller) {
+    controller = new ChessController(getORM().em);
+  }
+  return controller;
+};
 
 // Middleware para crear un contexto de EntityManager por request
 router.use((req, res, next) => {
-  RequestContext.create(orm.em, next);
+  RequestContext.create(getORM().em, next);
 });
 
 // Todas las rutas requieren autenticación
@@ -23,7 +29,7 @@ router.post(
   '/test-connection',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.testConnection();
+      const result = await getController().testConnection();
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -36,7 +42,7 @@ router.post(
   '/sync',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await controller.sync(req, res, next);
+      await getController().sync(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -50,7 +56,7 @@ router.get(
     try {
       const { fechaDesde, fechaHasta, empresas, detallado, nroLote } = req.query;
       
-      const result = await controller.getVentasDelDia({
+      const result = await getController().getVentasDelDia({
         fechaDesde: fechaDesde as string,
         fechaHasta: fechaHasta as string,
         empresas: empresas as string || undefined,
@@ -65,7 +71,7 @@ router.get(
   }
 );
 
-router.get('/diagnostico', (req: Request, res: Response, next: NextFunction) => controller.getReporteRomina(req, res, next));
+//router.get('/diagnostico', (req: Request, res: Response, next: NextFunction) => controller.getReporteRomina(req, res, next));
 
 // // Obtener pedido por número desde CHESS
 // router.get(

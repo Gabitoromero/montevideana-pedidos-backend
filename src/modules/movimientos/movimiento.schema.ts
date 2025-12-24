@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createMovimientoSchema = z.object({
   usuarioId: z.number().int().positive('El ID de usuario debe ser un número positivo'),
-  nroPedido: z.string().min(1, 'El número de pedido es requerido'),
+  idPedido: z.number().int().positive('El ID de pedido debe ser un número positivo'),
   estadoInicial: z.number().int().positive('El estado inicial debe ser un número positivo'),
   estadoFinal: z.number().int().positive('El estado final debe ser un número positivo'),
 }).refine((data) => data.estadoInicial !== data.estadoFinal, {
@@ -15,7 +15,7 @@ export const movimientoIdSchema = z.object({
 });
 
 export const movimientoPorPedidoSchema = z.object({
-  nroPedido: z.string().min(1, 'El número de pedido es requerido'),
+  idPedido: z.string().regex(/^\d+$/, 'El ID de pedido debe ser un número').transform(Number),
 });
 
 export const movimientoQuerySchema = z.object({
@@ -27,7 +27,9 @@ export const movimientoQuerySchema = z.object({
 });
 
 export const inicializarChessSchema = z.object({
-  nroPedido: z.string().min(1, 'El número de pedido es requerido'),
+  idPedido: z.number().int().positive('El ID de pedido debe ser un número positivo'),
+  fechaHora: z.string().datetime('La fecha y hora deben estar en formato ISO 8601'),
+  dsFletero: z.string().min(1, 'El nombre del fletero es requerido'),
 });
 
 export type CreateMovimientoDTO = z.infer<typeof createMovimientoSchema>;

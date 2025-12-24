@@ -10,12 +10,16 @@ import tipoEstadoRoutes from './modules/estados/tipoEstado.routes.js';
 import reglaRoutes from './modules/reglas/regla.routes.js';
 import movimientoRoutes from './modules/movimientos/movimiento.routes.js';
 import chessRoutes from './modules/chess/chess.routes.js';
+import pedidoRoutes from './modules/pedidos/pedido.routes.js';
 
 export const createApp = (): Application => {
   const app = express();
 
   // Middlewares
-  app.use(cors());
+  app.use(cors({
+    origin: 'http://localhost:5174', //'http://localhost:5173'// La URL de tu Frontend
+    credentials: true // Importante para headers de autorización
+  }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -31,6 +35,7 @@ export const createApp = (): Application => {
   app.use('/api/reglas', reglaRoutes);
   app.use('/api/movimientos', movimientoRoutes);
   app.use('/api/chess', chessRoutes);
+  app.use('/api/pedidos', pedidoRoutes);
 
   // 404 Handler
   app.use((req: Request, res: Response) => {

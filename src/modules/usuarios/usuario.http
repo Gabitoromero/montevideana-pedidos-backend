@@ -22,10 +22,22 @@ Content-Type: {{contentType}}
   "username": "peter",
   "nombre": "Pedro",
   "apellido": "Gonzales",
-  "sector": "Producción",
+  "sector": "armado",
   "password": "1234"
 }
 
+
+### Crear Usuario
+POST {{baseUrl}}/usuarios
+Content-Type: {{contentType}}
+
+{
+  "username": "marce",
+  "nombre": "Marcela",
+  "apellido": "Macia",
+  "sector": "facturacion",
+  "password": "1234"
+}
 ### Crear Usuario
 POST {{baseUrl}}/usuarios
 Content-Type: {{contentType}}
@@ -34,9 +46,36 @@ Content-Type: {{contentType}}
   "username": "goat",
   "nombre": "Lionel",
   "apellido": "Messi",
-  "sector": "Producción",
+  "sector": "admin",
   "password": "1234"
 }
+
+
+### Crear Usuario
+POST {{baseUrl}}/usuarios
+Content-Type: {{contentType}}
+
+{
+  "username": "romi",
+  "nombre": "Romina",
+  "apellido": "Cosci",
+  "sector": "admin",
+  "password": "1234"
+}
+
+
+### Crear Usuario
+POST {{baseUrl}}/usuarios
+Content-Type: {{contentType}}
+
+{
+  "username": "random",
+  "nombre": "random",
+  "apellido": "random",
+  "sector": "facturacion",
+  "password": "1234"
+}
+
 
 ### Obtener todos los usuarios
 GET {{baseUrl}}/usuarios
@@ -45,21 +84,21 @@ GET {{baseUrl}}/usuarios
 ###
 
 ### Obtener usuario por ID
-GET {{baseUrl}}/usuarios/1
+GET {{baseUrl}}/usuarios/6
 //Authorization: Bearer {{accessToken}}
 
 ###
 
 ### Actualizar usuario
-PUT {{baseUrl}}/usuarios/1
+PUT {{baseUrl}}/usuarios/6
 //Authorization: Bearer {{accessToken}}
 Content-Type: {{contentType}}
 
 {
   "username": "juanca",
   "nombre": "Juan Carlos",
-  "sector": "Logística",
-  "password": "abcd"
+  "sector": "facturacion",
+  "password": "1224"
 }
 
 ###

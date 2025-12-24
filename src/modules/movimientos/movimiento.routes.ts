@@ -44,13 +44,14 @@ router.get(
   }
 );
 
-// Obtener movimiento por ID
+// Obtener movimiento por pedido y fecha
 router.get(
-  '/:id',
-  validateSchema(movimientoIdSchema, 'params'),
+  '/pedido/:idPedido/fecha/:fechaHora',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.findById(req.params.id as unknown as number);
+      const idPedido = parseInt(req.params.idPedido, 10);
+      const fechaHora = new Date(req.params.fechaHora);
+      const result = await controller.findByPedidoAndFecha(idPedido, fechaHora);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -60,11 +61,12 @@ router.get(
 
 // Obtener historial de movimientos de un pedido
 router.get(
-  '/pedido/:nroPedido',
+  '/pedido/:idPedido',
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.findByNroPedido(req.params.nroPedido);
+      const idPedido = parseInt(req.params.idPedido, 10);
+      const result = await controller.findByIdPedido(idPedido);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -74,11 +76,12 @@ router.get(
 
 // Obtener estado actual de un pedido
 router.get(
-  '/pedido/:nroPedido/estado-actual',
+  '/pedido/:idPedido/estado-actual',
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.getEstadoActual(req.params.nroPedido);
+      const idPedido = parseInt(req.params.idPedido, 10);
+      const result = await controller.getEstadoActual(idPedido);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -92,7 +95,7 @@ router.post(
   validateSchema(inicializarChessSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.inicializarDesdeChess(req.body.nroPedido);
+      const result = await controller.inicializarDesdeChess(req.body);
       res.status(201).json({ success: true, data: result });
     } catch (error) {
       next(error);

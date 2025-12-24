@@ -21,12 +21,12 @@ export class Usuario {
   @Property({ nullable: false, unique: false, type: 'string' })
   passwordHash!: string;
 
+  @Property({ nullable: false, unique: false, type: 'bool' })
+  activo!: boolean;
+
   @OneToMany(() => Movimiento, (movimiento) => movimiento.usuario)
   movimientos = new Collection<Movimiento>(this);
 
-  // @Property({ onCreate: () => new Date() })
-  // createdAt: Date = new Date();
 
-  // @Property({ onUpdate: () => new Date() })
-  // updatedAt: Date = new Date();
+
 }

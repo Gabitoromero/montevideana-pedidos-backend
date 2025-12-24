@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
 import { initORM, RequestContext } from './shared/db/orm.js';
+import { initChessScheduler } from './modules/chess/chess.scheduler.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -27,9 +28,19 @@ async function bootstrap() {
       console.log(`📦 Entorno: ${process.env.NODE_ENV || 'development'}`);
     });
 
+    // Iniciar scheduler de CHESS
+    console.log('⏰ Iniciando scheduler de sincronización CHESS...');
+    const chessScheduler = await initChessScheduler();
+    console.log('✅ Scheduler CHESS activo');
+
     // Manejo de señales de cierre
     const gracefulShutdown = async (signal: string) => {
       console.log(`\n${signal} recibido. Cerrando servidor...`);
+      
+      // Detener scheduler
+      chessScheduler.stop();
+      
+      // Cerrar conexión a BD
       await orm.close();
       console.log('✅ Conexión a base de datos cerrada');
       process.exit(0);

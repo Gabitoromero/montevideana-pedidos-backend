@@ -2,6 +2,7 @@ import { fork } from '../../shared/db/orm.js';
 import { Movimiento } from './movimiento.entity.js';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
+import { Pedido } from '../pedidos/pedido.entity.js';
 import { ReglaController } from '../reglas/regla.controller.js';
 import { CreateMovimientoDTO, MovimientoQueryDTO } from './movimiento.schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
@@ -20,7 +21,13 @@ export class MovimientoController {
       throw AppError.notFound(`Usuario con ID ${data.usuarioId} no encontrado`);
     }
 
-    // 2. Validar que ambos estados existen
+    // 2. Validar que el pedido existe
+    const pedido = await em.findOne(Pedido, { idPedido: data.idPedido });
+    if (!pedido) {
+      throw AppError.notFound(`Pedido con ID ${data.idPedido} no encontrado`);
+    }
+
+    // 3. Validar que ambos estados existen
     const estadoInicial = await em.findOne(TipoEstado, { id: data.estadoInicial });
     if (!estadoInicial) {
       throw AppError.notFound(`Estado inicial con código ${data.estadoInicial} no encontrado`);
@@ -31,7 +38,7 @@ export class MovimientoController {
       throw AppError.notFound(`Estado final con código ${data.estadoFinal} no encontrado`);
     }
 
-    // 3. Validar que la transición es legal según las reglas de EstadoNecesario
+    // 4. Validar que la transición es legal según las reglas de EstadoNecesario
     const esTransicionLegal = await this.reglaController.validarTransicion(
       data.estadoInicial,
       data.estadoFinal
@@ -39,14 +46,14 @@ export class MovimientoController {
 
     if (!esTransicionLegal) {
       throw AppError.badRequest(
-        `Transición ilegal: El pedido ${data.nroPedido} no puede pasar al estado "${estadoFinal.nombreEstado}" porque no ha pasado por los estados necesarios previos`
+        `Transición ilegal: El pedido ${data.idPedido} no puede pasar al estado "${estadoFinal.nombreEstado}" porque no ha pasado por los estados necesarios previos`
       );
     }
 
-    // 4. Crear el movimiento
+    // 5. Crear el movimiento
     const movimiento = em.create(Movimiento, {
       fechaHora: new Date(),
-      nroPedido: data.nroPedido,
+      pedido: pedido,
       estadoInicial: estadoInicial,
       estadoFinal: estadoFinal,
       usuario: usuario
@@ -55,9 +62,12 @@ export class MovimientoController {
     await em.persist(movimiento).flush();
 
     return {
-      id: movimiento.id,
       fechaHora: movimiento.fechaHora,
-      nroPedido: movimiento.nroPedido,
+      pedido: {
+        idPedido: pedido.idPedido,
+        fechaHora: pedido.fechaHora,
+        dsFletero: pedido.dsFletero
+      },
       estadoInicial: {
         idEstado: estadoInicial.id,
         nombreEstado: estadoInicial.nombreEstado
@@ -105,7 +115,7 @@ export class MovimientoController {
       Movimiento,
       where,
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal'],
+        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
         orderBy: { fechaHora: 'DESC' },
       }
     );
@@ -115,9 +125,12 @@ export class MovimientoController {
     }
 
     return movimientos.map((m) => ({
-      id: m.id,
       fechaHora: m.fechaHora,
-      nroPedido: m.nroPedido,
+      pedido: {
+        idPedido: m.pedido.idPedido,
+        fechaHora: m.pedido.fechaHora,
+        dsFletero: m.pedido.dsFletero
+      },
       estadoInicial: m.estadoInicial,
       estadoFinal: m.estadoFinal,
       nombreEstadoInicial: m.estadoInicial.nombreEstado,
@@ -131,22 +144,30 @@ export class MovimientoController {
     }));
   }
 
-  async findById(id: number) {
+  async findByPedidoAndFecha(idPedido: number, fechaHora: Date) {
     const em = fork();
+    const pedido = await em.findOne(Pedido, { idPedido });
+    if (!pedido) {
+      throw AppError.notFound(`Pedido con ID ${idPedido} no encontrado`);
+    }
+
     const movimiento = await em.findOne(
       Movimiento,
-      { id },
-      { populate: ['usuario', 'estadoInicial', 'estadoFinal'] }
+      { pedido, fechaHora },
+      { populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'] }
     );
 
     if (!movimiento) {
-      throw AppError.notFound(`Movimiento con ID ${id} no encontrado`);
+      throw AppError.notFound(`Movimiento no encontrado para el pedido ${idPedido} en la fecha ${fechaHora}`);
     }
 
     return {
-      id: movimiento.id,
       fechaHora: movimiento.fechaHora,
-      nroPedido: movimiento.nroPedido,
+      pedido: {
+        idPedido: movimiento.pedido.idPedido,
+        fechaHora: movimiento.pedido.fechaHora,
+        dsFletero: movimiento.pedido.dsFletero
+      },
       estadoInicial: movimiento.estadoInicial,
       estadoFinal: movimiento.estadoFinal,
       nombreEstadoInicial: movimiento.estadoInicial.nombreEstado,
@@ -160,20 +181,29 @@ export class MovimientoController {
     };
   }
 
-  async findByNroPedido(nroPedido: string) {
+  async findByIdPedido(idPedido: number) {
     const em = fork();
+    const pedido = await em.findOne(Pedido, { idPedido });
+    if (!pedido) {
+      throw AppError.notFound(`Pedido con ID ${idPedido} no encontrado`);
+    }
+
     const movimientos = await em.find(
       Movimiento,
-      { nroPedido },
+      { pedido },
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal'],
+        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
         orderBy: { fechaHora: 'ASC' },
       }
     );
 
     return movimientos.map((m) => ({
-      id: m.id,
       fechaHora: m.fechaHora,
+      pedido: {
+        idPedido: m.pedido.idPedido,
+        fechaHora: m.pedido.fechaHora,
+        dsFletero: m.pedido.dsFletero
+      },
       estadoInicial: m.estadoInicial,
       estadoFinal: m.estadoFinal,
       nombreEstadoInicial: m.estadoInicial.nombreEstado,
@@ -210,42 +240,50 @@ export class MovimientoController {
   //     fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
   //   };
   // }
-  async getEstadoActual(nroPedido: string) {
-  const em = fork();
-  
-  // Buscar TODOS los movimientos del pedido, ordenados DESC
-  const movimientos = await em.find(
-    Movimiento,
-    { nroPedido },
-    {
-      populate: ['estadoFinal'],
-      orderBy: { fechaHora: 'DESC' },
-      limit: 1  // Solo traer el primero (el más reciente)
+  async getEstadoActual(idPedido: number) {
+    const em = fork();
+    
+    const pedido = await em.findOne(Pedido, { idPedido });
+    if (!pedido) {
+      throw AppError.notFound(`Pedido con ID ${idPedido} no encontrado`);
     }
-  );
 
-  if (!movimientos || movimientos.length === 0) {
-    throw AppError.notFound(`No se encontraron movimientos para el pedido ${nroPedido}`);
-  }
+    // Buscar TODOS los movimientos del pedido, ordenados DESC
+    const movimientos = await em.find(
+      Movimiento,
+      { pedido },
+      {
+        populate: ['estadoFinal', 'pedido'],
+        orderBy: { fechaHora: 'DESC' },
+        limit: 1  // Solo traer el primero (el más reciente)
+      }
+    );
 
-  const ultimoMovimiento = movimientos[0];
+    if (!movimientos || movimientos.length === 0) {
+      throw AppError.notFound(`No se encontraron movimientos para el pedido ${idPedido}`);
+    }
 
-  return {
-    nroPedido,
-    estadoActual: 
-    {
-      //idEstado: ultimoMovimiento.estadoFinal.id,
-      nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado
-    },
-    fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
-  };
+    const ultimoMovimiento = movimientos[0];
+
+    return {
+      pedido: {
+        idPedido: ultimoMovimiento.pedido.idPedido,
+        fechaHora: ultimoMovimiento.pedido.fechaHora,
+        dsFletero: ultimoMovimiento.pedido.dsFletero
+      },
+      estadoActual: {
+        idEstado: ultimoMovimiento.estadoFinal.id,
+        nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado
+      },
+      fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
+    };
   }
 
   /**
    * Inicializa un pedido desde CHESS con el usuario Sistema
-   * Estado 0 (CHESS) → Estado 1 (Pendiente)
+   * Estado 6 (CHESS) → Estado 1 (Pendiente)
    */
-  async inicializarDesdeChess(nroPedido: string) {
+  async inicializarDesdeChess(data: { idPedido: number; fechaHora: string; dsFletero: string }) {
     const em = fork();
     const USUARIO_SISTEMA_ID = 1; // ID del usuario "Sistema"
     const ESTADO_CHESS_ID = 6;     // Estado inicial de CHESS
@@ -263,7 +301,7 @@ export class MovimientoController {
     const estadoChess = await em.findOne(TipoEstado, { id: ESTADO_CHESS_ID });
     if (!estadoChess) {
       throw AppError.internal(
-        'Estado CHESS (0) no encontrado. Debe existir en la base de datos.'
+        'Estado CHESS (6) no encontrado. Debe existir en la base de datos.'
       );
     }
 
@@ -275,27 +313,38 @@ export class MovimientoController {
     }
 
     // 3. Verificar que el pedido no existe ya
-    const pedidoExistente = await em.findOne(Movimiento, { nroPedido });
+    const pedidoExistente = await em.findOne(Pedido, { idPedido: data.idPedido });
     if (pedidoExistente) {
       throw AppError.conflict(
-        `El pedido ${nroPedido} ya existe en el sistema. No se puede inicializar nuevamente.`
+        `El pedido ${data.idPedido} ya existe en el sistema. No se puede inicializar nuevamente.`
       );
     }
 
-    // 4. Crear el movimiento inicial (sin validar reglas porque es automático)
+    // 4. Crear el pedido primero
+    const pedido = em.create(Pedido, {
+      idPedido: data.idPedido,
+      fechaHora: new Date(data.fechaHora),
+      dsFletero: data.dsFletero
+    });
+
+    // 5. Crear el movimiento inicial (sin validar reglas porque es automático)
     const movimiento = em.create(Movimiento, {
       fechaHora: new Date(),
-      nroPedido: nroPedido,
+      pedido: pedido,
       estadoInicial: estadoChess,
       estadoFinal: estadoPendiente,
       usuario: usuarioSistema
     });
 
-    await em.persist(movimiento).flush();
+    await em.persist([pedido, movimiento]).flush();
 
     return {
-      id: movimiento.id,
-      nroPedido: movimiento.nroPedido,
+      fechaHora: movimiento.fechaHora,
+      pedido: {
+        idPedido: pedido.idPedido,
+        fechaHora: pedido.fechaHora,
+        dsFletero: pedido.dsFletero
+      },
       estadoInicial: {
         idEstado: estadoChess.id,
         nombreEstado: estadoChess.nombreEstado

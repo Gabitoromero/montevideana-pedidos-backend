@@ -1,17 +1,12 @@
 import { Entity, PrimaryKey, Property, ManyToOne, Rel } from '@mikro-orm/core';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
+import { Pedido } from '../pedidos/pedido.entity.js';
 
 @Entity({ tableName: 'movimientos' })
 export class Movimiento {
-  @PrimaryKey({ type: 'number', autoincrement: true })
-  id?: number;
-
-  @Property({ nullable: false, type: 'datetime' })
-  fechaHora: Date = new Date();
-
-  @Property({ nullable: false, type: 'string' })
-  nroPedido!: string;
+  @PrimaryKey({ type: 'datetime' })
+  fechaHora!: Date;
 
   @ManyToOne(() => TipoEstado, { nullable: false })
   estadoInicial!: Rel<TipoEstado>;
@@ -21,4 +16,7 @@ export class Movimiento {
 
   @ManyToOne(() => Usuario, { nullable: false })
   usuario!: Rel<Usuario>;
+
+  @ManyToOne(() => Pedido, { nullable: false, primary: true })
+  pedido!: Rel<Pedido>;
 }

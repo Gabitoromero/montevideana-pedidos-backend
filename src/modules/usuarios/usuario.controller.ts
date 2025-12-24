@@ -15,7 +15,8 @@ export class UsuarioController {
       nombre: data.nombre,
       apellido: data.apellido,
       sector: data.sector,
-      passwordHash
+      passwordHash,
+      activo: true,
     });
 
     await em.persist(usuario).flush();
@@ -26,15 +27,16 @@ export class UsuarioController {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,
+      activo: usuario.activo,
     };
   }
 
   async findAll() {
     const em = fork();
-    const usuarios = await em.find(Usuario, {});
+    const usuarios = await em.findAll(Usuario);
     
     if (usuarios.length === 0) {
-      throw AppError.notFound('No hay usuarios registrados');
+      throw AppError.notFound('No hay usuarios activos registrados');
     }
 
     return usuarios.map((u: Usuario) => ({
@@ -43,6 +45,25 @@ export class UsuarioController {
       nombre: u.nombre,
       apellido: u.apellido,
       sector: u.sector,
+      activo: u.activo,
+    }));
+  }
+
+  async findActiveUsers() {
+    const em = fork();
+    const usuarios = await em.find(Usuario, { activo: true });
+    
+    if (usuarios.length === 0) {
+      throw AppError.notFound('No hay usuarios activos');
+    }
+
+    return usuarios.map((u: Usuario) => ({
+      id: u.id,
+      username: u.username,
+      nombre: u.nombre,
+      apellido: u.apellido,
+      sector: u.sector,
+      activo: u.activo,
     }));
   }
 
@@ -60,6 +81,7 @@ export class UsuarioController {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,
+      activo: usuario.activo,
     };
   }
 
@@ -87,6 +109,7 @@ export class UsuarioController {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,
+      activo: usuario.activo,
     };
   }
 
@@ -98,8 +121,9 @@ export class UsuarioController {
       throw AppError.notFound(`Usuario con ID ${id} no encontrado`);
     }
 
-    await em.remove(usuario).flush();
+    usuario.activo = false;
+    await em.flush();
 
-    return { message: 'Usuario eliminado exitosamente' };
+    return { message: 'Usuario desactivado exitosamente' };
   }
 }

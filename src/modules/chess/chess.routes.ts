@@ -1,9 +1,19 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { ChessController } from './chess.controller.js';
 import { authMiddleware } from '../../shared/auth/auth.middleware.js';
+import { RequestContext } from '@mikro-orm/core';
+import { initORM } from '../../shared/db/orm.js';
 
 const router = Router();
-const controller = new ChessController();
+
+// Inicializar ORM y controlador
+const orm = await initORM();
+const controller = new ChessController(orm.em);
+
+// Middleware para crear un contexto de EntityManager por request
+router.use((req, res, next) => {
+  RequestContext.create(orm.em, next);
+});
 
 // Todas las rutas requieren autenticación
 //router.use(authMiddleware);
@@ -15,6 +25,18 @@ router.post(
     try {
       const result = await controller.testConnection();
       res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Sincronización manual de ventas CHESS
+router.post(
+  '/sync',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.sync(req, res, next);
     } catch (error) {
       next(error);
     }

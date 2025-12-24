@@ -87,6 +87,83 @@ export class PedidoService {
   }
 
   /**
+   * Buscar pedidos del día de hoy cuyo último movimiento tenga un estado final específico
+   */
+  async findByEstadoFinal(idEstado: number): Promise<any[]> {
+    const hoy = new Date();
+    const startOfDay = new Date(hoy);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(hoy);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Buscar todos los pedidos de hoy con sus movimientos
+    const pedidos = await this.em.find(
+      Pedido,
+      {
+        fechaHora: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      },
+      { 
+        populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario'],
+        orderBy: { fechaHora: 'DESC' }
+      }
+    );
+
+    // Filtrar pedidos cuyo último movimiento tenga el estado final buscado
+    const resultado = pedidos
+      .map(pedido => {
+        // Obtener todos los movimientos del pedido ordenados por fecha DESC
+        const movimientos = pedido.movimientos.getItems().sort((a, b) => 
+          b.fechaHora.getTime() - a.fechaHora.getTime()
+        );
+
+        // Si no hay movimientos, no incluir este pedido
+        if (movimientos.length === 0) {
+          return null;
+        }
+
+        const ultimoMovimiento = movimientos[0];
+
+        // Verificar si el estado final del último movimiento coincide
+        if (ultimoMovimiento.estadoFinal.id !== idEstado) {
+          return null;
+        }
+
+        // Retornar la información del pedido con su último movimiento
+        return {
+          pedido: {
+            fechaHora: pedido.fechaHora,
+            idPedido: pedido.idPedido,
+            dsFletero: pedido.dsFletero,
+          },
+          ultimoMovimiento: {
+            fechaHora: ultimoMovimiento.fechaHora,
+            estadoInicial: {
+              id: ultimoMovimiento.estadoInicial.id,
+              nombreEstado: ultimoMovimiento.estadoInicial.nombreEstado,
+            },
+            estadoFinal: {
+              id: ultimoMovimiento.estadoFinal.id,
+              nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado,
+            },
+            usuario: {
+              id: ultimoMovimiento.usuario.id,
+              nombre: ultimoMovimiento.usuario.nombre,
+              apellido: ultimoMovimiento.usuario.apellido,
+            },
+          },
+        };
+      })
+      .filter(item => item !== null) // Eliminar nulls
+      .sort((a, b) => b!.ultimoMovimiento.fechaHora.getTime() - a!.ultimoMovimiento.fechaHora.getTime()); // Ordenar por fecha más reciente
+
+    return resultado as any[];
+  }
+
+  /**
    * Eliminar un pedido
    */
   async delete(fechaHora: Date | string, idPedido: number | string): Promise<void> {
@@ -94,6 +171,6 @@ export class PedidoService {
     if (!pedido) {
       throw new AppError('Pedido no encontrado', 404);
     }
-    await this.em.removeAndFlush(pedido);
+    await this.em.remove(pedido).flush();
   }
 }

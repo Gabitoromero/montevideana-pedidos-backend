@@ -25,6 +25,7 @@ router.use((req, res, next) => {
 
 // Rutas
 router.get('/', (req, res, next) => getController().findAll(req, res, next));
+router.get('/estado/:idEstado', (req, res, next) => getController().findByEstadoFinal(req, res, next));
 router.get('/:fechaHora/:idPedido', (req, res, next) => getController().findOne(req, res, next));
 router.post('/', (req, res, next) => getController().create(req, res, next));
 router.delete('/:fechaHora/:idPedido', (req, res, next) => getController().delete(req, res, next));

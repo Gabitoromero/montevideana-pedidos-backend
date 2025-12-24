@@ -10,9 +10,10 @@ export interface ChessVentaRaw {
 
   anulado?: "SI" | "NO";
 
-  fechaComprobante?: string;
+  fechaComprobate?: string;
   fechaEntrega?: string;
   fechaAlta?: string;
+  idDeposito?: number;
 
   nombreCliente?: string;
   idFleteroCarga?: number;

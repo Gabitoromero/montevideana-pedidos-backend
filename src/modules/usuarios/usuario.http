@@ -7,7 +7,7 @@ POST {{baseUrl}}/usuarios
 Content-Type: {{contentType}}
 
 {
-  "username": "jarvis",
+  "username": "CHESS",
   "nombre": "Sistema",
   "apellido": "Automático",
   "sector": "CHESS",

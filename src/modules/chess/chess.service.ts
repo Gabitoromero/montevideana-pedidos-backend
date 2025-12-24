@@ -303,34 +303,58 @@ export class ChessService {
   private filterValidSales(ventas: ChessVentaRaw[], fecha: string): ChessVentaRaw[] {
     return ventas.filter((venta) => {
       // 1. idEmpresa = 1
-      if (venta.idEmpresa !== 1) return false;
+      if (venta.idEmpresa !== 1) {
+        return false;
+      }
 
       // 2. dsEmpresa = "MONTHELADO S.A."
-      if (venta.dsEmpresa !== 'MONTHELADO S.A.') return false;
+      if (venta.dsEmpresa !== 'MONTHELADO S.A.') {
+        return false;
+      }
 
       // 3. anulado = "NO"
-      if (venta.anulado !== 'NO') return false;
+      if (venta.anulado !== 'NO') {
+        return false;
+      }
 
       // 4. fechaComprobante = fecha actual
-      if (venta.fechaComprobante !== fecha) return false;
+      if (venta.fechaComprobate != fecha) {
+        return false;
+      }
 
       // 5. fechaEntrega = fecha actual
-      if (venta.fechaEntrega !== fecha) return false;
+      // if (venta.fechaEntrega != fecha) {
+      //   return false;
+      // }
 
       // 6. fechaAlta = fecha actual
-      if (venta.fechaAlta !== fecha) return false;
+      // if (venta.fechaAlta != fecha) {
+      //   return false;
+      // }
 
       // 7. nombreCliente ≠ "CONSUMIDOR FINAL"
-      if (venta.nombreCliente === 'CONSUMIDOR FINAL') return false;
+      if (venta.nombreCliente === 'CONSUMIDOR FINAL') {
+        return false;
+      }
 
       // 8. idFleteroCarga ≠ 0 (tiene fletero asignado)
-      if (venta.idFleteroCarga === 0) return false;
+      if (venta.idFleteroCarga === 0) {
+        return false;
+      }
 
       // 9. dsSucursal = "CASA CENTRAL ROSARIO"
-      if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') return false;
+      if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') {
+        return false;
+      }
 
       // 10. idPedido ≠ 0 (debe tener número de pedido)
-      if (!venta.idPedido || venta.idPedido === 0) return false;
+      if (venta.idPedido === 0) {
+        return false;
+      }
+      //11. Deposito 1
+      if(venta.idDeposito !== 1){
+        return false;
+      }
 
       return true;
     });
@@ -376,11 +400,12 @@ export class ChessService {
 
       // 2. Obtener fecha actual en formato YYYY-MM-DD
       const hoy = new Date();
-      const fechaStr = hoy.toISOString().split('T')[0].replace(/-/g, '/');
+      const fechaStr = hoy.toISOString().split('T')[0].replace(/-/g, '-');
+      const fechaStr2 = hoy.toISOString().split('T')[0].replace(/-/g, '/');
       console.log(`📅 Fecha de sincronización: ${fechaStr}`);
 
       // 3. Obtener todas las ventas del día
-      const todasLasVentas = await this.getAllVentasDelDia(fechaStr);
+      const todasLasVentas = await this.getAllVentasDelDia(fechaStr2);
       result.totalVentasObtenidas = todasLasVentas.length;
 
       // 4. Filtrar ventas válidas

@@ -323,9 +323,9 @@ export class ChessService {
       }
 
       // 5. fechaEntrega = fecha actual
-      // if (venta.fechaEntrega != fecha) {
-      //   return false;
-      // }
+      if (venta.fechaEntrega != fecha) {
+        return false;
+      }
 
       // 6. fechaAlta = fecha actual
       // if (venta.fechaAlta != fecha) {
@@ -333,9 +333,9 @@ export class ChessService {
       // }
 
       // 7. nombreCliente ≠ "CONSUMIDOR FINAL"
-      if (venta.nombreCliente === 'CONSUMIDOR FINAL') {
-        return false;
-      }
+      // if (venta.nombreCliente === 'CONSUMIDOR FINAL') {
+      //   return false;
+      // }
 
       // 8. idFleteroCarga ≠ 0 (tiene fletero asignado)
       if (venta.idFleteroCarga === 0) {
@@ -347,12 +347,16 @@ export class ChessService {
         return false;
       }
 
-      // 10. idPedido ≠ 0 (debe tener número de pedido)
-      if (venta.idPedido === 0) {
-        return false;
-      }
+      // // 10. idPedido ≠ 0 (debe tener número de pedido)
+      // if (venta.idPedido === 0) {
+      //   return false;
+      // }
       //11. Deposito 1
       if(venta.idDeposito !== 1){
+        return false;
+      }
+      //12. Planilla Carga
+      if(venta.planillaCarga === ""){
         return false;
       }
 
@@ -418,7 +422,7 @@ export class ChessService {
         try {
           // Verificar si ya existe un pedido con este idPedido en el día de hoy
           const pedidoExistente = await this.em.count(Pedido, {
-            idPedido: venta.idPedido!,
+            idPedido: venta.planillaCarga!,
             fechaHora: {
               $gte: new Date(hoy.setHours(0, 0, 0, 0)),
               $lte: new Date(hoy.setHours(23, 59, 59, 999)),
@@ -433,7 +437,7 @@ export class ChessService {
           // Crear nuevo Pedido
           const nuevoPedido = this.em.create(Pedido, {
             fechaHora: new Date(),
-            idPedido: venta.idPedido!,
+            idPedido: venta.planillaCarga!,
             dsFletero: venta.dsFleteroCarga || '',
           });
 

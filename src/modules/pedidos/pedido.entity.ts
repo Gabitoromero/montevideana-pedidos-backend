@@ -6,8 +6,8 @@ export class Pedido {
   @PrimaryKey({ type: 'datetime' })
   fechaHora!: Date;
 
-  @PrimaryKey({ type: 'number' })
-  idPedido!: number;
+  @PrimaryKey({ type: 'string' })
+  idPedido!: string;
 
   @Property({ nullable: false, type: 'string' })
   dsFletero!: string;

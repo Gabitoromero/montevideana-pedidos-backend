@@ -21,6 +21,7 @@ export interface ChessVentaRaw {
   dsSucursal?: string;
 
   idPedido?: number;
+  planillaCarga?: string;
 
   subtotalFinal?: number;
 

@@ -10,12 +10,12 @@ export class PedidoService {
    */
   async create(data: {
     fechaHora: Date | string;
-    idPedido: number | string;
+    idPedido: string;
     dsFletero: string;
   }): Promise<Pedido> {
     const pedido = this.em.create(Pedido, {
       fechaHora: typeof data.fechaHora === 'string' ? new Date(data.fechaHora) : data.fechaHora,
-      idPedido: typeof data.idPedido === 'string' ? parseInt(data.idPedido) : data.idPedido,
+      idPedido: data.idPedido,
       dsFletero: data.dsFletero,
     });
     await this.em.persist(pedido).flush();
@@ -25,9 +25,9 @@ export class PedidoService {
   /**
    * Buscar pedido por clave compuesta
    */
-  async findByCompositeKey(fechaHora: Date | string, idPedido: number | string): Promise<Pedido | null> {
+  async findByCompositeKey(fechaHora: Date | string, idPedido: string): Promise<Pedido | null> {
     const fecha = typeof fechaHora === 'string' ? new Date(fechaHora) : fechaHora;
-    const id = typeof idPedido === 'string' ? parseInt(idPedido) : idPedido;
+    const id = idPedido;
     
     return this.em.findOne(Pedido, { fechaHora: fecha, idPedido: id });
   }
@@ -35,7 +35,7 @@ export class PedidoService {
   /**
    * Verificar si existe un pedido por idPedido en una fecha específica
    */
-  async existsByIdPedido(idPedido: number, fecha: Date): Promise<boolean> {
+  async existsByIdPedido(idPedido: string, fecha: Date): Promise<boolean> {
     // Buscar pedidos con el mismo idPedido en el día especificado
     const startOfDay = new Date(fecha);
     startOfDay.setHours(0, 0, 0, 0);
@@ -166,7 +166,7 @@ export class PedidoService {
   /**
    * Eliminar un pedido
    */
-  async delete(fechaHora: Date | string, idPedido: number | string): Promise<void> {
+  async delete(fechaHora: Date | string, idPedido: string): Promise<void> {
     const pedido = await this.findByCompositeKey(fechaHora, idPedido);
     if (!pedido) {
       throw new AppError('Pedido no encontrado', 404);

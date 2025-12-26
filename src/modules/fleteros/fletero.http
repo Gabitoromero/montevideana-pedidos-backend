@@ -1,0 +1,37 @@
+### Listar todos los fleteros
+GET http://localhost:3000/fleteros
+Content-Type: application/json
+
+###
+
+### Listar fleteros activos (con seguimiento)
+GET http://localhost:3000/fleteros/activos
+Content-Type: application/json
+
+###
+
+### Obtener un fletero específico
+GET http://localhost:3000/fleteros/1
+Content-Type: application/json
+
+###
+
+### Actualizar seguimiento de un fletero (activar)
+PATCH http://localhost:3000/fleteros/1
+Content-Type: application/json
+
+{
+  "seguimiento": true
+}
+
+###
+
+### Actualizar seguimiento de un fletero (desactivar)
+PATCH http://localhost:3000/fleteros/1
+Content-Type: application/json
+
+{
+  "seguimiento": false
+}
+
+###

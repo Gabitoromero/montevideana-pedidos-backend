@@ -1,20 +1,23 @@
 ### Obtener todos los pedidos
 GET http://localhost:3000/api/pedidos
 
-### Obtener pedidos del día de hoy cuyo último movimiento esté en estado PENDIENTE (id: 1)
+### Obtener pedidos del día de hoy cuyo último movimiento esté en estado CHESS (id: 1)
 GET http://localhost:3000/api/pedidos/estado/1
 
-### Obtener pedidos del día de hoy cuyo último movimiento esté en estado EN PREPARACIÓN (id: 2)
+### Obtener pedidos del día de hoy cuyo último movimiento esté en estado PENDIENTE (id: 2)
 GET http://localhost:3000/api/pedidos/estado/2
 
-### Obtener pedidos del día de hoy cuyo último movimiento esté en estado LISTO PARA DESPACHO (id: 3)
+### Obtener pedidos del día de hoy cuyo último movimiento esté en estado EN PREPARACION (id: 3)
 GET http://localhost:3000/api/pedidos/estado/3
 
-### Obtener pedidos del día de hoy cuyo último movimiento esté en estado DESPACHADO (id: 4)
+### Obtener pedidos del día de hoy cuyo último movimiento esté en estado PREPARADO (id: 4)
 GET http://localhost:3000/api/pedidos/estado/4
 
-### Obtener pedidos del día de hoy cuyo último movimiento esté en estado ENTREGADO (id: 5)
+### Obtener pedidos del día de hoy cuyo último movimiento esté en estado PAGADO (id: 5)
 GET http://localhost:3000/api/pedidos/estado/5
+
+### Obtener pedidos del día de hoy cuyo último movimiento esté en estado ENTREGADO (id: 6)
+GET http://localhost:3000/api/pedidos/estado/6
 
 ### Obtener un pedido específico por clave compuesta
 GET http://localhost:3000/api/pedidos/2024-12-24T10:00:00.000Z/12345

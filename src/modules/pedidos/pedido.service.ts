@@ -10,13 +10,13 @@ export class PedidoService {
    */
   async create(data: {
     fechaHora: Date | string;
-    idPedido: string;
-    dsFletero: string;
+    idPedido: number | string;
+    fletero: any; // Fletero entity or reference
   }): Promise<Pedido> {
     const pedido = this.em.create(Pedido, {
       fechaHora: typeof data.fechaHora === 'string' ? new Date(data.fechaHora) : data.fechaHora,
-      idPedido: data.idPedido,
-      dsFletero: data.dsFletero,
+      idPedido: typeof data.idPedido === 'string' ? parseInt(data.idPedido) : data.idPedido,
+      fletero: data.fletero,
     });
     await this.em.persist(pedido).flush();
     return pedido;
@@ -25,9 +25,9 @@ export class PedidoService {
   /**
    * Buscar pedido por clave compuesta
    */
-  async findByCompositeKey(fechaHora: Date | string, idPedido: string): Promise<Pedido | null> {
+  async findByCompositeKey(fechaHora: Date | string, idPedido: number | string): Promise<Pedido | null> {
     const fecha = typeof fechaHora === 'string' ? new Date(fechaHora) : fechaHora;
-    const id = idPedido;
+    const id = typeof idPedido === 'string' ? parseInt(idPedido) : idPedido;
     
     return this.em.findOne(Pedido, { fechaHora: fecha, idPedido: id });
   }
@@ -35,7 +35,7 @@ export class PedidoService {
   /**
    * Verificar si existe un pedido por idPedido en una fecha específica
    */
-  async existsByIdPedido(idPedido: string, fecha: Date): Promise<boolean> {
+  async existsByIdPedido(idPedido: number, fecha: Date): Promise<boolean> {
     // Buscar pedidos con el mismo idPedido en el día especificado
     const startOfDay = new Date(fecha);
     startOfDay.setHours(0, 0, 0, 0);
@@ -61,7 +61,7 @@ export class PedidoService {
     if (fecha) {
       return this.findByDate(new Date(fecha));
     }
-    return this.em.find(Pedido, {}, { populate: ['movimientos'] });
+    return this.em.find(Pedido, {}, { populate: ['movimientos', 'fletero'] });
   }
 
   /**
@@ -82,7 +82,7 @@ export class PedidoService {
           $lte: endOfDay,
         },
       },
-      { populate: ['movimientos'] }
+      { populate: ['movimientos', 'fletero'] }
     );
   }
 
@@ -97,7 +97,7 @@ export class PedidoService {
     const endOfDay = new Date(hoy);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Buscar todos los pedidos de hoy con sus movimientos
+    // Buscar todos los pedidos de hoy con sus movimientos y fletero
     const pedidos = await this.em.find(
       Pedido,
       {
@@ -107,7 +107,7 @@ export class PedidoService {
         },
       },
       { 
-        populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario'],
+        populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario', 'fletero'],
         orderBy: { fechaHora: 'DESC' }
       }
     );
@@ -132,12 +132,16 @@ export class PedidoService {
           return null;
         }
 
-        // Retornar la información del pedido con su último movimiento
+        // Retornar la información del pedido con su último movimiento y fletero
         return {
           pedido: {
             fechaHora: pedido.fechaHora,
             idPedido: pedido.idPedido,
-            dsFletero: pedido.dsFletero,
+            fletero: {
+              idFletero: pedido.fletero.idFletero,
+              dsFletero: pedido.fletero.dsFletero,
+              seguimiento: pedido.fletero.seguimiento,
+            },
           },
           ultimoMovimiento: {
             fechaHora: ultimoMovimiento.fechaHora,

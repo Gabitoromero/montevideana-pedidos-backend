@@ -11,6 +11,7 @@ import reglaRoutes from './modules/reglas/regla.routes.js';
 import movimientoRoutes from './modules/movimientos/movimiento.routes.js';
 import chessRoutes from './modules/chess/chess.routes.js';
 import pedidoRoutes from './modules/pedidos/pedido.routes.js';
+import fleteroRoutes from './modules/fleteros/fletero.routes.js';
 
 export const createApp = (): Application => {
   const app = express();
@@ -36,6 +37,7 @@ export const createApp = (): Application => {
   app.use('/api/movimientos', movimientoRoutes);
   app.use('/api/chess', chessRoutes);
   app.use('/api/pedidos', pedidoRoutes);
+  app.use('/api/fleteros', fleteroRoutes);
 
   // 404 Handler
   app.use((req: Request, res: Response) => {

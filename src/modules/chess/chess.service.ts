@@ -8,6 +8,8 @@ import { Pedido } from '../pedidos/pedido.entity.js';
 import { Movimiento } from '../movimientos/movimiento.entity.js';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
+import { FleterosService } from '../fleteros/fletero.service.js';
+import { Fletero } from '../fleteros/fletero.entity.js';
 
 export class ChessService {
   private api: AxiosInstance;
@@ -317,25 +319,25 @@ export class ChessService {
         return false;
       }
 
-      // 4. fechaComprobante = fecha actual
-      if (venta.fechaComprobate != fecha) {
+      // 4. Deposito 1
+      if(venta.idDeposito !== 1){
         return false;
       }
 
-      // 5. fechaEntrega = fecha actual
-      if (venta.fechaEntrega != fecha) {
+      // 5. Liquidacion
+      if(venta.idLiquidacion != 0){
+        return false;
+      }
+      
+      // 6. fechaLiquidacion = fecha actual
+      if (venta.fechaLiquidacion != null) {
         return false;
       }
 
-      // 6. fechaAlta = fecha actual
-      // if (venta.fechaAlta != fecha) {
-      //   return false;
-      // }
-
-      // 7. nombreCliente ≠ "CONSUMIDOR FINAL"
-      // if (venta.nombreCliente === 'CONSUMIDOR FINAL') {
-      //   return false;
-      // }
+      // 7. Planilla Carga
+      if(venta.planillaCarga === ""){
+        return false;
+      }
 
       // 8. idFleteroCarga ≠ 0 (tiene fletero asignado)
       if (venta.idFleteroCarga === 0) {
@@ -347,19 +349,29 @@ export class ChessService {
         return false;
       }
 
+
+      // 7. nombreCliente ≠ "CONSUMIDOR FINAL"
+      // if (venta.nombreCliente === 'CONSUMIDOR FINAL') {
+      //   return false;
+      // }
+
+
       // // 10. idPedido ≠ 0 (debe tener número de pedido)
       // if (venta.idPedido === 0) {
       //   return false;
       // }
-      //11. Deposito 1
-      if(venta.idDeposito !== 1){
-        return false;
-      }
-      //12. Planilla Carga
-      if(venta.planillaCarga === ""){
-        return false;
-      }
 
+      // // 4. fechaComprobante = fecha actual
+      // if (venta.fechaComprobate != fecha) {
+      //   return false;
+      // }
+
+      // // 5. fechaEntrega = fecha actual
+      // if (venta.fechaEntrega != fecha) {
+      //   return false;
+      // }
+
+      
       return true;
     });
   }
@@ -377,6 +389,9 @@ export class ChessService {
       timestamp: startTime.toISOString(),
       totalVentasObtenidas: 0,
       totalVentasFiltradas: 0,
+      totalFleterosCreados: 0,
+      totalFleterosActualizados: 0,
+      totalPedidosDescartadosPorSeguimiento: 0,
       totalPedidosCreados: 0,
       totalMovimientosCreados: 0,
       lotesProcesados: 0,
@@ -417,12 +432,46 @@ export class ChessService {
       result.totalVentasFiltradas = ventasFiltradas.length;
       console.log(`🔍 Ventas filtradas (válidas): ${ventasFiltradas.length}/${todasLasVentas.length}`);
 
-      // 5. Procesar cada venta filtrada
-      for (const venta of ventasFiltradas) {
+      // 5. Sincronizar fleteros desde Chess
+      console.log(`\n📦 ========== SINCRONIZANDO FLETEROS ==========`);
+      const fleteroService = new FleterosService(this.em);
+      
+      // Extraer fleteros únicos de las ventas filtradas
+      const uniqueFleteros = new Map<number, string>();
+      ventasFiltradas.forEach(venta => {
+        if (venta.idFleteroCarga && venta.dsFleteroCarga) {
+          uniqueFleteros.set(venta.idFleteroCarga, venta.dsFleteroCarga);
+        }
+      });
+      
+      console.log(`🚚 Fleteros únicos encontrados: ${uniqueFleteros.size}`);
+      
+      // Sincronizar fleteros (optimizado con Map)
+      const syncResult = await fleteroService.syncFromChess(Array.from(uniqueFleteros.entries()));
+      result.totalFleterosCreados = syncResult.created;
+      result.totalFleterosActualizados = syncResult.updated;
+      
+      // 6. Filtrar ventas por fleteros con seguimiento activo
+      console.log(`\n🔍 ========== FILTRANDO POR SEGUIMIENTO ==========`);
+      const fleterosActivos = await fleteroService.findActivos();
+      const idsFleterosActivos = new Set(fleterosActivos.map(f => f.idFletero));
+      console.log(`✅ Fleteros con seguimiento activo: ${idsFleterosActivos.size}`);
+      
+      const ventasConSeguimiento = ventasFiltradas.filter(venta => 
+        venta.idFleteroCarga && idsFleterosActivos.has(venta.idFleteroCarga)
+      );
+      
+      result.totalPedidosDescartadosPorSeguimiento = ventasFiltradas.length - ventasConSeguimiento.length;
+      console.log(`📊 Ventas con seguimiento: ${ventasConSeguimiento.length}/${ventasFiltradas.length}`);
+      console.log(`⏭️  Pedidos descartados por seguimiento: ${result.totalPedidosDescartadosPorSeguimiento}`);
+
+      // 7. Procesar cada venta con seguimiento activo
+      console.log(`\n📝 ========== CREANDO PEDIDOS ==========`);
+      for (const venta of ventasConSeguimiento) {
         try {
           // Verificar si ya existe un pedido con este idPedido en el día de hoy
           const pedidoExistente = await this.em.count(Pedido, {
-            idPedido: venta.planillaCarga!,
+            idPedido: venta.idPedido!,
             fechaHora: {
               $gte: new Date(hoy.setHours(0, 0, 0, 0)),
               $lte: new Date(hoy.setHours(23, 59, 59, 999)),
@@ -434,11 +483,18 @@ export class ChessService {
             continue;
           }
 
+          // Obtener fletero de la base de datos
+          const fletero = await this.em.findOne(Fletero, { idFletero: venta.idFleteroCarga! });
+          if (!fletero) {
+            console.error(`❌ Fletero ${venta.idFleteroCarga} no encontrado para pedido ${venta.idPedido}`);
+            continue;
+          }
+
           // Crear nuevo Pedido
           const nuevoPedido = this.em.create(Pedido, {
             fechaHora: new Date(),
-            idPedido: venta.planillaCarga!,
-            dsFletero: venta.dsFleteroCarga || '',
+            idPedido: venta.idPedido!,
+            fletero: fletero,
           });
 
           // Crear nuevo Movimiento (CHESS → PENDIENTE)
@@ -471,6 +527,9 @@ export class ChessService {
       console.log(`⏱️  Duración: ${duration.toFixed(2)} segundos`);
       console.log(`📦 Ventas obtenidas de CHESS: ${result.totalVentasObtenidas}`);
       console.log(`🔍 Ventas filtradas (válidas): ${result.totalVentasFiltradas}`);
+      console.log(`🚚 Fleteros creados: ${result.totalFleterosCreados}`);
+      console.log(`📝 Fleteros actualizados: ${result.totalFleterosActualizados}`);
+      console.log(`⏭️  Pedidos descartados por seguimiento: ${result.totalPedidosDescartadosPorSeguimiento}`);
       console.log(`🆕 Pedidos creados: ${result.totalPedidosCreados}`);
       console.log(`📝 Movimientos creados: ${result.totalMovimientosCreados}`);
       if (result.errors.length > 0) {

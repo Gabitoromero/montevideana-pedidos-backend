@@ -3,6 +3,7 @@ import { Movimiento } from './movimiento.entity.js';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
 import { Pedido } from '../pedidos/pedido.entity.js';
+import { Fletero } from '../fleteros/fletero.entity.js';
 import { ReglaController } from '../reglas/regla.controller.js';
 import { CreateMovimientoDTO, MovimientoQueryDTO } from './movimiento.schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
@@ -22,7 +23,7 @@ export class MovimientoController {
     }
 
     // 2. Validar que el pedido existe
-    const pedido = await em.findOne(Pedido, { idPedido: data.idPedido });
+    const pedido = await em.findOne(Pedido, { idPedido: data.idPedido }, { populate: ['fletero'] });
     if (!pedido) {
       throw AppError.notFound(`Pedido con ID ${data.idPedido} no encontrado`);
     }
@@ -66,7 +67,11 @@ export class MovimientoController {
       pedido: {
         idPedido: pedido.idPedido,
         fechaHora: pedido.fechaHora,
-        dsFletero: pedido.dsFletero
+        fletero: {
+          idFletero: pedido.fletero.idFletero,
+          dsFletero: pedido.fletero.dsFletero,
+          seguimiento: pedido.fletero.seguimiento
+        }
       },
       estadoInicial: {
         idEstado: estadoInicial.id,
@@ -115,7 +120,7 @@ export class MovimientoController {
       Movimiento,
       where,
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
+        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido', 'pedido.fletero'],
         orderBy: { fechaHora: 'DESC' },
       }
     );
@@ -129,7 +134,11 @@ export class MovimientoController {
       pedido: {
         idPedido: m.pedido.idPedido,
         fechaHora: m.pedido.fechaHora,
-        dsFletero: m.pedido.dsFletero
+        fletero: {
+          idFletero: m.pedido.fletero.idFletero,
+          dsFletero: m.pedido.fletero.dsFletero,
+          seguimiento: m.pedido.fletero.seguimiento
+        }
       },
       estadoInicial: m.estadoInicial,
       estadoFinal: m.estadoFinal,
@@ -144,7 +153,7 @@ export class MovimientoController {
     }));
   }
 
-  async findByPedidoAndFecha(idPedido: string, fechaHora: Date) {
+  async findByPedidoAndFecha(idPedido: number, fechaHora: Date) {
     const em = fork();
     const pedido = await em.findOne(Pedido, { idPedido });
     if (!pedido) {
@@ -154,7 +163,7 @@ export class MovimientoController {
     const movimiento = await em.findOne(
       Movimiento,
       { pedido, fechaHora },
-      { populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'] }
+      { populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido', 'pedido.fletero'] }
     );
 
     if (!movimiento) {
@@ -166,7 +175,11 @@ export class MovimientoController {
       pedido: {
         idPedido: movimiento.pedido.idPedido,
         fechaHora: movimiento.pedido.fechaHora,
-        dsFletero: movimiento.pedido.dsFletero
+        fletero: {
+          idFletero: movimiento.pedido.fletero.idFletero,
+          dsFletero: movimiento.pedido.fletero.dsFletero,
+          seguimiento: movimiento.pedido.fletero.seguimiento
+        }
       },
       estadoInicial: movimiento.estadoInicial,
       estadoFinal: movimiento.estadoFinal,
@@ -181,7 +194,7 @@ export class MovimientoController {
     };
   }
 
-  async findByIdPedido(idPedido: string) {
+  async findByIdPedido(idPedido: number) {
     const em = fork();
     const pedido = await em.findOne(Pedido, { idPedido });
     if (!pedido) {
@@ -192,7 +205,7 @@ export class MovimientoController {
       Movimiento,
       { pedido },
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
+        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido', 'pedido.fletero'],
         orderBy: { fechaHora: 'ASC' },
       }
     );
@@ -202,7 +215,11 @@ export class MovimientoController {
       pedido: {
         idPedido: m.pedido.idPedido,
         fechaHora: m.pedido.fechaHora,
-        dsFletero: m.pedido.dsFletero
+        fletero: {
+          idFletero: m.pedido.fletero.idFletero,
+          dsFletero: m.pedido.fletero.dsFletero,
+          seguimiento: m.pedido.fletero.seguimiento
+        }
       },
       estadoInicial: m.estadoInicial,
       estadoFinal: m.estadoFinal,
@@ -240,7 +257,7 @@ export class MovimientoController {
   //     fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
   //   };
   // }
-  async getEstadoActual(idPedido: string) {
+  async getEstadoActual(idPedido: number) {
     const em = fork();
     
     const pedido = await em.findOne(Pedido, { idPedido });
@@ -253,7 +270,7 @@ export class MovimientoController {
       Movimiento,
       { pedido },
       {
-        populate: ['estadoFinal', 'pedido'],
+        populate: ['estadoFinal', 'pedido', 'pedido.fletero'],
         orderBy: { fechaHora: 'DESC' },
         limit: 1  // Solo traer el primero (el más reciente)
       }
@@ -269,7 +286,11 @@ export class MovimientoController {
       pedido: {
         idPedido: ultimoMovimiento.pedido.idPedido,
         fechaHora: ultimoMovimiento.pedido.fechaHora,
-        dsFletero: ultimoMovimiento.pedido.dsFletero
+        fletero: {
+          idFletero: ultimoMovimiento.pedido.fletero.idFletero,
+          dsFletero: ultimoMovimiento.pedido.fletero.dsFletero,
+          seguimiento: ultimoMovimiento.pedido.fletero.seguimiento
+        }
       },
       estadoActual: {
         idEstado: ultimoMovimiento.estadoFinal.id,
@@ -283,7 +304,7 @@ export class MovimientoController {
    * Inicializa un pedido desde CHESS con el usuario Sistema
    * Estado 6 (CHESS) → Estado 1 (Pendiente)
    */
-  async inicializarDesdeChess(data: { idPedido: string; fechaHora: string; dsFletero: string }) {
+  async inicializarDesdeChess(data: { idPedido: number; fechaHora: string; idFleteroCarga: number }) {
     const em = fork();
     const USUARIO_SISTEMA_ID = 1; // ID del usuario "Sistema"
     const ESTADO_CHESS_ID = 6;     // Estado inicial de CHESS
@@ -320,11 +341,19 @@ export class MovimientoController {
       );
     }
 
+    // 3. Verificar que el fletero existe
+    const fletero = await em.findOne(Fletero, { idFletero: data.idFleteroCarga });
+    if (!fletero) {
+      throw AppError.internal(
+        `Fletero con ID ${data.idFleteroCarga} no encontrado. Debe existir en la base de datos.`
+      );
+    }
+
     // 4. Crear el pedido primero
     const pedido = em.create(Pedido, {
       idPedido: data.idPedido,
       fechaHora: new Date(data.fechaHora),
-      dsFletero: data.dsFletero
+      fletero: fletero
     });
 
     // 5. Crear el movimiento inicial (sin validar reglas porque es automático)
@@ -343,7 +372,11 @@ export class MovimientoController {
       pedido: {
         idPedido: pedido.idPedido,
         fechaHora: pedido.fechaHora,
-        dsFletero: pedido.dsFletero
+        fletero: {
+          idFletero: pedido.fletero.idFletero,
+          dsFletero: pedido.fletero.dsFletero,
+          seguimiento: pedido.fletero.seguimiento
+        }
       },
       estadoInicial: {
         idEstado: estadoChess.id,

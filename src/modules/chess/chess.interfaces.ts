@@ -14,6 +14,8 @@ export interface ChessVentaRaw {
   fechaEntrega?: string;
   fechaAlta?: string;
   idDeposito?: number;
+  idLiquidacion?: number;
+  fechaLiquidacion?: string;
 
   nombreCliente?: string;
   idFleteroCarga?: number;
@@ -22,6 +24,7 @@ export interface ChessVentaRaw {
 
   idPedido?: number;
   planillaCarga?: string;
+  
 
   subtotalFinal?: number;
 
@@ -43,9 +46,13 @@ export interface ChessSyncResult {
   timestamp: string;
   totalVentasObtenidas: number;
   totalVentasFiltradas: number;
+  totalFleterosCreados: number;
+  totalFleterosActualizados: number;
+  totalPedidosDescartadosPorSeguimiento: number;
   totalPedidosCreados: number;
   totalMovimientosCreados: number;
   lotesProcesados: number;
   errors: string[];
 }
+
 

@@ -49,7 +49,7 @@ router.get(
   '/pedido/:idPedido/fecha/:fechaHora',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idPedido = req.params.idPedido;
+      const idPedido = parseInt(req.params.idPedido);
       const fechaHora = new Date(req.params.fechaHora);
       const result = await controller.findByPedidoAndFecha(idPedido, fechaHora);
       res.status(200).json({ success: true, data: result });
@@ -65,7 +65,7 @@ router.get(
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idPedido = req.params.idPedido;
+      const idPedido = parseInt(req.params.idPedido);
       const result = await controller.findByIdPedido(idPedido);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -80,7 +80,7 @@ router.get(
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idPedido = req.params.idPedido;
+      const idPedido = parseInt(req.params.idPedido);
       const result = await controller.getEstadoActual(idPedido);
       res.status(200).json({ success: true, data: result });
     } catch (error) {

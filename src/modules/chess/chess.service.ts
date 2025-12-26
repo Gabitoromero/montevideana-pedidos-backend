@@ -259,7 +259,7 @@ export class ChessService {
   /**
    * Obtener TODAS las ventas del día iterando por todos los lotes
    */
-  public async getAllVentasDelDia(fecha: string): Promise<ChessVentaRaw[]> {
+  public async getAllVentasDelDia(fecha: string): Promise<{ ventas: ChessVentaRaw[]; lotesProcesados: number }> {
     return this.requestWithAuth(async () => {
       const todasLasVentas: ChessVentaRaw[] = [];
       let loteActual = 1;
@@ -294,8 +294,11 @@ export class ChessService {
         loteActual++;
       } while (loteActual <= totalLotes);
 
+      const lotesProcesados = totalLotes;
       console.log(`🎯 Total de ventas obtenidas: ${todasLasVentas.length}`);
-      return todasLasVentas;
+      console.log(`📦 Lotes procesados: ${lotesProcesados}`);
+      
+      return { ventas: todasLasVentas, lotesProcesados };
     });
   }
 
@@ -424,8 +427,9 @@ export class ChessService {
       console.log(`📅 Fecha de sincronización: ${fechaStr}`);
 
       // 3. Obtener todas las ventas del día
-      const todasLasVentas = await this.getAllVentasDelDia(fechaStr2);
+      const { ventas: todasLasVentas, lotesProcesados } = await this.getAllVentasDelDia(fechaStr2);
       result.totalVentasObtenidas = todasLasVentas.length;
+      result.lotesProcesados = lotesProcesados;
 
       // 4. Filtrar ventas válidas
       const ventasFiltradas = this.filterValidSales(todasLasVentas, fechaStr);
@@ -525,6 +529,7 @@ export class ChessService {
       console.log(`\n📊 ========== RESUMEN DE SINCRONIZACIÓN ==========`);
       console.log(`✅ Sincronización completada exitosamente`);
       console.log(`⏱️  Duración: ${duration.toFixed(2)} segundos`);
+      console.log(`📦 Lotes procesados: ${result.lotesProcesados}`);
       console.log(`📦 Ventas obtenidas de CHESS: ${result.totalVentasObtenidas}`);
       console.log(`🔍 Ventas filtradas (válidas): ${result.totalVentasFiltradas}`);
       console.log(`🚚 Fleteros creados: ${result.totalFleterosCreados}`);

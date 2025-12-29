@@ -123,7 +123,13 @@ export class PedidoService {
           return null;
         }
 
-        const ultimoMovimiento = movimientos[0];
+        // Buscar el último movimiento que NO sea "Pagado" (id: 5)
+        const ultimoMovimiento = movimientos.find(mov => mov.estadoFinal.id !== 5);
+
+        // Si todos los movimientos son "Pagado", no incluir este pedido
+        if (!ultimoMovimiento) {
+          return null;
+        }
 
         // Verificar si el estado final del último movimiento coincide
         if (ultimoMovimiento.estadoFinal.id !== idEstado) {

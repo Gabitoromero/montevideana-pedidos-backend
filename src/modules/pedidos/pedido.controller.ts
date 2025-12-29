@@ -24,14 +24,14 @@ export class PedidoController {
   };
 
   /**
-   * GET /api/pedidos/:fechaHora/:idPedido
-   * Obtener un pedido por clave compuesta
+   * GET /api/pedidos/:idPedido
+   * Obtener un pedido por idPedido
    */
   findOne = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { fechaHora, idPedido } = req.params;
+      const { idPedido } = req.params;
       
-      const pedido = await this.pedidoService.findByCompositeKey(fechaHora, idPedido);
+      const pedido = await this.pedidoService.findByIdPedidoSimple(idPedido);
 
       if (!pedido) {
         res.status(404).json({
@@ -96,14 +96,14 @@ export class PedidoController {
   };
 
   /**
-   * DELETE /api/pedidos/:fechaHora/:idPedido
+   * DELETE /api/pedidos/:idPedido
    * Eliminar un pedido
    */
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { fechaHora, idPedido } = req.params;
+      const { idPedido } = req.params;
 
-      await this.pedidoService.delete(fechaHora, idPedido);
+      await this.pedidoService.delete(idPedido);
 
       res.status(200).json({
         success: true,

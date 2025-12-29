@@ -23,12 +23,10 @@ export class PedidoService {
   }
 
   /**
-   * Buscar pedido por clave compuesta
+   * Buscar pedido por idPedido
    */
-  async findByCompositeKey(fechaHora: Date | string, idPedido: string): Promise<Pedido | null> {
-    const fecha = typeof fechaHora === 'string' ? new Date(fechaHora) : fechaHora;
-    
-    return this.em.findOne(Pedido, { fechaHora: fecha, idPedido: idPedido });
+  async findByIdPedidoSimple(idPedido: string): Promise<Pedido | null> {
+    return this.em.findOne(Pedido, { idPedido }, { populate: ['movimientos', 'fletero'] });
   }
 
   /**
@@ -169,8 +167,8 @@ export class PedidoService {
   /**
    * Eliminar un pedido
    */
-  async delete(fechaHora: Date | string, idPedido: string): Promise<void> {
-    const pedido = await this.findByCompositeKey(fechaHora, idPedido);
+  async delete(idPedido: string): Promise<void> {
+    const pedido = await this.findByIdPedidoSimple(idPedido);
     if (!pedido) {
       throw new AppError('Pedido no encontrado', 404);
     }

@@ -498,13 +498,9 @@ export class ChessService {
 
           const idPedido = venta.planillaCarga;
 
-          // Verificar si ya existe un pedido con este idPedido en el día de hoy
+          // Verificar si ya existe un pedido con este idPedido
           const pedidoExistente = await this.em.count(Pedido, {
             idPedido: idPedido,
-            fechaHora: {
-              $gte: new Date(hoy.setHours(0, 0, 0, 0)),
-              $lte: new Date(hoy.setHours(23, 59, 59, 999)),
-            },
           });
 
           if (pedidoExistente > 0) {

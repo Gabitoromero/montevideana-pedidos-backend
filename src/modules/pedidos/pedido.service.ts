@@ -17,6 +17,7 @@ export class PedidoService {
       fechaHora: typeof data.fechaHora === 'string' ? new Date(data.fechaHora) : data.fechaHora,
       idPedido: data.idPedido,
       fletero: data.fletero,
+      cobrado: false,
     });
     await this.em.persist(pedido).flush();
     return pedido;
@@ -134,6 +135,7 @@ export class PedidoService {
           pedido: {
             fechaHora: pedido.fechaHora,
             idPedido: pedido.idPedido,
+            cobrado: pedido.cobrado,
             fletero: {
               idFletero: pedido.fletero.idFletero,
               dsFletero: pedido.fletero.dsFletero,

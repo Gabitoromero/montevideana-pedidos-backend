@@ -520,6 +520,7 @@ export class ChessService {
             fechaHora: new Date(),
             idPedido: idPedido,
             fletero: fletero,
+            cobrado: false,
           });
 
           // Crear nuevo Movimiento (CHESS → PENDIENTE)

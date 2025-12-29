@@ -10,6 +10,9 @@ export class Pedido {
   @Property({ type: 'datetime' })
   fechaHora!: Date;
 
+  @Property({ type: 'boolean', default: false })
+  cobrado!: boolean;
+
   @ManyToOne(() => Fletero, { nullable: false })
   fletero!: Fletero;
 

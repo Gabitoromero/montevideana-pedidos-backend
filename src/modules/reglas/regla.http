@@ -5,8 +5,8 @@ POST http://localhost:3000/api/reglas
 Content-Type: application/json
 
 {
-  "idEstado": 5,
-  "idEstadoNecesario": 4
+  "idEstado": 6,
+  "idEstadoNecesario": 5
 }
 
 ###

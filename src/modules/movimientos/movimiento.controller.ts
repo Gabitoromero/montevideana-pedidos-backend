@@ -20,13 +20,13 @@ export class MovimientoController {
     // 1. Buscar usuario por username
     const usuario = await em.findOne(Usuario, { username: data.username });
     if (!usuario) {
-      throw AppError.unauthorized('Credenciales inválidas');
+      throw AppError.badRequest('Credenciales inválidas');
     }
 
     // 2. Validar contraseña
     const passwordValida = await HashUtil.compare(data.password, usuario.passwordHash);
     if (!passwordValida) {
-      throw AppError.unauthorized('Credenciales inválidas');
+      throw AppError.badRequest('Credenciales inválidas');
     }
 
     // 3. Validar que el usuario está activo
@@ -77,7 +77,12 @@ export class MovimientoController {
       );
     }
 
-    // 8. Crear el movimiento
+    // 8. Si el estado final es "Pagado" (id: 5), marcar el pedido como cobrado
+    if (data.estadoFinal === 5) {
+      pedido.cobrado = true;
+    }
+
+    // 9. Crear el movimiento
     const movimiento = em.create(Movimiento, {
       fechaHora: new Date(),
       pedido: pedido,
@@ -379,7 +384,8 @@ export class MovimientoController {
     const pedido = em.create(Pedido, {
       idPedido: data.idPedido,
       fechaHora: new Date(data.fechaHora),
-      fletero: fletero
+      fletero: fletero,
+      cobrado: false,
     });
 
     // 5. Crear el movimiento inicial (sin validar reglas porque es automático)

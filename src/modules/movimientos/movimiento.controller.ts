@@ -8,6 +8,7 @@ import { ReglaController } from '../reglas/regla.controller.js';
 import { CreateMovimientoDTO, MovimientoQueryDTO } from './movimiento.schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { DateUtil } from '../../shared/utils/date.js';
+import { HashUtil } from '../../shared/utils/hash.js';
 
 export class MovimientoController {
   private reglaController = new ReglaController();
@@ -16,19 +17,43 @@ export class MovimientoController {
   async create(data: CreateMovimientoDTO) {
     const em = fork();
 
-    // 1. Validar que el usuario existe
-    const usuario = await em.findOne(Usuario, { id: data.usuarioId });
+    // 1. Buscar usuario por username
+    const usuario = await em.findOne(Usuario, { username: data.username });
     if (!usuario) {
-      throw AppError.notFound(`Usuario con ID ${data.usuarioId} no encontrado`);
+      throw AppError.unauthorized('Credenciales inválidas');
     }
 
-    // 2. Validar que el pedido existe
+    // 2. Validar contraseña
+    const passwordValida = await HashUtil.compare(data.password, usuario.passwordHash);
+    if (!passwordValida) {
+      throw AppError.unauthorized('Credenciales inválidas');
+    }
+
+    // 3. Validar que el usuario está activo
+    if (!usuario.activo) {
+      throw AppError.unauthorized('Usuario inactivo');
+    }
+
+    // 4. Validar permisos según sector
+    if(data.estadoFinal == 3 || data.estadoFinal == 4){
+      if (usuario.sector != "armado" && usuario.sector != "CHESS" && usuario.sector != "admin" ) {
+        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de armado y no puede realizar movimientos de estado`);
+      }
+    }
+
+    if (data.estadoFinal == 5){
+      if (usuario.sector != "facturacion" && usuario.sector != "admin" && usuario.sector != "CHESS") {
+        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de facturación y no puede realizar movimientos de estado`);
+      }
+    }
+
+    // 5. Validar que el pedido existe
     const pedido = await em.findOne(Pedido, { idPedido: data.idPedido }, { populate: ['fletero'] });
     if (!pedido) {
       throw AppError.notFound(`Pedido con ID ${data.idPedido} no encontrado`);
     }
 
-    // 3. Validar que ambos estados existen
+    // 6. Validar que ambos estados existen
     const estadoInicial = await em.findOne(TipoEstado, { id: data.estadoInicial });
     if (!estadoInicial) {
       throw AppError.notFound(`Estado inicial con código ${data.estadoInicial} no encontrado`);
@@ -39,7 +64,7 @@ export class MovimientoController {
       throw AppError.notFound(`Estado final con código ${data.estadoFinal} no encontrado`);
     }
 
-    // 4. Validar que la transición es legal según las reglas de EstadoNecesario
+    // 7. Validar que la transición es legal según las reglas de EstadoNecesario
     const esTransicionLegal = await this.reglaController.validarTransicion(
       data.estadoInicial,
       data.estadoFinal
@@ -51,7 +76,7 @@ export class MovimientoController {
       );
     }
 
-    // 5. Crear el movimiento
+    // 8. Crear el movimiento
     const movimiento = em.create(Movimiento, {
       fechaHora: new Date(),
       pedido: pedido,

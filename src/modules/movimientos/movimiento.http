@@ -28,10 +28,10 @@ POST {{baseUrl}}/movimientos/
 Content-Type: {{contentType}}
 
 {
-  "usuarioId": 1,
-  "nroPedido": "PED-2025-002",
-  "estadoInicial": 1,
-  "estadoFinal": 2
+  "usuarioId": 2,
+  "idPedido": "0000 - 00284936",
+  "estadoInicial": 5,
+  "estadoFinal": 4
 }
 
 ### Nuevo movimiento

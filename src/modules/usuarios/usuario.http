@@ -104,10 +104,10 @@ Content-Type: {{contentType}}
 ###
 
 ### Eliminar usuario
-DELETE {{baseUrl}}/usuarios/2
+DELETE {{baseUrl}}/usuarios/7
 //Authorization: Bearer {{accessToken}}
 
 
 ### Dar de alta usuario
-PATCH {{baseUrl}}/usuarios/2/activar
+PATCH {{baseUrl}}/usuarios/7/activar
 //Authorization: Bearer {{accessToken}}

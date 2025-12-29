@@ -16,6 +16,9 @@ export class AuthController {
     if (!usuario) {
       throw AppError.unauthorized('Credenciales inválidas');
     }
+    if (!usuario.activo) {
+      throw AppError.unauthorized('Usuario inactivo');
+    }
 
     // Verificar contraseña
     const isPasswordValid = await HashUtil.compare(data.password, usuario.passwordHash);

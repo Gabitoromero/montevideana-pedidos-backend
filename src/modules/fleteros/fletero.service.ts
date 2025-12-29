@@ -32,6 +32,13 @@ export class FleterosService {
   }
 
   /**
+   * Listar fleteros con seguimiento inactivo
+   */
+  async findInactivos(): Promise<Fletero[]> {
+    return this.em.find(Fletero, { seguimiento: false }, { orderBy: { dsFletero: 'ASC' } });
+  }
+
+  /**
    * Actualizar el campo seguimiento de un fletero
    * Si cambia a false, elimina todos los pedidos históricos de ese fletero
    */

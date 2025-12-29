@@ -31,6 +31,17 @@ router.get('/activos', async (req: Request, res: Response, next: NextFunction) =
 });
 
 /**
+ * GET /fleteros/inactivos - Listar fleteros con seguimiento inactivo
+ */
+router.get('/inactivos', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await controller.findInactivos(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /fleteros/:id - Obtener un fletero específico
  */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {

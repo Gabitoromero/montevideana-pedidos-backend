@@ -24,6 +24,16 @@ export class FleterosController {
   }
 
   /**
+   * GET /fleteros/inactivos - Listar fleteros con seguimiento inactivo
+   */
+  async findInactivos(req: Request, res: Response): Promise<void> {
+    const em = fork();
+    const service = new FleterosService(em);
+    const fleteros = await service.findInactivos();
+    res.json({ success: true, data: fleteros });
+  }
+
+  /**
    * GET /fleteros/:id - Obtener un fletero específico
    */
   async findOne(req: Request, res: Response): Promise<void> {

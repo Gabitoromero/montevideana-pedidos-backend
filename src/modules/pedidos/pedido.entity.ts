@@ -7,8 +7,8 @@ export class Pedido {
   @PrimaryKey({ type: 'datetime' })
   fechaHora!: Date;
 
-  @PrimaryKey({ type: 'number' })
-  idPedido!: number;
+  @PrimaryKey({ type: 'string', length: 15 })
+  idPedido!: string;
 
   @ManyToOne(() => Fletero, { nullable: false })
   fletero!: Fletero;

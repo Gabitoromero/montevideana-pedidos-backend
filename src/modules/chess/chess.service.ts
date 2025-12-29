@@ -47,6 +47,16 @@ export class ChessService {
     );
   }
 
+  /**
+   * Validar formato de planillaCarga: "XXXX - XXXXXXXX"
+   */
+  private validarPlanillaCarga(planillaCarga: string): void {
+    // Formato esperado: "0000 - 00284505" (4 dígitos - 8 dígitos)
+    if (!/^\d{4} - \d{8}$/.test(planillaCarga)) {
+      throw new Error(`Formato inválido de planillaCarga. Esperado: "XXXX - XXXXXXXX", recibido: "${planillaCarga}"`);
+    }
+  }
+
   public async testConnection(): Promise<{ 
     success: boolean; 
     cookiesCount: number;
@@ -473,9 +483,24 @@ export class ChessService {
       console.log(`\n📝 ========== CREANDO PEDIDOS ==========`);
       for (const venta of ventasConSeguimiento) {
         try {
+          // Validar planillaCarga
+          if (!venta.planillaCarga) {
+            console.error(`❌ Venta sin planillaCarga, omitiendo...`);
+            continue;
+          }
+
+          try {
+            this.validarPlanillaCarga(venta.planillaCarga);
+          } catch (error: any) {
+            console.error(`❌ ${error.message}`);
+            continue;
+          }
+
+          const idPedido = venta.planillaCarga;
+
           // Verificar si ya existe un pedido con este idPedido en el día de hoy
           const pedidoExistente = await this.em.count(Pedido, {
-            idPedido: venta.idPedido!,
+            idPedido: idPedido,
             fechaHora: {
               $gte: new Date(hoy.setHours(0, 0, 0, 0)),
               $lte: new Date(hoy.setHours(23, 59, 59, 999)),
@@ -483,21 +508,21 @@ export class ChessService {
           });
 
           if (pedidoExistente > 0) {
-            console.log(`⏭️  Pedido ${venta.idPedido} ya existe, omitiendo...`);
+            console.log(`⏭️  Pedido ${idPedido} ya existe, omitiendo...`);
             continue;
           }
 
           // Obtener fletero de la base de datos
           const fletero = await this.em.findOne(Fletero, { idFletero: venta.idFleteroCarga! });
           if (!fletero) {
-            console.error(`❌ Fletero ${venta.idFleteroCarga} no encontrado para pedido ${venta.idPedido}`);
+            console.error(`❌ Fletero ${venta.idFleteroCarga} no encontrado para pedido ${idPedido}`);
             continue;
           }
 
           // Crear nuevo Pedido
           const nuevoPedido = this.em.create(Pedido, {
             fechaHora: new Date(),
-            idPedido: venta.idPedido!,
+            idPedido: idPedido,
             fletero: fletero,
           });
 
@@ -514,9 +539,9 @@ export class ChessService {
 
           result.totalPedidosCreados++;
           result.totalMovimientosCreados++;
-          console.log(`✅ Pedido ${venta.idPedido} creado exitosamente`);
+          console.log(`✅ Pedido ${idPedido} creado exitosamente`);
         } catch (error: any) {
-          const errorMsg = `Error procesando pedido ${venta.idPedido}: ${error.message}`;
+          const errorMsg = `Error procesando pedido ${venta.planillaCarga || 'sin planilla'}: ${error.message}`;
           console.error(`❌ ${errorMsg}`);
           result.errors.push(errorMsg);
         }

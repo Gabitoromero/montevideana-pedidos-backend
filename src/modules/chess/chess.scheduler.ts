@@ -5,7 +5,7 @@ import type { MySqlDriver } from '@mikro-orm/mysql';
 
 /**
  * Scheduler para sincronización automática de ventas CHESS
- * Se ejecuta cada 10 minutos entre las 6:00 AM y 10:00 PM
+ * Se ejecuta cada 10 minutos entre las 6:00 AM y 9:00 PM
  */
 export class ChessScheduler {
   private orm: MikroORM;
@@ -19,9 +19,9 @@ export class ChessScheduler {
    * Iniciar el scheduler
    */
   start() {
-    // Expresión cron: cada 10 minutos, de 6:00 AM a 10:00 PM
-    // */10 6-22 * * * = cada 10 minutos, entre las 6 y las 22 horas
-    this.task = cron.schedule('*/10 6-22 * * *', async () => {
+    // Expresión cron: cada 10 minutos, de 6:00 AM a 9:00 PM
+    // */10 6-20 * * * = cada 10 minutos, entre las 6 y las 20 horas (última ejecución a las 8:50 PM)
+    this.task = cron.schedule('*/10 6-20 * * *', async () => {
       console.log('\n🔄 ========== CRON: Iniciando sincronización automática ==========');
       
       // Crear un fork del EntityManager para esta ejecución
@@ -39,7 +39,7 @@ export class ChessScheduler {
       }
     });
 
-    console.log('✅ Scheduler CHESS iniciado: cada 10 minutos (6:00 AM - 10:00 PM)');
+    console.log('✅ Scheduler CHESS iniciado: cada 10 minutos (6:00 AM - 9:00 PM)');
   }
 
   /**

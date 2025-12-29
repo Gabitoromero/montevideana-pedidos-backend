@@ -153,7 +153,7 @@ export class MovimientoController {
     }));
   }
 
-  async findByPedidoAndFecha(idPedido: number, fechaHora: Date) {
+  async findByPedidoAndFecha(idPedido: string, fechaHora: Date) {
     const em = fork();
     const pedido = await em.findOne(Pedido, { idPedido });
     if (!pedido) {
@@ -194,7 +194,7 @@ export class MovimientoController {
     };
   }
 
-  async findByIdPedido(idPedido: number) {
+  async findByIdPedido(idPedido: string) {
     const em = fork();
     const pedido = await em.findOne(Pedido, { idPedido });
     if (!pedido) {
@@ -257,7 +257,7 @@ export class MovimientoController {
   //     fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
   //   };
   // }
-  async getEstadoActual(idPedido: number) {
+  async getEstadoActual(idPedido: string) {
     const em = fork();
     
     const pedido = await em.findOne(Pedido, { idPedido });
@@ -304,7 +304,7 @@ export class MovimientoController {
    * Inicializa un pedido desde CHESS con el usuario Sistema
    * Estado 6 (CHESS) → Estado 1 (Pendiente)
    */
-  async inicializarDesdeChess(data: { idPedido: number; fechaHora: string; idFleteroCarga: number }) {
+  async inicializarDesdeChess(data: { idPedido: string; fechaHora: string; idFleteroCarga: number }) {
     const em = fork();
     const USUARIO_SISTEMA_ID = 1; // ID del usuario "Sistema"
     const ESTADO_CHESS_ID = 6;     // Estado inicial de CHESS

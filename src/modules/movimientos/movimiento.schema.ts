@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createMovimientoSchema = z.object({
   usuarioId: z.number().int().positive('El ID de usuario debe ser un número positivo'),
-  idPedido: z.number().int().positive('El ID de pedido debe ser un número positivo'),
+  idPedido: z.string().min(1, 'El ID de pedido no puede estar vacío').regex(/^\d{4} - \d{8}$/, 'El ID de pedido debe tener el formato "XXXX - XXXXXXXX"'),
   estadoInicial: z.number().int().positive('El estado inicial debe ser un número positivo'),
   estadoFinal: z.number().int().positive('El estado final debe ser un número positivo'),
 }).refine((data) => data.estadoInicial !== data.estadoFinal, {
@@ -15,7 +15,7 @@ export const movimientoIdSchema = z.object({
 });
 
 export const movimientoPorPedidoSchema = z.object({
-  idPedido: z.string().regex(/^\d+$/, 'El ID debe ser un número').transform(Number),
+  idPedido: z.string().min(1, 'El ID de pedido no puede estar vacío'),
 });
 
 export const movimientoQuerySchema = z.object({
@@ -27,7 +27,7 @@ export const movimientoQuerySchema = z.object({
 });
 
 export const inicializarChessSchema = z.object({
-  idPedido: z.number().int().positive('El ID de pedido debe ser un número positivo'),
+  idPedido: z.string().min(1, 'El ID de pedido no puede estar vacío').regex(/^\d{4} - \d{8}$/, 'El ID de pedido debe tener el formato "XXXX - XXXXXXXX"'),
   fechaHora: z.string().datetime('La fecha y hora deben estar en formato ISO 8601'),
   idFleteroCarga: z.number().int().positive('El ID del fletero debe ser un número positivo'),
 });

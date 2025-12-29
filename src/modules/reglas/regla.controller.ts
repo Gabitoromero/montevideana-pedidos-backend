@@ -3,6 +3,7 @@ import { Regla } from './regla.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
 import { CreateReglaDTO } from './regla.schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
+import { Movimiento } from '../movimientos/movimiento.entity.js';
 
 export class ReglaController {
   
@@ -109,7 +110,8 @@ export class ReglaController {
   }
 
   // Método para validar transición (usado en movimientos)
-  async validarTransicion(idEstadoInicial: number, idEstadoFinal: number): Promise<boolean> {
+  // Valida que el pedido haya pasado por los estados necesarios según las reglas
+  async validarTransicion(idPedido: string, idEstadoInicial: number, idEstadoFinal: number): Promise<boolean> {
     const em = fork();
 
     // Buscar si existe una regla para el estado final
@@ -128,18 +130,34 @@ export class ReglaController {
       return true;
     }
 
-    // Verificar si el estado inicial está entre los necesarios
-    const esValido = reglasEstadoFinal.some(
-      regla => regla.idEstadoNecesario.id === idEstadoInicial
+    // Obtener todos los movimientos anteriores del pedido
+    // Nota: pedido es una relación ManyToOne, se busca por la clave foránea
+    const movimientosAnteriores = await em.find(Movimiento, 
+      { pedido: { idPedido: idPedido } },
+      { populate: ['estadoFinal'] }
     );
 
-    if (!esValido) {
-      const nombresNecesarios = reglasEstadoFinal
+    // Construir conjunto de estados por los que ha pasado el pedido
+    // Incluye: el estado inicial del nuevo movimiento + todos los estados finales anteriores
+    const estadosPorLosQuePaso = new Set<number>();
+    estadosPorLosQuePaso.add(idEstadoInicial); // Estado actual del pedido
+    
+    movimientosAnteriores.forEach(mov => {
+      estadosPorLosQuePaso.add(mov.estadoFinal.id);
+    });
+
+    // Verificar que todos los estados necesarios están en el historial
+    const estadosNecesariosFaltantes = reglasEstadoFinal.filter(
+      regla => !estadosPorLosQuePaso.has(regla.idEstadoNecesario.id)
+    );
+
+    if (estadosNecesariosFaltantes.length > 0) {
+      const nombresFaltantes = estadosNecesariosFaltantes
         .map(r => r.idEstadoNecesario.nombreEstado)
         .join(', ');
       
       throw AppError.badRequest(
-        `Para cambiar al estado "${estadoFinal.nombreEstado}" es necesario venir de: ${nombresNecesarios}`
+        `Para estar en el estado "${estadoFinal.nombreEstado}", el pedido debe haber pasado por: ${nombresFaltantes}`
       );
     }
 

@@ -35,7 +35,7 @@ export class MovimientoController {
     }
 
     // 4. Validar permisos según sector
-    if(data.estadoFinal == 3 || data.estadoFinal == 4){
+    if(data.estadoFinal == 3 || data.estadoFinal == 4 || data.estadoFinal == 6){
       if (usuario.sector != "armado" && usuario.sector != "CHESS" && usuario.sector != "admin" ) {
         throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de armado y no puede realizar movimientos de estado`);
       }
@@ -66,6 +66,7 @@ export class MovimientoController {
 
     // 7. Validar que la transición es legal según las reglas de EstadoNecesario
     const esTransicionLegal = await this.reglaController.validarTransicion(
+      data.idPedido,
       data.estadoInicial,
       data.estadoFinal
     );

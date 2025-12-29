@@ -50,15 +50,27 @@ export class FleterosService {
 
     // Si cambió de true a false, eliminar todos los pedidos de este fletero
     if (seguimientoAnterior === true && seguimiento === false) {
-      console.log(`🗑️  Fletero ${fletero.dsFletero} cambió a seguimiento=false. Eliminando pedidos...`);
+      console.log(`🗑️  Fletero ${fletero.dsFletero} cambió a seguimiento=false. Eliminando pedidos y movimientos...`);
       
-      const pedidos = await this.em.find(Pedido, { fletero: fletero });
+      const pedidos = await this.em.find(Pedido, { fletero: fletero }, { populate: ['movimientos'] });
       console.log(`🗑️  Se eliminarán ${pedidos.length} pedidos del fletero ${fletero.dsFletero}`);
       
-      // Los movimientos se eliminarán en cascada por la relación
-      await this.em.remove(pedidos).flush();
+      // Primero eliminar todos los movimientos de cada pedido
+      let totalMovimientos = 0;
+      for (const pedido of pedidos) {
+        const movimientos = pedido.movimientos.getItems();
+        totalMovimientos += movimientos.length;
+        await this.em.remove(movimientos);
+      }
+      console.log(`🗑️  Se eliminarán ${totalMovimientos} movimientos asociados`);
       
-      console.log(`✅ Pedidos del fletero ${fletero.dsFletero} eliminados exitosamente`);
+      // Luego eliminar los pedidos
+      await this.em.remove(pedidos);
+      
+      // Hacer flush de todos los cambios
+      await this.em.flush();
+      
+      console.log(`✅ ${pedidos.length} pedidos y ${totalMovimientos} movimientos del fletero ${fletero.dsFletero} eliminados exitosamente`);
     }
 
     await this.em.persist(fletero).flush();

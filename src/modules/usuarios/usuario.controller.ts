@@ -114,13 +114,17 @@ export class UsuarioController {
 
   async delete(id: number) {
     const em = fork();
-    const usuario = await em.findOne(Usuario, { id });
+    const usuario = await em.findOne(Usuario, { id }, { populate: ['movimientos'] });
 
     if (!usuario) {
       throw AppError.notFound(`Usuario con ID ${id} no encontrado`);
     }
 
-    em.remove(usuario).flush();
+    // Eliminar todos los movimientos relacionados primero
+    await em.nativeDelete('Movimiento', { usuario: id });
+
+    // Ahora eliminar el usuario
+    await em.remove(usuario).flush();
 
     return { message: 'Usuario eliminado exitosamente' };
   }

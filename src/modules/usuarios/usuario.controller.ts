@@ -109,7 +109,6 @@ export class UsuarioController {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       sector: usuario.sector,
-      activo: usuario.activo,
     };
   }
 
@@ -121,13 +120,12 @@ export class UsuarioController {
       throw AppError.notFound(`Usuario con ID ${id} no encontrado`);
     }
 
-    usuario.activo = false;
-    await em.flush();
+    em.remove(usuario).flush();
 
-    return { message: 'Usuario desactivado exitosamente' };
+    return { message: 'Usuario eliminado exitosamente' };
   }
 
-  async darAlta(id: number) {
+  async cambiarEstado(id: number) {
     const em = fork();
     const usuario = await em.findOne(Usuario, { id });
 
@@ -135,9 +133,13 @@ export class UsuarioController {
       throw AppError.notFound(`Usuario con ID ${id} no encontrado`);
     }
 
-    usuario.activo = true;
+    if (usuario.activo) {
+      usuario.activo = false;
+    } else {
+      usuario.activo = true;
+    }
     await em.flush();
 
-    return { message: 'Usuario activado exitosamente' };
+    return { message: 'Usuario ' + (usuario.activo ? 'activado' : 'desactivado') + ' exitosamente' };
   }
 }

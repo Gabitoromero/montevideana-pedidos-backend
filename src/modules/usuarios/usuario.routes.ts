@@ -83,7 +83,7 @@ router.patch(
   validateSchema(usuarioIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.darAlta(req.params.id as unknown as number);
+      const result = await controller.cambiarEstado(req.params.id as unknown as number);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);

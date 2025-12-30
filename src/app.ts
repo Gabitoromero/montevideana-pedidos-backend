@@ -12,13 +12,22 @@ import movimientoRoutes from './modules/movimientos/movimiento.routes.js';
 import chessRoutes from './modules/chess/chess.routes.js';
 import pedidoRoutes from './modules/pedidos/pedido.routes.js';
 import fleteroRoutes from './modules/fleteros/fletero.routes.js';
+import { AppError } from './shared/errors/AppError.js';
 
 export const createApp = (): Application => {
   const app = express();
 
   // Middlewares
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) || [];
+
   app.use(cors({
-    origin: 'http://localhost:5174', //'http://localhost:5173'// La URL de tu Frontend
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new AppError('CORS no permitido'));
+      }
+    },
     credentials: true // Importante para headers de autorización
   }));
   app.use(express.json());

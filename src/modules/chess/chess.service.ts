@@ -21,7 +21,7 @@ export class ChessService {
     const baseURL = process.env.CHESS_API_URL;
     
     if (!baseURL) {
-      console.warn('⚠️ ADVERTENCIA: CHESS_API_URL no está definida en el .env');
+      throw new AppError('CHESS_API_URL es requerida en producción');
     }
 
     // ✅ 1. Crear CookieJar

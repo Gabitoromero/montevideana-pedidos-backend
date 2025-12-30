@@ -10,6 +10,7 @@ import type { MySqlDriver } from '@mikro-orm/mysql';
 export class ChessScheduler {
   private orm: MikroORM;
   private task: ScheduledTask | null = null;
+  private isRunningYet = false;
 
   constructor(orm: MikroORM) {
     this.orm = orm;
@@ -22,6 +23,12 @@ export class ChessScheduler {
     // Expresión cron: cada 10 minutos, de 6:00 AM a 9:00 PM
     // */10 6-20 * * * = cada 10 minutos, entre las 6 y las 20 horas (última ejecución a las 8:50 PM)
     this.task = cron.schedule('*/10 6-20 * * *', async () => {
+      if (this.isRunningYet) {
+        console.log('⏭️ Sincronización anterior aún en progreso, omitiendo...');
+        return;
+      }
+
+      this.isRunningYet = true;
       console.log('\n🔄 ========== CRON: Iniciando sincronización automática ==========');
       
       // Crear un fork del EntityManager para esta ejecución
@@ -36,6 +43,7 @@ export class ChessScheduler {
       } finally {
         // Limpiar el EntityManager después de la ejecución
         await em.clear();
+        this.isRunningYet = false;
       }
     });
 
@@ -55,9 +63,9 @@ export class ChessScheduler {
   /**
    * Verificar si el scheduler está activo
    */
-  isRunning(): boolean {
-    return this.task !== null;
-  }
+  // isRunning(): boolean {
+  //   return this.task !== null;
+  // }
 }
 
 /**

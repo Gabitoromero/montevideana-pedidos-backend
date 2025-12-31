@@ -7,8 +7,12 @@ import {
   movimientoPorPedidoSchema,
   movimientoQuerySchema,
   inicializarChessSchema,
+  movimientosByUsuarioParamsSchema,
+  movimientosByUsuarioQuerySchema,
+  movimientosByEstadoParamsSchema,
+  movimientosByEstadoQuerySchema,
 } from './movimiento.schema.js';
-import { authMiddleware } from '../../shared/auth/auth.middleware.js';
+import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js';
 
 const router = Router();
 const controller = new MovimientoController();
@@ -85,6 +89,68 @@ router.get(
     try {
       const idPedido = req.params.idPedido;
       const result = await controller.getEstadoActual(idPedido);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Obtener historial completo de movimientos de un pedido (solo admin y CHESS)
+router.get(
+  '/pedido/:idPedido/historial',
+  authorize('admin', 'CHESS'),
+  validateSchema(movimientoPorPedidoSchema, 'params'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const idPedido = req.params.idPedido;
+      const result = await controller.findMovimientosByPedido(idPedido);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Obtener movimientos por usuario con rango de fechas (solo admin y CHESS)
+router.get(
+  '/usuario/:idUsuario',
+  authorize('admin', 'CHESS'),
+  validateSchema(movimientosByUsuarioParamsSchema, 'params'),
+  validateSchema(movimientosByUsuarioQuerySchema, 'query'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const idUsuario = parseInt(req.params.idUsuario);
+      const { fechaInicio, fechaFin, page } = req.query as any;
+      const result = await controller.findMovimientosByUsuario(
+        idUsuario,
+        fechaInicio,
+        fechaFin,
+        page || 1
+      );
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Obtener movimientos por estado con rango de fechas (solo admin y CHESS)
+router.get(
+  '/estado/:estado',
+  authorize('admin', 'CHESS'),
+  validateSchema(movimientosByEstadoParamsSchema, 'params'),
+  validateSchema(movimientosByEstadoQuerySchema, 'query'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { estado } = req.params;
+      const { fechaInicio, fechaFin, page } = req.query as any;
+      const result = await controller.findMovimientosByEstado(
+        estado,
+        fechaInicio,
+        fechaFin,
+        page || 1
+      );
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);

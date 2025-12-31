@@ -452,5 +452,202 @@ export class MovimientoController {
     };
   }
 
+  /**
+   * Obtiene todos los movimientos de un pedido específico
+   * Ordenados por fecha más reciente primero
+   */
+  async findMovimientosByPedido(idPedido: string) {
+    const em = fork();
+    
+    const pedido = await em.findOne(Pedido, { idPedido });
+    if (!pedido) {
+      throw AppError.notFound(`Pedido con ID ${idPedido} no encontrado`);
+    }
+
+    const movimientos = await em.find(
+      Movimiento,
+      { pedido },
+      {
+        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
+        orderBy: { fechaHora: 'DESC' },
+      }
+    );
+
+    if (movimientos.length === 0) {
+      throw AppError.notFound(`No se encontraron movimientos para el pedido ${idPedido}`);
+    }
+
+    return movimientos.map((m) => ({
+      fechaHora: m.fechaHora,
+      idPedido: m.pedido.idPedido,
+      estadoInicial: m.estadoInicial.nombreEstado,
+      estadoFinal: m.estadoFinal.nombreEstado,
+      usuario: {
+        nombre: m.usuario.nombre,
+        apellido: m.usuario.apellido,
+      },
+    }));
+  }
+
+  /**
+   * Obtiene movimientos realizados por un usuario en un rango de fechas
+   * Con paginación de 50 registros por página
+   */
+  async findMovimientosByUsuario(
+    idUsuario: number,
+    fechaInicio: string,
+    fechaFin?: string,
+    page: number = 1
+  ) {
+    const em = fork();
+    const limit = 50;
+
+    // Verificar que el usuario existe
+    const usuario = await em.findOne(Usuario, { id: idUsuario });
+    if (!usuario) {
+      throw AppError.notFound(`Usuario con ID ${idUsuario} no encontrado`);
+    }
+
+    // Parsear fechas
+    const fechaInicioDate = new Date(fechaInicio + 'T00:00:00');
+    const fechaFinDate = fechaFin 
+      ? new Date(fechaFin + 'T23:59:59.999')
+      : new Date(fechaInicio + 'T23:59:59.999');
+
+    // Validar que las fechas sean válidas
+    if (isNaN(fechaInicioDate.getTime()) || isNaN(fechaFinDate.getTime())) {
+      throw AppError.badRequest('Formato de fecha inválido');
+    }
+
+    const [movimientos, total] = await em.findAndCount(
+      Movimiento,
+      {
+        usuario: { id: idUsuario },
+        fechaHora: {
+          $gte: fechaInicioDate,
+          $lte: fechaFinDate,
+        },
+      },
+      {
+        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
+        orderBy: { fechaHora: 'DESC' },
+        limit,
+        offset: (page - 1) * limit,
+      }
+    );
+
+    if (total === 0) {
+      throw AppError.notFound(
+        `No se encontraron movimientos para el usuario ${usuario.nombre} ${usuario.apellido} en el rango de fechas especificado`
+      );
+    }
+
+    return {
+      data: movimientos.map((m) => ({
+        fechaHora: m.fechaHora,
+        idPedido: m.pedido.idPedido,
+        estadoInicial: m.estadoInicial.nombreEstado,
+        estadoFinal: m.estadoFinal.nombreEstado,
+        usuario: {
+          nombre: m.usuario.nombre,
+          apellido: m.usuario.apellido,
+        },
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Obtiene movimientos por estado final en un rango de fechas
+   * Con paginación de 50 registros por página
+   */
+  async findMovimientosByEstado(
+    estado: string,
+    fechaInicio: string,
+    fechaFin?: string,
+    page: number = 1
+  ) {
+    const em = fork();
+    const limit = 50;
+
+    // Mapear nombre de estado a ID
+    const estadoMap: Record<string, number> = {
+      'PENDIENTE': ESTADO_IDS.PENDIENTE,
+      'EN PREPARACION': ESTADO_IDS.EN_PREPARACION,
+      'PREPARADO': ESTADO_IDS.PREPARADO,
+      'PAGADO': ESTADO_IDS.PAGADO,
+      'ENTREGADO': ESTADO_IDS.ENTREGADO,
+    };
+
+    const estadoId = estadoMap[estado];
+    if (!estadoId) {
+      throw AppError.badRequest(`Estado ${estado} no es válido`);
+    }
+
+    // Verificar que el estado existe
+    const estadoEntity = await em.findOne(TipoEstado, { id: estadoId });
+    if (!estadoEntity) {
+      throw AppError.notFound(`Estado ${estado} no encontrado en la base de datos`);
+    }
+
+    // Parsear fechas
+    const fechaInicioDate = new Date(fechaInicio + 'T00:00:00');
+    const fechaFinDate = fechaFin 
+      ? new Date(fechaFin + 'T23:59:59.999')
+      : new Date(fechaInicio + 'T23:59:59.999');
+
+    // Validar que las fechas sean válidas
+    if (isNaN(fechaInicioDate.getTime()) || isNaN(fechaFinDate.getTime())) {
+      throw AppError.badRequest('Formato de fecha inválido');
+    }
+
+    const [movimientos, total] = await em.findAndCount(
+      Movimiento,
+      {
+        estadoFinal: { id: estadoId },
+        fechaHora: {
+          $gte: fechaInicioDate,
+          $lte: fechaFinDate,
+        },
+      },
+      {
+        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
+        orderBy: { fechaHora: 'DESC' },
+        limit,
+        offset: (page - 1) * limit,
+      }
+    );
+
+    if (total === 0) {
+      throw AppError.notFound(
+        `No se encontraron movimientos con estado final ${estado} en el rango de fechas especificado`
+      );
+    }
+
+    return {
+      data: movimientos.map((m) => ({
+        fechaHora: m.fechaHora,
+        idPedido: m.pedido.idPedido,
+        estadoInicial: m.estadoInicial.nombreEstado,
+        estadoFinal: m.estadoFinal.nombreEstado,
+        usuario: {
+          nombre: m.usuario.nombre,
+          apellido: m.usuario.apellido,
+        },
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
 }
 

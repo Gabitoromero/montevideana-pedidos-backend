@@ -1,0 +1,129 @@
+@baseUrl = http://localhost:3000/api
+@contentType = application/json
+# Reemplazar con un token válido de admin o CHESS
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjUsInVzZXJuYW1lIjoicm9taSIsInNlY3RvciI6ImFkbWluIiwiaWF0IjoxNzY3MjEzOTgwLCJleHAiOjE3NjcyMTQ4ODB9.TDsxpWdb0XN4MK_2mwPDTwus5-WH-BlxTmjaFGtGYKQ
+
+### ========================================
+### NUEVOS ENDPOINTS - CONSULTA DE MOVIMIENTOS
+### ========================================
+
+### 1. Obtener historial completo de movimientos de un pedido (admin/CHESS)
+GET {{baseUrl}}/movimientos/pedido/0000%20-%2000285219/historial
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 2. Obtener movimientos por usuario con rango de fechas (admin/CHESS)
+# Ejemplo: movimientos del usuario 2 entre el 1 y 31 de diciembre de 2025
+GET {{baseUrl}}/movimientos/usuario/2?fechaInicio=2025-12-30&fechaFin=2025-12-31&page=1
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 3. Obtener movimientos por usuario para un día específico (admin/CHESS)
+# Ejemplo: movimientos del usuario 2 solo el 31 de diciembre de 2025
+GET {{baseUrl}}/movimientos/usuario/3?fechaInicio=2025-12-31
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 4. Obtener movimientos por estado PREPARADO con rango de fechas (admin/CHESS)
+GET {{baseUrl}}/movimientos/estado/PENDIENTE?fechaInicio=2025-12-01&fechaFin=2025-12-31&page=1
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 5. Obtener movimientos por estado PAGADO para un día específico (admin/CHESS)
+GET {{baseUrl}}/movimientos/estado/PAGADO?fechaInicio=2025-12-31
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 6. Obtener movimientos por estado PENDIENTE (admin/CHESS)
+GET {{baseUrl}}/movimientos/estado/PENDIENTE?fechaInicio=2025-12-01&fechaFin=2025-12-31
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 7. Obtener movimientos por estado EN PREPARACION (admin/CHESS)
+GET {{baseUrl}}/movimientos/estado/EN%20PREPARACION?fechaInicio=2025-12-01&fechaFin=2025-12-31
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 8. Obtener movimientos por estado ENTREGADO (admin/CHESS)
+GET {{baseUrl}}/movimientos/estado/ENTREGADO?fechaInicio=2025-12-01&fechaFin=2025-12-31
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 9. Test de paginación - página 2 de movimientos por usuario
+GET {{baseUrl}}/movimientos/usuario/2?fechaInicio=2025-01-01&fechaFin=2025-12-31&page=2
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 10. Test de validación - estado inválido (debe retornar 400)
+GET {{baseUrl}}/movimientos/estado/INVALID_STATE?fechaInicio=2025-12-01
+Authorization: Bearer {{accessToken}}
+
+###
+
+### 11. Test de autorización - sin token (debe retornar 401)
+GET {{baseUrl}}/movimientos/usuario/2?fechaInicio=2025-12-01
+
+###
+
+### ========================================
+### ENDPOINTS EXISTENTES
+### ========================================
+
+### Inicializar pedido desde CHESS (Usuario Sistema automático)
+POST {{baseUrl}}/movimientos/inicializar-chess
+Content-Type: {{contentType}}
+
+{
+  "idPedido": "0001 - 00284936",
+  "fechaHora": "2025-12-31T10:00:00Z",
+  "idFleteroCarga": 1
+}
+
+###
+
+### Crear movimiento (requiere autenticación en body)
+POST {{baseUrl}}/movimientos/
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123",
+  "idPedido": "0001 - 00284936",
+  "estadoInicial": 2,
+  "estadoFinal": 3
+}
+
+###
+
+### Obtener todos los movimientos con filtros
+GET {{baseUrl}}/movimientos?usuarioId=1&estadoFinal=2
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener movimientos por rango de fechas
+GET {{baseUrl}}/movimientos?desde=2025-12-01T00:00:00Z&hasta=2025-12-31T23:59:59Z
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener historial de un pedido (endpoint antiguo)
+GET {{baseUrl}}/movimientos/pedido/0001%20-%2000284936
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Obtener estado actual de un pedido
+GET {{baseUrl}}/movimientos/pedido/0001%20-%2000284936/estado-actual
+Authorization: Bearer {{accessToken}}
+
+###

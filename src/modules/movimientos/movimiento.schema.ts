@@ -33,8 +33,38 @@ export const inicializarChessSchema = z.object({
   idFleteroCarga: z.number().int().positive('El ID del fletero debe ser un número positivo'),
 });
 
+// Schema para validar params de usuario
+export const movimientosByUsuarioParamsSchema = z.object({
+  idUsuario: z.string().regex(/^\d+$/, 'El ID de usuario debe ser un número').transform(Number),
+});
+
+// Schema para validar query de búsqueda por usuario
+export const movimientosByUsuarioQuerySchema = z.object({
+  fechaInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de inicio debe tener el formato YYYY-MM-DD'),
+  fechaFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de fin debe tener el formato YYYY-MM-DD').optional(),
+  page: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
+
+// Schema para validar params de estado
+export const movimientosByEstadoParamsSchema = z.object({
+  estado: z.enum(['PENDIENTE', 'EN PREPARACION', 'PREPARADO', 'PAGADO', 'ENTREGADO'], {
+    errorMap: () => ({ message: 'El estado debe ser uno de: PENDIENTE, EN PREPARACION, PREPARADO, PAGADO, ENTREGADO' })
+  }),
+});
+
+// Schema para validar query de búsqueda por estado
+export const movimientosByEstadoQuerySchema = z.object({
+  fechaInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de inicio debe tener el formato YYYY-MM-DD'),
+  fechaFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de fin debe tener el formato YYYY-MM-DD').optional(),
+  page: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
+
 export type CreateMovimientoDTO = z.infer<typeof createMovimientoSchema>;
 export type MovimientoIdDTO = z.infer<typeof movimientoIdSchema>;
 export type MovimientoPorPedidoDTO = z.infer<typeof movimientoPorPedidoSchema>;
 export type MovimientoQueryDTO = z.infer<typeof movimientoQuerySchema>;
 export type InicializarChessDTO = z.infer<typeof inicializarChessSchema>;
+export type MovimientosByUsuarioParamsDTO = z.infer<typeof movimientosByUsuarioParamsSchema>;
+export type MovimientosByUsuarioQueryDTO = z.infer<typeof movimientosByUsuarioQuerySchema>;
+export type MovimientosByEstadoParamsDTO = z.infer<typeof movimientosByEstadoParamsSchema>;
+export type MovimientosByEstadoQueryDTO = z.infer<typeof movimientosByEstadoQuerySchema>;

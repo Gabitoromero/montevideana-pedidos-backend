@@ -31,40 +31,74 @@ export class UsuarioController {
     };
   }
 
-  async findAll() {
+  async findAll(page: number = 1, limit: number = 50) {
     const em = fork();
-    const usuarios = await em.findAll(Usuario);
     
-    if (usuarios.length === 0) {
-      throw AppError.notFound('No hay usuarios activos registrados');
+    const [usuarios, total] = await em.findAndCount(
+      Usuario,
+      {},
+      {
+        limit,
+        offset: (page - 1) * limit,
+        orderBy: { id: 'ASC' }
+      }
+    );
+    
+    if (total === 0) {
+      throw AppError.notFound('No hay usuarios registrados');
     }
 
-    return usuarios.map((u: Usuario) => ({
-      id: u.id,
-      username: u.username,
-      nombre: u.nombre,
-      apellido: u.apellido,
-      sector: u.sector,
-      activo: u.activo,
-    }));
+    return {
+      data: usuarios.map((u: Usuario) => ({
+        id: u.id,
+        username: u.username,
+        nombre: u.nombre,
+        apellido: u.apellido,
+        sector: u.sector,
+        activo: u.activo,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
-  async findActiveUsers() {
+  async findActiveUsers(page: number = 1, limit: number = 50) {
     const em = fork();
-    const usuarios = await em.find(Usuario, { activo: true });
     
-    if (usuarios.length === 0) {
+    const [usuarios, total] = await em.findAndCount(
+      Usuario,
+      { activo: true },
+      {
+        limit,
+        offset: (page - 1) * limit,
+        orderBy: { id: 'ASC' }
+      }
+    );
+    
+    if (total === 0) {
       throw AppError.notFound('No hay usuarios activos');
     }
 
-    return usuarios.map((u: Usuario) => ({
-      id: u.id,
-      username: u.username,
-      nombre: u.nombre,
-      apellido: u.apellido,
-      sector: u.sector,
-      activo: u.activo,
-    }));
+    return {
+      data: usuarios.map((u: Usuario) => ({
+        id: u.id,
+        username: u.username,
+        nombre: u.nombre,
+        apellido: u.apellido,
+        sector: u.sector,
+        activo: u.activo,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   async findById(id: number) {

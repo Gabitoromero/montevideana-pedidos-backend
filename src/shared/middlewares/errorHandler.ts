@@ -16,8 +16,20 @@ export const errorHandler = (
     return;
   }
 
-  // Log unexpected errors
-  console.error('Unexpected error:', error);
+  // Log completo solo en desarrollo
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Unexpected error:', error);
+  } else {
+    // En producción, log estructurado sin stack trace
+    console.error(JSON.stringify({
+      type: 'UnexpectedError',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+      path: req.path,
+      method: req.method,
+      ip: req.ip
+    }));
+  }
 
   res.status(500).json({
     success: false,

@@ -19,6 +19,28 @@ export class ChessScheduler {
   }
 
   /**
+   * Clasificar tipo de error para manejo específico
+   */
+  private classifyError(error: any): 'NETWORK_ERROR' | 'DATABASE_ERROR' | 'CHESS_ERROR' | 'UNKNOWN' {
+    // Errores de red/timeout
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+      return 'NETWORK_ERROR';
+    }
+    
+    // Errores de base de datos
+    if (error.name === 'DatabaseError' || error.message?.includes('database') || error.message?.includes('SQL')) {
+      return 'DATABASE_ERROR';
+    }
+    
+    // Errores específicos de CHESS
+    if (error.message?.includes('CHESS') || error.response?.status) {
+      return 'CHESS_ERROR';
+    }
+    
+    return 'UNKNOWN';
+  }
+
+  /**
    * Enviar alerta a Discord
    */
   private async sendDiscordAlert(error: Error): Promise<void> {
@@ -100,12 +122,25 @@ export class ChessScheduler {
         await chessService.syncVentas();
         this.failureCount = 0; 
       } catch (error: any) {
-        this.failureCount++;
-        console.error(`❌ Error (${this.failureCount}/${this.MAX_FAILURES}):`, error);
+        // Diferenciar tipos de error
+        const errorType = this.classifyError(error);
         
-        if (this.failureCount >= this.MAX_FAILURES) {
-          console.error('🚨 ALERTA: Múltiples fallos consecutivos en sincronización CHESS');
-          await this.sendDiscordAlert(error);
+        console.error(`❌ Error en sincronización (${errorType}):`, error.message);
+        
+        // Solo incrementar contador para errores de CHESS, no para errores transitorios
+        if (errorType === 'CHESS_ERROR' || errorType === 'UNKNOWN') {
+          this.failureCount++;
+          
+          if (this.failureCount >= this.MAX_FAILURES) {
+            console.error('🚨 ALERTA: Múltiples fallos consecutivos en sincronización CHESS');
+            await this.sendDiscordAlert(error);
+          }
+        } else if (errorType === 'DATABASE_ERROR') {
+          console.error('🚨 ERROR CRÍTICO: Problema con la base de datos. Deteniendo scheduler.');
+          this.stop();
+        } else {
+          // Errores de red no incrementan el contador
+          console.log('⏭️  Error transitorio de red, se reintentará en el próximo ciclo');
         }
       } finally {
         // Limpiar el EntityManager después de la ejecución

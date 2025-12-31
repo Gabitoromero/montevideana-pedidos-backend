@@ -1,8 +1,10 @@
-import { Entity, PrimaryKey, Property, OneToMany, Collection, ManyToOne } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, OneToMany, Collection, ManyToOne, Index } from '@mikro-orm/core';
 import { Movimiento } from '../movimientos/movimiento.entity.js';
 import { Fletero } from '../fleteros/fletero.entity.js';
 
 @Entity({ tableName: 'pedidos' })
+@Index({ properties: ['fechaHora'] })
+@Index({ properties: ['cobrado'] })
 export class Pedido {
   @PrimaryKey({ type: 'string', length: 15 })
   idPedido!: string;

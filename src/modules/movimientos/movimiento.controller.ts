@@ -9,6 +9,7 @@ import { CreateMovimientoDTO, MovimientoQueryDTO } from './movimiento.schema.js'
 import { AppError } from '../../shared/errors/AppError.js';
 import { DateUtil } from '../../shared/utils/date.js';
 import { HashUtil } from '../../shared/utils/hash.js';
+import { StringUtil } from '../../shared/utils/string.js';
 import { 
   ESTADO_IDS, 
   esEstadoPagado, 
@@ -60,7 +61,8 @@ export class MovimientoController {
     // 5. Validar que el pedido existe
     const pedido = await em.findOne(Pedido, { idPedido: data.idPedido }, { populate: ['fletero'] });
     if (!pedido) {
-      throw AppError.notFound(`Pedido con ID ${data.idPedido} no encontrado`);
+      const sanitizedId = StringUtil.sanitizePedidoId(data.idPedido);
+      throw AppError.notFound(`Pedido con ID ${sanitizedId} no encontrado`);
     }
 
     // 6. Validar que ambos estados existen
@@ -82,26 +84,32 @@ export class MovimientoController {
     );
 
     if (!esTransicionLegal) {
+      const sanitizedId = StringUtil.sanitizePedidoId(data.idPedido);
       throw AppError.badRequest(
-        `Transición ilegal: El pedido ${data.idPedido} no puede pasar al estado "${estadoFinal.nombreEstado}" porque no ha pasado por los estados necesarios previos`
+        `Transición ilegal: El pedido ${sanitizedId} no puede pasar al estado "${estadoFinal.nombreEstado}" porque no ha pasado por los estados necesarios previos`
       );
     }
 
     // 8. Si el estado final es "Pagado" (id: 5), marcar el pedido como cobrado
-    if (esEstadoPagado(data.estadoFinal)) {
-      pedido.cobrado = true;
-    }
-
     // 9. Crear el movimiento
-    const movimiento = em.create(Movimiento, {
-      fechaHora: new Date(),
-      pedido: pedido,
-      estadoInicial: estadoInicial,
-      estadoFinal: estadoFinal,
-      usuario: usuario
-    });
+    // Usar transacción para garantizar atomicidad
+    const movimiento = await em.transactional(async (transactionalEm) => {
+      if (esEstadoPagado(data.estadoFinal)) {
+        pedido.cobrado = true;
+      }
 
-    await em.persist(movimiento).flush();
+      const nuevoMovimiento = transactionalEm.create(Movimiento, {
+        fechaHora: new Date(),
+        pedido: pedido,
+        estadoInicial: estadoInicial,
+        estadoFinal: estadoFinal,
+        usuario: usuario
+      });
+
+      await transactionalEm.persist(nuevoMovimiento).flush();
+      
+      return nuevoMovimiento;
+    });
 
     return {
       fechaHora: movimiento.fechaHora,
@@ -132,7 +140,7 @@ export class MovimientoController {
   }
     
 
-  async findAll(filters?: MovimientoQueryDTO) {
+  async findAll(filters?: MovimientoQueryDTO, page: number = 1, limit: number = 50) {
     const em = fork();
     const where: any = {};
 
@@ -157,41 +165,51 @@ export class MovimientoController {
       }
     }
 
-    const movimientos = await em.find(
+    const [movimientos, total] = await em.findAndCount(
       Movimiento,
       where,
       {
         populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido', 'pedido.fletero'],
         orderBy: { fechaHora: 'DESC' },
+        limit,
+        offset: (page - 1) * limit
       }
     );
 
-    if (!movimientos || movimientos.length === 0) {
+    if (total === 0) {
       throw AppError.notFound(`No se encontraron movimientos que coincidan con los filtros proporcionados`);
     }
 
-    return movimientos.map((m) => ({
-      fechaHora: m.fechaHora,
-      pedido: {
-        idPedido: m.pedido.idPedido,
-        fechaHora: m.pedido.fechaHora,
-        fletero: {
-          idFletero: m.pedido.fletero.idFletero,
-          dsFletero: m.pedido.fletero.dsFletero,
-          seguimiento: m.pedido.fletero.seguimiento
-        }
-      },
-      estadoInicial: m.estadoInicial,
-      estadoFinal: m.estadoFinal,
-      nombreEstadoInicial: m.estadoInicial.nombreEstado,
-      nombreEstadoFinal: m.estadoFinal.nombreEstado,
-      usuario: {
-        id: m.usuario.id,
-        nombre: m.usuario.nombre,
-        apellido: m.usuario.apellido,
-        sector: m.usuario.sector,
-      },
-    }));
+    return {
+      data: movimientos.map((m) => ({
+        fechaHora: m.fechaHora,
+        pedido: {
+          idPedido: m.pedido.idPedido,
+          fechaHora: m.pedido.fechaHora,
+          fletero: {
+            idFletero: m.pedido.fletero.idFletero,
+            dsFletero: m.pedido.fletero.dsFletero,
+            seguimiento: m.pedido.fletero.seguimiento
+          }
+        },
+        estadoInicial: m.estadoInicial,
+        estadoFinal: m.estadoFinal,
+        nombreEstadoInicial: m.estadoInicial.nombreEstado,
+        nombreEstadoFinal: m.estadoFinal.nombreEstado,
+        usuario: {
+          id: m.usuario.id,
+          nombre: m.usuario.nombre,
+          apellido: m.usuario.apellido,
+          sector: m.usuario.sector,
+        },
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   async findByPedidoAndFecha(idPedido: string, fechaHora: Date) {

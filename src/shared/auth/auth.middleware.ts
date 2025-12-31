@@ -32,3 +32,25 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
     next(error);
   }
 };
+
+/**
+ * Middleware de autorización basado en sectores
+ * Uso: authorize('admin', 'armado')
+ */
+export const authorize = (...allowedSectors: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      if (!req.user) {
+        throw AppError.unauthorized('Usuario no autenticado');
+      }
+
+      if (!allowedSectors.includes(req.user.sector)) {
+        throw AppError.forbidden(`Acceso denegado. Se requiere uno de los siguientes sectores: ${allowedSectors.join(', ')}`);
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};

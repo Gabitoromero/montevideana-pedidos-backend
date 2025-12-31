@@ -63,6 +63,11 @@ export class AuthController {
       throw AppError.unauthorized('Usuario no encontrado');
     }
 
+    // Verificar que el usuario sigue activo
+    if (!usuario.activo) {
+      throw AppError.unauthorized('Usuario inactivo. No se puede refrescar el token.');
+    }
+
     // Generar nuevo access token
     const newPayload = {
       sub: usuario.id,

@@ -1,9 +1,10 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Rel } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, ManyToOne, Rel, Index } from '@mikro-orm/core';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
 import { Pedido } from '../pedidos/pedido.entity.js';
 
 @Entity({ tableName: 'movimientos' })
+@Index({ properties: ['fechaHora'] })
 export class Movimiento {
   @PrimaryKey({ type: 'datetime' })
   fechaHora!: Date;

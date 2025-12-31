@@ -38,9 +38,21 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
         },
     });
     
-    // Generar schema en desarrollo
+    // Generar schema solo en desarrollo
     if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 Actualizando schema de base de datos (desarrollo)...');
         await orm.schema.updateSchema();
+    } else {
+        // En producción, solo verificar que el schema está sincronizado
+        console.log('🔍 Verificando sincronización de schema...');
+        const diff = await orm.schema.getUpdateSchemaSQL();
+        if (diff.length > 0) {
+            console.warn('⚠️  ADVERTENCIA: El schema de base de datos no está sincronizado con las entidades');
+            console.warn('⚠️  Ejecuta las migraciones manualmente antes de continuar');
+            throw new Error('Schema desincronizado. Ejecuta migraciones manualmente.');
+        } else {
+            console.log('✅ Schema sincronizado correctamente');
+        }
     }
 
     return orm;

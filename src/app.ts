@@ -40,10 +40,23 @@ export const createApp = (): Application => {
 
   app.use(cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // En desarrollo, permitir requests sin origin (Postman, curl, etc.)
+      if (!origin && process.env.NODE_ENV === 'development') {
+        callback(null, true);
+        return;
+      }
+      
+      // En producción, rechazar requests sin origin
+      if (!origin) {
+        callback(new AppError('CORS: Origin header requerido'));
+        return;
+      }
+      
+      // Verificar si el origin está en la lista permitida
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new AppError('CORS no permitido'));
+        callback(new AppError(`CORS: Origen ${origin} no permitido`));
       }
     },
     credentials: true // Importante para headers de autorización
@@ -51,9 +64,34 @@ export const createApp = (): Application => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Health check
-  app.get('/health', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  // Health check detallado
+  app.get('/health', async (req: Request, res: Response) => {
+    const health = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      database: 'unknown',
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        unit: 'MB'
+      }
+    };
+
+    try {
+      // Verificar conexión a base de datos
+      const { getORM } = await import('./shared/db/orm.js');
+      const orm = getORM();
+      await orm.em.getConnection().execute('SELECT 1');
+      health.database = 'connected';
+    } catch (error) {
+      health.database = 'disconnected';
+      health.status = 'degraded';
+    }
+
+    const statusCode = health.status === 'ok' ? 200 : 503;
+    res.status(statusCode).json(health);
   });
 
   // API Routes with rate limiting

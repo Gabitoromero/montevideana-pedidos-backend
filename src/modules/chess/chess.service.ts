@@ -10,6 +10,14 @@ import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
 import { FleterosService } from '../fleteros/fletero.service.js';
 import { Fletero } from '../fleteros/fletero.entity.js';
+import { ESTADO_IDS, ESTADO_NOMBRES } from '../../shared/constants/estados.js';
+
+// Configuración de timeouts diferenciados
+const CHESS_TIMEOUTS = {
+  LOGIN: 10000,           // 10 segundos para login
+  SINGLE_REQUEST: 15000,  // 15 segundos para requests individuales
+  BATCH_REQUEST: 300000   // 5 minutos para operaciones con múltiples lotes
+} as const;
 
 export class ChessService {
   private api: AxiosInstance;
@@ -34,7 +42,7 @@ export class ChessService {
     this.api = wrapper(
       axios.create({
         baseURL: baseURL,
-        timeout: 10000,
+        timeout: CHESS_TIMEOUTS.SINGLE_REQUEST, // Timeout por defecto
         jar: this.jar,  // Ahora funciona porque usamos wrapper
         withCredentials: true,
         headers: {
@@ -104,6 +112,8 @@ export class ChessService {
     const response = await this.api.post('web/api/chess/v1/auth/login', {
       usuario,
       password,
+    }, {
+      timeout: CHESS_TIMEOUTS.LOGIN
     });
 
     console.log('✅ Login CHESS exitoso.');
@@ -439,14 +449,14 @@ export class ChessService {
         throw new AppError('Usuario "CHESS" no existe en la base de datos', 500);
       }
 
-      const estadoChess = await this.em.findOne(TipoEstado, { nombreEstado: 'CHESS' });
+      const estadoChess = await this.em.findOne(TipoEstado, { id: ESTADO_IDS.CHESS });
       if (!estadoChess) {
-        throw new AppError('TipoEstado "CHESS" no existe en la base de datos', 500);
+        throw new AppError(`TipoEstado "${ESTADO_NOMBRES.CHESS}" (ID: ${ESTADO_IDS.CHESS}) no existe en la base de datos`, 500);
       }
 
-      const estadoPendiente = await this.em.findOne(TipoEstado, { nombreEstado: 'PENDIENTE' });
+      const estadoPendiente = await this.em.findOne(TipoEstado, { id: ESTADO_IDS.PENDIENTE });
       if (!estadoPendiente) {
-        throw new AppError('TipoEstado "PENDIENTE" no existe en la base de datos', 500);
+        throw new AppError(`TipoEstado "${ESTADO_NOMBRES.PENDIENTE}" (ID: ${ESTADO_IDS.PENDIENTE}) no existe en la base de datos`, 500);
       }
 
       console.log(`✅ Validaciones iniciales completadas`);

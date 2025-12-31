@@ -3,6 +3,7 @@ import { PedidoController } from './pedido.controller.js';
 import { PedidoService } from './pedido.service.js';
 import { RequestContext } from '@mikro-orm/core';
 import { getORM } from '../../shared/db/orm.js';
+import { authMiddleware } from '../../shared/auth/auth.middleware.js';
 
 const router = Router();
 
@@ -22,6 +23,9 @@ const getController = () => {
 router.use((req, res, next) => {
   RequestContext.create(getORM().em, next);
 });
+
+// Todas las rutas requieren autenticación
+router.use(authMiddleware);
 
 // Rutas
 router.get('/', (req, res, next) => getController().findAll(req, res, next));

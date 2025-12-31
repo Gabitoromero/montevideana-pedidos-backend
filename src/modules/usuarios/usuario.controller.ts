@@ -31,74 +31,40 @@ export class UsuarioController {
     };
   }
 
-  async findAll(page: number = 1, limit: number = 50) {
+  async findAll() {
     const em = fork();
+    const usuarios = await em.findAll(Usuario);
     
-    const [usuarios, total] = await em.findAndCount(
-      Usuario,
-      {},
-      {
-        limit,
-        offset: (page - 1) * limit,
-        orderBy: { id: 'ASC' }
-      }
-    );
-    
-    if (total === 0) {
+    if (usuarios.length === 0) {
       throw AppError.notFound('No hay usuarios registrados');
     }
 
-    return {
-      data: usuarios.map((u: Usuario) => ({
-        id: u.id,
-        username: u.username,
-        nombre: u.nombre,
-        apellido: u.apellido,
-        sector: u.sector,
-        activo: u.activo,
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
+    return usuarios.map((u: Usuario) => ({
+      id: u.id,
+      username: u.username,
+      nombre: u.nombre,
+      apellido: u.apellido,
+      sector: u.sector,
+      activo: u.activo,
+    }));
   }
 
-  async findActiveUsers(page: number = 1, limit: number = 50) {
+  async findActiveUsers() {
     const em = fork();
+    const usuarios = await em.find(Usuario, { activo: true });
     
-    const [usuarios, total] = await em.findAndCount(
-      Usuario,
-      { activo: true },
-      {
-        limit,
-        offset: (page - 1) * limit,
-        orderBy: { id: 'ASC' }
-      }
-    );
-    
-    if (total === 0) {
+    if (usuarios.length === 0) {
       throw AppError.notFound('No hay usuarios activos');
     }
 
-    return {
-      data: usuarios.map((u: Usuario) => ({
-        id: u.id,
-        username: u.username,
-        nombre: u.nombre,
-        apellido: u.apellido,
-        sector: u.sector,
-        activo: u.activo,
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
+    return usuarios.map((u: Usuario) => ({
+      id: u.id,
+      username: u.username,
+      nombre: u.nombre,
+      apellido: u.apellido,
+      sector: u.sector,
+      activo: u.activo,
+    }));
   }
 
   async findById(id: number) {

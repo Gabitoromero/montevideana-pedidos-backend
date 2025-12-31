@@ -2,14 +2,16 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { UsuarioController } from './usuario.controller.js';
 import { validateSchema } from '../../shared/middlewares/validateSchema.js';
 import { createUsuarioSchema, updateUsuarioSchema, usuarioIdSchema } from './usuario.schema.js';
-import { authMiddleware } from '../../shared/auth/auth.middleware.js';
+import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js';
 
 const router = Router();
 const controller = new UsuarioController();
 
-//router.use(authMiddleware);
+// Todas las rutas de usuarios requieren autenticación y permisos de admin
+router.use(authMiddleware);
+router.use(authorize('admin', 'CHESS'));
 
-// Crear usuario (sin autenticación para permitir registro)
+// Crear usuario (solo admin)
 router.post(
   '/',
   validateSchema(createUsuarioSchema, 'body'),
@@ -23,7 +25,7 @@ router.post(
   }
 );
 
-// Obtener todos los usuarios (requiere autenticación)
+// Obtener todos los usuarios
 router.get( '/', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await controller.findAll();
@@ -63,7 +65,7 @@ router.put(
   }
 );
 
-// dar de baja usuario
+// Eliminar usuario (solo admin)
 router.delete(
   '/:id',
   validateSchema(usuarioIdSchema, 'params'),
@@ -77,7 +79,7 @@ router.delete(
   }
 );
 
-// dar de alta usuario
+// Cambiar estado usuario (activar/desactivar)
 router.patch(
   '/:id/activar',
   validateSchema(usuarioIdSchema, 'params'),

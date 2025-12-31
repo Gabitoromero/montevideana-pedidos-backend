@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Rel, Index } from '@mikro-orm/core';
+import { Entity, PrimaryKey, ManyToOne, Rel, Index } from '@mikro-orm/core';
 import { Usuario } from '../usuarios/usuario.entity.js';
 import { TipoEstado } from '../estados/tipoEstado.entity.js';
 import { Pedido } from '../pedidos/pedido.entity.js';

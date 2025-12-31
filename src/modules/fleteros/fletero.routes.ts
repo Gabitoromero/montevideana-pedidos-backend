@@ -1,12 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { FleterosController } from './fletero.controller.js';
-import { authMiddleware } from '../../shared/auth/auth.middleware.js';
+import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js';
 
 const router = Router();
 const controller = new FleterosController();
 
-// Todas las rutas requieren autenticación de admin
-// router.use(authMiddleware); // Descomentar cuando esté listo para producción
+// Todas las rutas requieren autenticación y permisos de admin
+router.use(authMiddleware);
+router.use(authorize('admin','CHESS'));
 
 /**
  * GET /fleteros - Listar todos los fleteros

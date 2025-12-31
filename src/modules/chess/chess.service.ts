@@ -14,7 +14,7 @@ import { ESTADO_IDS, ESTADO_NOMBRES } from '../../shared/constants/estados.js';
 
 // Configuración de timeouts diferenciados
 const CHESS_TIMEOUTS = {
-  LOGIN: 10000,           // 10 segundos para login
+  LOGIN: 30000,           // 30 segundos para login
   SINGLE_REQUEST: 15000,  // 15 segundos para requests individuales
   BATCH_REQUEST: 300000   // 5 minutos para operaciones con múltiples lotes
 } as const;

@@ -14,9 +14,10 @@ const router = Router();
 const controller = new MovimientoController();
 
 // Todas las rutas requieren autenticación
-//router.use(authMiddleware);
+router.use(authMiddleware);
 
 // Crear movimiento (transición de estado)
+// La validación de permisos está dentro del controller según el tipo de movimiento
 router.post(
   '/',
   validateSchema(createMovimientoSchema, 'body'),
@@ -36,7 +37,9 @@ router.get(
   validateSchema(movimientoQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await controller.findAll(req.query as any);
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const result = await controller.findAll(req.query as any, page, limit);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -90,6 +93,7 @@ router.get(
 );
 
 // Inicializar pedido desde CHESS (Usuario Sistema)
+// Esta ruta es interna, no requiere autenticación JWT (usa credenciales en el body)
 router.post(
   '/inicializar-chess',
   validateSchema(inicializarChessSchema, 'body'),

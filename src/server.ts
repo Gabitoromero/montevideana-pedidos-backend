@@ -28,26 +28,45 @@ async function bootstrap() {
       console.log(`📦 Entorno: ${process.env.NODE_ENV || 'development'}`);
     });
 
-    // Iniciar scheduler de CHESS
-    console.log('⏰ Iniciando scheduler de sincronización CHESS...');
-    const chessScheduler = await initChessScheduler(orm);
-    console.log('✅ Scheduler CHESS activo');
+    // Iniciar scheduler de CHESS solo si no está desactivado
+    const disableScheduler = process.env.DISABLE_SCHEDULER === 'true';
+    
+    if (!disableScheduler) {
+      console.log('⏰ Iniciando scheduler de sincronización CHESS...');
+      const chessScheduler = await initChessScheduler(orm);
+      console.log('✅ Scheduler CHESS activo');
 
-    // Manejo de señales de cierre
-    const gracefulShutdown = async (signal: string) => {
-      console.log(`\n${signal} recibido. Cerrando servidor...`);
-      
-      // Detener scheduler
-      chessScheduler.stop();
-      
-      // Cerrar conexión a BD
-      await orm.close();
-      console.log('✅ Conexión a base de datos cerrada');
-      process.exit(0);
-    };
+      // Manejo de señales de cierre con scheduler
+      const gracefulShutdown = async (signal: string) => {
+        console.log(`\n${signal} recibido. Cerrando servidor...`);
+        
+        // Detener scheduler
+        chessScheduler.stop();
+        
+        // Cerrar conexión a BD
+        await orm.close();
+        console.log('✅ Conexión a base de datos cerrada');
+        process.exit(0);
+      };
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    } else {
+      console.log('⏭️  Scheduler CHESS desactivado (modo cluster worker)');
+
+      // Manejo de señales de cierre sin scheduler
+      const gracefulShutdown = async (signal: string) => {
+        console.log(`\n${signal} recibido. Cerrando servidor...`);
+        
+        // Cerrar conexión a BD
+        await orm.close();
+        console.log('✅ Conexión a base de datos cerrada');
+        process.exit(0);
+      };
+
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    }
   } catch (error) {
     console.error('❌ Error al iniciar el servidor:', error);
     process.exit(1);

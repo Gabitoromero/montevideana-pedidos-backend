@@ -71,6 +71,27 @@ router.get(
   }
 );
 
+// Test Discord webhook alert - solo para pruebas
+router.get(
+  '/test-discord-alert',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ChessScheduler } = await import('./chess.scheduler.js');
+      const scheduler = new ChessScheduler(getORM());
+      
+      const testError = new Error('Test de alerta Discord - Esta es una prueba manual del sistema de notificaciones');
+      await (scheduler as any).sendDiscordAlert(testError);
+      
+      res.status(200).json({ 
+        success: true, 
+        message: 'Alerta de prueba enviada a Discord. Revisa el canal configurado.' 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 //router.get('/diagnostico', (req: Request, res: Response, next: NextFunction) => controller.getReporteRomina(req, res, next));
 
 // // Obtener pedido por número desde CHESS

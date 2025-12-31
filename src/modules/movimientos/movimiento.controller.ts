@@ -9,6 +9,12 @@ import { CreateMovimientoDTO, MovimientoQueryDTO } from './movimiento.schema.js'
 import { AppError } from '../../shared/errors/AppError.js';
 import { DateUtil } from '../../shared/utils/date.js';
 import { HashUtil } from '../../shared/utils/hash.js';
+import { 
+  ESTADO_IDS, 
+  esEstadoPagado, 
+  puedeRealizarMovimientoArmado, 
+  puedeRealizarMovimientoFacturacion 
+} from '../../shared/constants/estados.js';
 
 export class MovimientoController {
   private reglaController = new ReglaController();
@@ -35,14 +41,18 @@ export class MovimientoController {
     }
 
     // 4. Validar permisos según sector
-    if(data.estadoFinal == 3 || data.estadoFinal == 4 || data.estadoFinal == 6){
-      if (usuario.sector != "armado" && usuario.sector != "CHESS" && usuario.sector != "admin" ) {
+    // Estados de armado: EN_PREPARACION (3), PREPARADO (4), ENTREGADO (6)
+    if (data.estadoFinal === ESTADO_IDS.EN_PREPARACION || 
+        data.estadoFinal === ESTADO_IDS.PREPARADO || 
+        data.estadoFinal === ESTADO_IDS.ENTREGADO) {
+      if (!puedeRealizarMovimientoArmado(usuario.sector)) {
         throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de armado y no puede realizar movimientos de estado`);
       }
     }
 
-    if (data.estadoFinal == 5){
-      if (usuario.sector != "facturacion" && usuario.sector != "admin" && usuario.sector != "CHESS") {
+    // Estado de facturación: PAGADO (5)
+    if (data.estadoFinal === ESTADO_IDS.PAGADO) {
+      if (!puedeRealizarMovimientoFacturacion(usuario.sector)) {
         throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de facturación y no puede realizar movimientos de estado`);
       }
     }
@@ -78,7 +88,7 @@ export class MovimientoController {
     }
 
     // 8. Si el estado final es "Pagado" (id: 5), marcar el pedido como cobrado
-    if (data.estadoFinal === 5) {
+    if (esEstadoPagado(data.estadoFinal)) {
       pedido.cobrado = true;
     }
 
@@ -333,13 +343,11 @@ export class MovimientoController {
 
   /**
    * Inicializa un pedido desde CHESS con el usuario Sistema
-   * Estado 6 (CHESS) → Estado 1 (Pendiente)
+   * Estado 1 (CHESS) → Estado 2 (Pendiente)
    */
   async inicializarDesdeChess(data: { idPedido: string; fechaHora: string; idFleteroCarga: number }) {
     const em = fork();
     const USUARIO_SISTEMA_ID = 1; // ID del usuario "Sistema"
-    const ESTADO_CHESS_ID = 6;     // Estado inicial de CHESS
-    const ESTADO_PENDIENTE_ID = 1; // Estado Pendiente
 
     // 1. Verificar que el usuario Sistema existe
     const usuarioSistema = await em.findOne(Usuario, { id: USUARIO_SISTEMA_ID });
@@ -350,17 +358,17 @@ export class MovimientoController {
     }
 
     // 2. Verificar que los estados existen
-    const estadoChess = await em.findOne(TipoEstado, { id: ESTADO_CHESS_ID });
+    const estadoChess = await em.findOne(TipoEstado, { id: ESTADO_IDS.CHESS });
     if (!estadoChess) {
       throw AppError.internal(
-        'Estado CHESS (6) no encontrado. Debe existir en la base de datos.'
+        'Estado CHESS (1) no encontrado. Debe existir en la base de datos.'
       );
     }
 
-    const estadoPendiente = await em.findOne(TipoEstado, { id: ESTADO_PENDIENTE_ID });
+    const estadoPendiente = await em.findOne(TipoEstado, { id: ESTADO_IDS.PENDIENTE });
     if (!estadoPendiente) {
       throw AppError.internal(
-        'Estado PENDIENTE (1) no encontrado. Debe existir en la base de datos.'
+        'Estado PENDIENTE (2) no encontrado. Debe existir en la base de datos.'
       );
     }
 

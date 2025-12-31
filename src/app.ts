@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { errorHandler } from './shared/middlewares/errorHandler.js';
 
 // Routes
@@ -13,6 +14,23 @@ import chessRoutes from './modules/chess/chess.routes.js';
 import pedidoRoutes from './modules/pedidos/pedido.routes.js';
 import fleteroRoutes from './modules/fleteros/fletero.routes.js';
 import { AppError } from './shared/errors/AppError.js';
+
+// Rate limiting configuration
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // 5 intentos
+  message: 'Demasiados intentos de login. Por favor, intenta de nuevo en 15 minutos.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 100, // 100 requests por minuto
+  message: 'Demasiadas peticiones. Por favor, intenta de nuevo más tarde.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export const createApp = (): Application => {
   const app = express();
@@ -38,7 +56,10 @@ export const createApp = (): Application => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // API Routes
+  // API Routes with rate limiting
+  app.use('/api/auth/login', authLimiter); // Rate limit específico para login
+  app.use('/api/', apiLimiter); // Rate limit general para toda la API
+  
   app.use('/api/auth', authRoutes);
   app.use('/api/usuarios', usuarioRoutes);
   app.use('/api/estados', tipoEstadoRoutes);

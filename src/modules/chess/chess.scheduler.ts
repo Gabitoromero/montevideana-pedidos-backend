@@ -11,9 +11,70 @@ export class ChessScheduler {
   private orm: MikroORM;
   private task: ScheduledTask | null = null;
   private isRunningYet = false;
+  private failureCount = 0;
+  private readonly MAX_FAILURES = 3;
 
   constructor(orm: MikroORM) {
     this.orm = orm;
+  }
+
+  /**
+   * Enviar alerta a Discord
+   */
+  private async sendDiscordAlert(error: Error): Promise<void> {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    
+    if (!webhookUrl) {
+      console.warn('⚠️ DISCORD_WEBHOOK_URL no configurado en .env');
+      return;
+    }
+
+    try {
+      const message = {
+        username: 'Alertas Sistema',
+        avatar_url: 'https://cdn-icons-png.flaticon.com/512/2099/2099190.png',
+        embeds: [{
+          title: '🚨 ALERTA: Fallos consecutivos en sincronización CHESS',
+          description: `Se han detectado **${this.failureCount}** fallos consecutivos en la sincronización con CHESS.`,
+          color: 15158332,
+          fields: [
+            {
+              name: '❌ Error',
+              value: `\`\`\`${error.message}\`\`\``,
+              inline: false
+            },
+            {
+              name: '📅 Fecha',
+              value: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+              inline: true
+            },
+            {
+              name: '🔢 Intentos fallidos',
+              value: `${this.failureCount}/${this.MAX_FAILURES}`,
+              inline: true
+            }
+          ],
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: 'Sistema de Pedidos - Montevideana'
+          }
+        }]
+      };
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message)
+      });
+
+      if (!response.ok) {
+        console.error('❌ Error al enviar alerta a Discord:', response.statusText);
+      } else {
+        console.log('✅ Alerta enviada a Discord exitosamente');
+      }
+    } catch (fetchError: any) {
+      console.error('❌ Error al conectar con Discord:', fetchError.message);
+    }
   }
 
   /**
@@ -37,9 +98,15 @@ export class ChessScheduler {
       
       try {
         await chessService.syncVentas();
+        this.failureCount = 0; 
       } catch (error: any) {
-        console.error('❌ Error en sincronización automática:', error.message);
-        console.error(error);
+        this.failureCount++;
+        console.error(`❌ Error (${this.failureCount}/${this.MAX_FAILURES}):`, error);
+        
+        if (this.failureCount >= this.MAX_FAILURES) {
+          console.error('🚨 ALERTA: Múltiples fallos consecutivos en sincronización CHESS');
+          await this.sendDiscordAlert(error);
+        }
       } finally {
         // Limpiar el EntityManager después de la ejecución
         await em.clear();

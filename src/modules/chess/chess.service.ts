@@ -87,14 +87,19 @@ export class ChessService {
   public async login(): Promise<void> {
   const usuario = process.env.CHESS_USER;
   const password = process.env.CHESS_PASSWORD;
+  const isDev = process.env.NODE_ENV !== 'production';
 
   if (!usuario || !password) {
     throw new AppError('Credenciales de CHESS no configuradas en el backend', 500);
   }
 
   try {
-    console.log(`🔄 Conectando a CHESS en: ${this.api.defaults.baseURL}...`);
-    console.log(`👤 Usuario: ${usuario}`);
+    if (isDev) {
+      console.log(`🔄 Conectando a CHESS en: ${this.api.defaults.baseURL}...`);
+      console.log(`👤 Usuario: ${usuario}`);
+    } else {
+      console.log('🔄 Autenticando con CHESS...');
+    }
     
     const response = await this.api.post('web/api/chess/v1/auth/login', {
       usuario,
@@ -102,7 +107,9 @@ export class ChessService {
     });
 
     console.log('✅ Login CHESS exitoso.');
-    console.log('📦 Response data:', response.data);
+    if (isDev) {
+      console.log('📦 Response data:', response.data);
+    }
     
     // ✅ EXTRAER sessionId del BODY
     const sessionId = response.data?.sessionId;
@@ -112,7 +119,11 @@ export class ChessService {
       throw new AppError('CHESS no devolvió sessionId en la respuesta', 500);
     }
 
-    console.log(`🔐 SessionId recibido: ${sessionId.substring(0, 40)}...`);
+    if (isDev) {
+      console.log(`🔐 SessionId recibido: ${sessionId.substring(0, 40)}...`);
+    } else {
+      console.log('🔐 Sesión CHESS establecida');
+    }
     
     // ✅ GUARDAR MANUALMENTE en CookieJar con formato correcto
     // Extraer solo el valor (sin "JSESSIONID=" porque ya está en el sessionId)
@@ -133,13 +144,14 @@ export class ChessService {
     
     // Verificar que se guardó
     const cookies = await this.jar.getCookies(this.api.defaults.baseURL!);
-    console.log(`🍪 Cookies guardadas: ${cookies.length}`);
-    
-    const savedCookie = cookies.find(c => c.key === 'JSESSIONID');
-    if (savedCookie) {
-      console.log(`🔐 JSESSIONID en jar: ${savedCookie.value.substring(0, 40)}...`);
-    } else {
-      console.warn('⚠️ No se pudo guardar JSESSIONID en el jar');
+    if (isDev) {
+      console.log(`🍪 Cookies guardadas: ${cookies.length}`);
+      const savedCookie = cookies.find(c => c.key === 'JSESSIONID');
+      if (savedCookie) {
+        console.log(`🔐 JSESSIONID en jar: ${savedCookie.value.substring(0, 40)}...`);
+      } else {
+        console.warn('⚠️ No se pudo guardar JSESSIONID en el jar');
+      }
     }
 
   } catch (error: any) {
@@ -174,6 +186,8 @@ export class ChessService {
 }
 
   private async requestWithAuth<T>(requestFn: () => Promise<T>): Promise<T> {
+    const isDev = process.env.NODE_ENV !== 'production';
+    
     // Verificar si hay cookies activas
     const cookies = await this.jar.getCookies(this.api.defaults.baseURL!);
     if (cookies.length === 0) {
@@ -182,9 +196,11 @@ export class ChessService {
     }
 
     try {
-      const currentCookies = await this.jar.getCookies(this.api.defaults.baseURL!);
-      const jsession = currentCookies.find(c => c.key === 'JSESSIONID');
-      console.log(`🔐 Intento 1 con JSESSIONID: ${jsession?.value.substring(0, 30)}...`);
+      if (isDev) {
+        const currentCookies = await this.jar.getCookies(this.api.defaults.baseURL!);
+        const jsession = currentCookies.find(c => c.key === 'JSESSIONID');
+        console.log(`🔐 Intento 1 con JSESSIONID: ${jsession?.value.substring(0, 30)}...`);
+      }
     
       return await requestFn();
     } catch (error: any) {
@@ -194,10 +210,12 @@ export class ChessService {
         await this.jar.removeAllCookies();
         await this.login();
         
-        // Verificar la cookie después del login
-        const newCookies = await this.jar.getCookies(this.api.defaults.baseURL!);
-        const newJsession = newCookies.find(c => c.key === 'JSESSIONID');
-        console.log(`🔐 Intento 2 con JSESSIONID: ${newJsession?.value.substring(0, 30)}...`);
+        if (isDev) {
+          // Verificar la cookie después del login
+          const newCookies = await this.jar.getCookies(this.api.defaults.baseURL!);
+          const newJsession = newCookies.find(c => c.key === 'JSESSIONID');
+          console.log(`🔐 Intento 2 con JSESSIONID: ${newJsession?.value.substring(0, 30)}...`);
+        }
         
         // Esperar un poquito para asegurar que el servidor procesó el login
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -288,7 +306,10 @@ export class ChessService {
           },
         };
 
-        const response = await this.api.get<ChessAPIResponse>('web/api/chess/v1/ventas/', config);
+        const response = await this.api.get<ChessAPIResponse>('web/api/chess/v1/ventas/', {
+          ...config,
+          timeout: 300000 // 5 minutos para operaciones con múltiples lotes
+        });
         
         // Parsear total de lotes de la primera respuesta
         if (loteActual === 1) {

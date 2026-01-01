@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { errorHandler } from './shared/middlewares/errorHandler.js';
 
 // Routes
@@ -59,8 +60,13 @@ export const createApp = (): Application => {
         callback(new AppError(`CORS: Origen ${origin} no permitido`));
       }
     },
-    credentials: true // Importante para headers de autorización
+    credentials: true // Importante para headers de autorización y cookies
   }));
+  
+  // Cookie parser con secret para firmar cookies
+  const cookieSecret = process.env.COOKIE_SECRET || 'dev-cookie-secret-change-in-production';
+  app.use(cookieParser(cookieSecret));
+  
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

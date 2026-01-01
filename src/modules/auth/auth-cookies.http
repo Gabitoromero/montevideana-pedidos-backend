@@ -1,0 +1,93 @@
+@baseUrl = http://localhost:3000/api
+@contentType = application/json
+
+### ========================================
+### AUTENTICACIÓN CON COOKIES HTTP-ONLY
+### ========================================
+
+### 1. Login con cookies (setea accessToken y refreshToken como cookies)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+###
+
+### 2. Obtener información del usuario autenticado (usando cookie automáticamente)
+# Nota: La cookie se envía automáticamente si usas REST Client en VS Code
+GET {{baseUrl}}/auth/me
+
+###
+
+### 3. Refresh token (lee refresh token desde cookie)
+# No necesitas enviar nada en el body, la cookie se envía automáticamente
+POST {{baseUrl}}/auth/refresh
+
+###
+
+### 4. Logout (limpia las cookies)
+POST {{baseUrl}}/auth/logout
+
+###
+
+### 5. Intentar acceder sin cookie (debe fallar con 401)
+# Para probar esto, reinicia VS Code o espera a que expire la cookie
+GET {{baseUrl}}/auth/me
+
+###
+
+### ========================================
+### PRUEBA DE RUTAS PROTEGIDAS CON COOKIES
+### ========================================
+
+### 6. Listar usuarios (requiere autenticación + permisos admin)
+GET {{baseUrl}}/usuarios
+
+###
+
+### 7. Listar pedidos
+GET {{baseUrl}}/pedidos?page=1&limit=10
+
+###
+
+### ========================================
+### COMPATIBILIDAD CON AUTHORIZATION HEADER
+### (Método antiguo, aún soportado)
+### ========================================
+
+### 8. Login tradicional (retorna tokens en JSON para compatibilidad)
+# @name loginTraditional
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "username": "romi",
+  "password": "romi123"
+}
+
+###
+
+### 9. Usar token del header Authorization (método antiguo)
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+### ========================================
+### NOTAS IMPORTANTES
+### ========================================
+# 
+# 1. Las cookies se manejan automáticamente en REST Client (VS Code)
+# 2. Las cookies tienen los siguientes flags de seguridad:
+#    - HttpOnly: true (no accesible desde JavaScript)
+#    - SameSite: strict (protección CSRF)
+#    - Secure: true (solo en producción con HTTPS)
+# 3. Access token expira en 15 minutos
+# 4. Refresh token expira en 7 días
+# 5. El logout limpia ambas cookies
+#

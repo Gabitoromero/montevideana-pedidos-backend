@@ -12,18 +12,28 @@ declare global {
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader) {
+    // Prioridad 1: Intentar leer token desde cookie (método seguro)
+    if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    }
+    // Prioridad 2: Fallback a Authorization header (compatibilidad temporal)
+    else if (req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      const [bearer, headerToken] = authHeader.split(' ');
+      
+      if (bearer === 'Bearer' && headerToken) {
+        token = headerToken;
+      }
+    }
+
+    // Si no hay token en ninguno de los dos lugares
+    if (!token) {
       throw AppError.unauthorized('Token no proporcionado');
     }
 
-    const [bearer, token] = authHeader.split(' ');
-
-    if (bearer !== 'Bearer' || !token) {
-      throw AppError.unauthorized('Formato de token inválido');
-    }
-
+    // Verificar y decodificar token
     const payload = JwtUtil.verifyAccessToken(token);
     req.user = payload;
 

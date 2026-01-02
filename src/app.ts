@@ -28,10 +28,16 @@ const authLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 100, // 100 requests por minuto
+  max: 300, // 300 requests por minuto por usuario/IP
   message: 'Demasiadas peticiones. Por favor, intenta de nuevo más tarde.',
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Si tiene token (usuario logueado), usamos el token como identificador
+    // Si no tiene token (login, assets, o error de auth), usamos la IP
+    // Esto permite que múltiples dispositivos en la misma WiFi (IP compartida) tengan sus propios límites si están logueados
+    return req.headers.authorization || req.ip || 'unknown';
+  },
 });
 
 export const createApp = (): Application => {

@@ -45,6 +45,14 @@ export const createApp = (): Application => {
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: [
+          "'self'", 
+          "http:localhost:3000",
+          "http://119.8.149.13",
+          "https://119.8.149.13",
+          "http://119.8.149.13:3000",
+          "https://119.8.149.13:3000",
+        ],
       },
     },
     hsts: {

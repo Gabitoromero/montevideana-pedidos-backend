@@ -12,7 +12,8 @@
     "start:pm2": "pm2 start ecosystem.config.cjs",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
-    "bd": "mysql -u root -p montevideana_pedidos < scripts/init-sistema.sql"
+    "bd": "mysql -u root -p montevideana_pedidos < scripts/init-sistema.sql",
+    "seed": "tsx src/shared/db/seed.ts"
   },
   "keywords": [
     "montevideana",

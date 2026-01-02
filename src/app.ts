@@ -65,14 +65,8 @@ export const createApp = (): Application => {
   app.use(cors({
     origin: (origin, callback) => {
       // En desarrollo, permitir requests sin origin (Postman, curl, etc.)
-      if (!origin && process.env.NODE_ENV === 'development') {
-        callback(null, true);
-        return;
-      }
-      
-      // En producción, rechazar requests sin origin
       if (!origin) {
-        callback(new AppError('CORS: Origin header requerido'));
+        callback(null, true);
         return;
       }
       
@@ -95,7 +89,7 @@ export const createApp = (): Application => {
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // Health check detallado
-  app.get('/health', async (req: Request, res: Response) => {
+  app.get('/api/health', async (req: Request, res: Response) => {
     const health = {
       status: 'ok',
       timestamp: new Date().toISOString(),

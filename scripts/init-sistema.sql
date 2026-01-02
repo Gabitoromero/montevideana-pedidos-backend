@@ -1,166 +1,214 @@
--- Script de inicialización para el sistema
--- Ejecutar después de crear la base de datos
+-- Script de inicialización para Montevideana Pedidos
+-- Generado automáticamente para coincidir con el esquema de MikroORM
+-- Ejecutar en base de datos vacía
 
 USE montevideana_pedidos;
 
--- 1. Crear Usuario Sistema (ID 1)
--- Password: "1234" (hash bcrypt)
--- INSERT INTO usuarios (id, nombre, apellido, sector, passwordHash)
--- VALUES (
---   1,
---   'Sistema',
---   'Automático',
---   'CHESS',
---   '$2a$10$rYq5tP0H0XqZZlvZxCZqYeD3nP5h2wz5hJH7xLzZvZzJZZ7JZZ7JZ'
--- )
--- ON DUPLICATE KEY UPDATE
---   nombre = 'Sistema',
---   apellido = 'Automático',
---   sector = 'CHESS';
+-- ==========================================
+-- 1. CREACIÓN DE TABLAS (Schema MikroORM)
+-- ==========================================
 
--- 2. Crear Estados del Sistema
-INSERT INTO
-    tipos_estado (idEstado, nombreEstado)
-VALUES (1, 'CHESS')
-ON DUPLICATE KEY UPDATE
-    nombreEstado = 'CHESS';
+set names utf8mb4;
 
--- Estado 1: Pendiente (primer estado real)
-INSERT INTO
-    tipos_estado (idEstado, nombreEstado)
-VALUES (2, 'PENDIENTE')
-ON DUPLICATE KEY UPDATE
-    nombreEstado = 'PENDIENTE';
+create table `fleteros` (
+    `id_fletero` int unsigned not null auto_increment primary key,
+    `ds_fletero` varchar(255) not null,
+    `seguimiento` tinyint(1) not null default true
+) default character set utf8mb4 engine = InnoDB;
 
--- Estado 2: En Preparacion
-INSERT INTO
-    tipos_estado (idEstado, nombreEstado)
-VALUES (3, 'EN PREPARACION')
-ON DUPLICATE KEY UPDATE
-    nombreEstado = 'EN PREPARACION';
+create table `pedidos` (
+    `id_pedido` varchar(15) not null,
+    `fecha_hora` datetime not null,
+    `cobrado` tinyint(1) not null default false,
+    `fletero_id_fletero` int unsigned not null,
+    primary key (`id_pedido`)
+) default character set utf8mb4 engine = InnoDB;
 
--- Estado 3: Preparado
-INSERT INTO
-    tipos_estado (idEstado, nombreEstado)
-VALUES (4, 'PREPARADO')
-ON DUPLICATE KEY UPDATE
-    nombreEstado = 'PREPARADO';
+alter table `pedidos`
+add index `pedidos_fletero_id_fletero_index` (`fletero_id_fletero`);
 
--- Estado 4: Pagado
-INSERT INTO
-    tipos_estado (idEstado, nombreEstado)
-VALUES (5, 'PAGADO')
-ON DUPLICATE KEY UPDATE
-    nombreEstado = 'PAGADO';
+alter table `pedidos` add index `pedidos_cobrado_index` (`cobrado`);
 
--- Estado 5: Entregado
-INSERT INTO
-    tipos_estado (idEstado, nombreEstado)
-VALUES (6, 'ENTREGADO')
-ON DUPLICATE KEY UPDATE
-    nombreEstado = 'ENTREGADO';
+alter table `pedidos`
+add index `pedidos_fecha_hora_index` (`fecha_hora`);
 
--- 3. Crear Reglas de Transición básicas
+create table `tipos_estado` (
+    `id` int unsigned not null auto_increment primary key,
+    `nombre_estado` varchar(255) not null
+) default character set utf8mb4 engine = InnoDB;
+
+alter table `tipos_estado`
+add unique `tipos_estado_nombre_estado_unique` (`nombre_estado`);
+
+create table `reglas` (
+    `id` int unsigned not null auto_increment primary key,
+    `id_estado_id` int unsigned not null,
+    `id_estado_necesario_id` int unsigned not null
+) default character set utf8mb4 engine = InnoDB;
+
+alter table `reglas`
+add index `reglas_id_estado_id_index` (`id_estado_id`);
+
+alter table `reglas`
+add index `reglas_id_estado_necesario_id_index` (`id_estado_necesario_id`);
+
+create table `usuarios` (
+    `id` int unsigned not null auto_increment primary key,
+    `username` varchar(255) not null,
+    `nombre` varchar(255) not null,
+    `apellido` varchar(255) not null,
+    `sector` varchar(255) not null,
+    `password_hash` varchar(255) not null,
+    `activo` bool not null
+) default character set utf8mb4 engine = InnoDB;
+
+alter table `usuarios`
+add unique `usuarios_username_unique` (`username`);
+
+create table `movimientos` (
+    `fecha_hora` datetime not null,
+    `pedido_id_pedido` varchar(15) not null,
+    `estado_inicial_id` int unsigned not null,
+    `estado_final_id` int unsigned not null,
+    `usuario_id` int unsigned not null,
+    primary key (
+        `fecha_hora`,
+        `pedido_id_pedido`
+    )
+) default character set utf8mb4 engine = InnoDB;
+
+alter table `movimientos`
+add index `movimientos_pedido_id_pedido_index` (`pedido_id_pedido`);
+
+alter table `movimientos`
+add index `movimientos_estado_inicial_id_index` (`estado_inicial_id`);
+
+alter table `movimientos`
+add index `movimientos_estado_final_id_index` (`estado_final_id`);
+
+alter table `movimientos`
+add index `movimientos_usuario_id_index` (`usuario_id`);
+
+alter table `movimientos`
+add index `movimientos_fecha_hora_index` (`fecha_hora`);
+
+alter table `pedidos`
+add constraint `pedidos_fletero_id_fletero_foreign` foreign key (`fletero_id_fletero`) references `fleteros` (`id_fletero`) on update cascade;
+
+alter table `reglas`
+add constraint `reglas_id_estado_id_foreign` foreign key (`id_estado_id`) references `tipos_estado` (`id`) on update cascade;
+
+alter table `reglas`
+add constraint `reglas_id_estado_necesario_id_foreign` foreign key (`id_estado_necesario_id`) references `tipos_estado` (`id`) on update cascade;
+
+alter table `movimientos`
+add constraint `movimientos_pedido_id_pedido_foreign` foreign key (`pedido_id_pedido`) references `pedidos` (`id_pedido`) on update cascade;
+
+alter table `movimientos`
+add constraint `movimientos_estado_inicial_id_foreign` foreign key (`estado_inicial_id`) references `tipos_estado` (`id`) on update cascade;
+
+alter table `movimientos`
+add constraint `movimientos_estado_final_id_foreign` foreign key (`estado_final_id`) references `tipos_estado` (`id`) on update cascade;
+
+alter table `movimientos`
+add constraint `movimientos_usuario_id_foreign` foreign key (`usuario_id`) references `usuarios` (`id`) on update cascade;
+
+-- ==========================================
+-- 2. DATOS INICIALES (Seed Data)
+-- ==========================================
+
+-- 2.1 Crear Usuario Sistema
+-- Password: "vivacristorey"
 INSERT INTO
-    reglas (idEstado, idEstadoNecesario)
-SELECT 3, 2
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM reglas
-        WHERE
-            idEstado = 3
-            AND idEstadoNecesario = 2
+    usuarios (
+        username,
+        nombre,
+        apellido,
+        sector,
+        password_hash,
+        activo
+    )
+VALUES (
+        'CHESS',
+        'Sistema',
+        'CHESS',
+        'CHESS',
+        '$2a$10$YourGeneratedHashHere',
+        true
     );
+-- Nota: En producción, usa el seeder 'pnpm seed' para generar el hash real, o genera uno válido con bcrypt.
 
+-- 2.2 Crear Estados del Sistema
 INSERT INTO
-    reglas (idEstado, idEstadoNecesario)
-SELECT 4, 2
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM reglas
-        WHERE
-            idEstado = 4
-            AND idEstadoNecesario = 2
-    );
+    tipos_estado (id, nombre_estado)
+VALUES (1, 'CHESS'),
+    (2, 'PENDIENTE'),
+    (3, 'EN PREPARACION'),
+    (4, 'PREPARADO'),
+    (5, 'PAGADO'),
+    (6, 'ENTREGADO');
 
+-- 2.3 Crear Reglas de Transición
+-- Mapeo de columnas: id_estado_id = Estado Destino, id_estado_necesario_id = Estado Requerido Previo
+
+-- EN PREPARACION (3) necesita PENDIENTE (2)
 INSERT INTO
-    reglas (idEstado, idEstadoNecesario)
-SELECT 4, 3
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM reglas
-        WHERE
-            idEstado = 4
-            AND idEstadoNecesario = 3
-    );
+    reglas (
+        id_estado_id,
+        id_estado_necesario_id
+    )
+VALUES (3, 2);
 
+-- PREPARADO (4) necesita PENDIENTE (2)
 INSERT INTO
-    reglas (idEstado, idEstadoNecesario)
-SELECT 6, 2
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM reglas
-        WHERE
-            idEstado = 6
-            AND idEstadoNecesario = 2
-    );
+    reglas (
+        id_estado_id,
+        id_estado_necesario_id
+    )
+VALUES (4, 2);
 
+-- PREPARADO (4) necesita EN PREPARACION (3)
 INSERT INTO
-    reglas (idEstado, idEstadoNecesario)
-SELECT 6, 3
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM reglas
-        WHERE
-            idEstado = 6
-            AND idEstadoNecesario = 3
-    );
+    reglas (
+        id_estado_id,
+        id_estado_necesario_id
+    )
+VALUES (4, 3);
 
+-- ENTREGADO (6) necesita PENDIENTE (2)
 INSERT INTO
-    reglas (idEstado, idEstadoNecesario)
-SELECT 6, 4
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM reglas
-        WHERE
-            idEstado = 6
-            AND idEstadoNecesario = 4
-    );
+    reglas (
+        id_estado_id,
+        id_estado_necesario_id
+    )
+VALUES (6, 2);
 
+-- ENTREGADO (6) necesita EN PREPARACION (3)
 INSERT INTO
-    reglas (idEstado, idEstadoNecesario)
-SELECT 6, 5
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM reglas
-        WHERE
-            idEstado = 6
-            AND idEstadoNecesario = 5
-    );
+    reglas (
+        id_estado_id,
+        id_estado_necesario_id
+    )
+VALUES (6, 3);
 
--- Verificar datos insertados
-SELECT 'Usuario Sistema creado:' as mensaje;
+-- ENTREGADO (6) necesita PREPARADO (4)
+INSERT INTO
+    reglas (
+        id_estado_id,
+        id_estado_necesario_id
+    )
+VALUES (6, 4);
 
-SELECT * FROM usuarios WHERE id = 1;
+-- ENTREGADO (6) necesita PAGADO (5)
+INSERT INTO
+    reglas (
+        id_estado_id,
+        id_estado_necesario_id
+    )
+VALUES (6, 5);
 
-SELECT 'Estados creados:' as mensaje;
+-- ==========================================
+-- 3. VERIFICACIÓN
+-- ==========================================
 
-SELECT * FROM tipos_estado ORDER BY idEstado;
-
-SELECT 'Reglas creadas:' as mensaje;
-
-SELECT
-    r.*,
-    e1.nombreEstado as estado_destino,
-    e2.nombreEstado as estado_necesario
-FROM
-    reglas r
-    JOIN tipos_estado e1 ON r.idEstado = e1.idEstado
-    JOIN tipos_estado e2 ON r.idEstadoNecesario = e2.idEstado;
+SELECT 'Base de datos inicializada correctamente' as status;

@@ -36,6 +36,20 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
             createForeignKeyConstraints: true,
             ignoreSchema: [],
         },
+        driverOptions: {
+            connection: {
+                // Timeouts para prevenir conexiones colgadas
+                connectTimeout: 10000,      // 10 segundos para conectar
+                acquireTimeout: 10000,      // 10 segundos para adquirir conexión del pool
+                timeout: 30000,             // 30 segundos timeout general
+            },
+            pool: {
+                min: 2,                     // Mínimo de conexiones en el pool
+                max: 10,                    // Máximo de conexiones en el pool
+                idleTimeoutMillis: 30000,   // Cerrar conexiones inactivas después de 30s
+                acquireTimeoutMillis: 10000 // Timeout para adquirir del pool
+            }
+        },
     });
     
     // Generar schema solo en desarrollo

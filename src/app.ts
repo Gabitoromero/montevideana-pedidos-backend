@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './shared/middlewares/errorHandler.js';
 
@@ -36,6 +37,28 @@ const apiLimiter = rateLimit({
 export const createApp = (): Application => {
   const app = express();
 
+  // Configurar Helmet para headers de seguridad
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
+    },
+    hsts: {
+      maxAge: 31536000, // 1 año
+      includeSubDomains: true,
+      preload: true
+    },
+    frameguard: {
+      action: 'deny' // Prevenir clickjacking
+    },
+    noSniff: true, // Prevenir MIME type sniffing
+    xssFilter: true, // Activar filtro XSS del navegador
+  }));
+
   // Middlewares
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) || [];
 
@@ -67,8 +90,9 @@ export const createApp = (): Application => {
   const cookieSecret = process.env.COOKIE_SECRET || 'dev-cookie-secret-change-in-production';
   app.use(cookieParser(cookieSecret));
   
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  // Limitar tamaño de payload para prevenir DoS
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // Health check detallado
   app.get('/health', async (req: Request, res: Response) => {

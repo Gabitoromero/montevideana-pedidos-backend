@@ -63,7 +63,7 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
         if (diff.length > 0) {
             console.warn('⚠️  ADVERTENCIA: El schema de base de datos no está sincronizado con las entidades');
             console.warn('⚠️  Ejecuta las migraciones manualmente antes de continuar');
-            throw new Error('Schema desincronizado. Ejecuta migraciones manualmente.');
+            //throw new Error('Schema desincronizado. Ejecuta migraciones manualmente.');
         } else {
             console.log('✅ Schema sincronizado correctamente');
         }

@@ -19,9 +19,9 @@ import { AppError } from './shared/errors/AppError.js';
 
 // Rate limiting configuration
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // 5 intentos
-  message: 'Demasiados intentos de login. Por favor, intenta de nuevo en 15 minutos.',
+  windowMs: 5 * 60 * 1000, // 5 minutos
+  max: 10, // 10 intentos
+  message: 'Demasiados intentos de login. Por favor, intenta de nuevo en 5 minutos.',
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -32,12 +32,11 @@ const apiLimiter = rateLimit({
   message: 'Demasiadas peticiones. Por favor, intenta de nuevo más tarde.',
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    // Si tiene token (usuario logueado), usamos el token como identificador
-    // Si no tiene token (login, assets, o error de auth), usamos la IP
-    // Esto permite que múltiples dispositivos en la misma WiFi (IP compartida) tengan sus propios límites si están logueados
-    return req.headers.authorization || req.ip || 'unknown';
-  },
+  validate: false, // Desactivar validación IPv6 porque usamos authorization como clave primaria
+  // Si tiene token (usuario logueado), usamos el token como identificador
+  // Si no tiene token (login, assets, o error de auth), usamos la IP
+  // Esto permite que múltiples dispositivos en la misma WiFi (IP compartida) tengan sus propios límites si están logueados
+  keyGenerator: (req) => req.headers.authorization || req.ip || 'unknown',
 });
 
 export const createApp = (): Application => {

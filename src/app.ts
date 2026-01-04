@@ -44,7 +44,9 @@ export const createApp = (): Application => {
 
   // Configurar Helmet para headers de seguridad
   app.use(helmet({
-    contentSecurityPolicy: {
+    // Desactivar CSP en desarrollo para evitar bloqueos
+    // En producción, configurar con las URLs específicas necesarias
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
       directives: {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
@@ -59,7 +61,7 @@ export const createApp = (): Application => {
           "https://119.8.149.13:3000",
         ],
       },
-    },
+    } : false, // Desactivado en desarrollo
     hsts: {
       maxAge: 31536000, // 1 año
       includeSubDomains: true,

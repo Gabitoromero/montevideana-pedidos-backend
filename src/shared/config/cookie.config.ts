@@ -28,8 +28,8 @@ export const COOKIE_MAX_AGE = {
  */
 const getBaseCookieOptions = (): CookieOptions => ({
   httpOnly: true,                    // No accesible desde JavaScript (protección XSS)
-  secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-  sameSite: 'strict',                // Protección CSRF
+  secure: false, // Solo HTTPS en producción
+  sameSite: 'lax',                // Protección CSRF
   path: '/',                         // Disponible en toda la aplicación
 });
 

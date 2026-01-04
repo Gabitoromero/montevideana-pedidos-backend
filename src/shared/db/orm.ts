@@ -24,7 +24,7 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
         dbName: process.env.DB_NAME || 'montevideana_pedidos',
         entities: ['dist/**/*.entity.js'],
         entitiesTs: ['src/**/*.entity.ts'],
-        debug: process.env.NODE_ENV !== 'production',
+        debug: process.env.NODE_ENV === 'development', // Solo logs en desarrollo
         charset: 'utf8mb4',
         collate: 'utf8mb4_unicode_ci',
         migrations: {
@@ -56,21 +56,15 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
     if (process.env.NODE_ENV === 'development') {
         console.log('🔧 Actualizando schema de base de datos (desarrollo)...');
         await orm.schema.updateSchema();
+        console.log('✅ Schema actualizado correctamente');
     } else {
-        // En producción, solo verificar que el schema está sincronizado
-        console.log('🔍 Verificando sincronización de schema...');
-        const diff = await orm.schema.getUpdateSchemaSQL();
-        if (diff.length > 0) {
-            console.warn('⚠️  ADVERTENCIA: El schema de base de datos no está sincronizado con las entidades');
-            console.warn('⚠️  Ejecuta las migraciones manualmente antes de continuar');
-            //throw new Error('Schema desincronizado. Ejecuta migraciones manualmente.');
-        } else {
-            console.log('✅ Schema sincronizado correctamente');
-        }
+        // En producción, asumimos que las migraciones ya fueron ejecutadas
+        console.log('✅ ORM inicializado en modo producción');
+        console.log('ℹ️  Asegúrate de ejecutar migraciones manualmente antes de desplegar');
     }
 
     return orm;
-    };
+};
 
     export const getORM = (): MikroORM<MySqlDriver> => {
     if (!orm) {

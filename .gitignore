@@ -31,3 +31,5 @@ dist/**/*
 ## Ignoro contenido carpeta uploads 
 uploads/**
 !.gitkeep
+
+*.tsbuildinfo

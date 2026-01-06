@@ -108,11 +108,12 @@ export class FleterosService {
           updated++;
         }
       } else {
-        // Crear nuevo fletero con seguimiento = true por defecto
+        // Crear nuevo fletero con seguimiento = false por defecto
+        // El cliente activará manualmente los fleteros que necesite seguir
         const nuevoFletero = this.em.create(Fletero, {
           idFletero,
           dsFletero,
-          seguimiento: true,
+          seguimiento: false,
         });
         toCreate.push(nuevoFletero);
         created++;

@@ -435,7 +435,6 @@ export class ChessService {
       totalVentasFiltradas: 0,
       totalFleterosCreados: 0,
       totalFleterosActualizados: 0,
-      totalPedidosDescartadosPorSeguimiento: 0,
       totalPedidosCreados: 0,
       totalMovimientosCreados: 0,
       lotesProcesados: 0,
@@ -496,23 +495,12 @@ export class ChessService {
       result.totalFleterosCreados = syncResult.created;
       result.totalFleterosActualizados = syncResult.updated;
       
-      // 6. Filtrar ventas por fleteros con seguimiento activo
-      console.log(`\n🔍 ========== FILTRANDO POR SEGUIMIENTO ==========`);
-      const fleterosActivos = await fleteroService.findActivos();
-      const idsFleterosActivos = new Set(fleterosActivos.map(f => f.idFletero));
-      console.log(`✅ Fleteros con seguimiento activo: ${idsFleterosActivos.size}`);
-      
-      const ventasConSeguimiento = ventasFiltradas.filter(venta => 
-        venta.idFleteroCarga && idsFleterosActivos.has(venta.idFleteroCarga)
-      );
-      
-      result.totalPedidosDescartadosPorSeguimiento = ventasFiltradas.length - ventasConSeguimiento.length;
-      console.log(`📊 Ventas con seguimiento: ${ventasConSeguimiento.length}/${ventasFiltradas.length}`);
-      console.log(`⏭️  Pedidos descartados por seguimiento: ${result.totalPedidosDescartadosPorSeguimiento}`);
+      // 6. Procesar TODOS los pedidos (sin filtrar por seguimiento)
+      console.log(`\n📝 ========== CREANDO PEDIDOS (TODOS LOS FLETEROS) ==========`);
+      console.log(`📊 Total de pedidos a procesar: ${ventasFiltradas.length}`);
 
-      // 7. Procesar cada venta con seguimiento activo
-      console.log(`\n📝 ========== CREANDO PEDIDOS ==========`);
-      for (const venta of ventasConSeguimiento) {
+      // 7. Procesar cada venta válida
+      for (const venta of ventasFiltradas) {
         try {
           // Validar planillaCarga
           if (!venta.planillaCarga) {
@@ -587,7 +575,6 @@ export class ChessService {
       console.log(`🔍 Ventas filtradas (válidas): ${result.totalVentasFiltradas}`);
       console.log(`🚚 Fleteros creados: ${result.totalFleterosCreados}`);
       console.log(`📝 Fleteros actualizados: ${result.totalFleterosActualizados}`);
-      console.log(`⏭️  Pedidos descartados por seguimiento: ${result.totalPedidosDescartadosPorSeguimiento}`);
       console.log(`🆕 Pedidos creados: ${result.totalPedidosCreados}`);
       console.log(`📝 Movimientos creados: ${result.totalMovimientosCreados}`);
       if (result.errors.length > 0) {

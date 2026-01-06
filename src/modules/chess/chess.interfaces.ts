@@ -48,7 +48,6 @@ export interface ChessSyncResult {
   totalVentasFiltradas: number;
   totalFleterosCreados: number;
   totalFleterosActualizados: number;
-  totalPedidosDescartadosPorSeguimiento: number;
   totalPedidosCreados: number;
   totalMovimientosCreados: number;
   lotesProcesados: number;

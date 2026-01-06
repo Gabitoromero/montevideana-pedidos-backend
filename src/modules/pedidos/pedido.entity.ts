@@ -6,7 +6,7 @@ import { Fletero } from '../fleteros/fletero.entity.js';
 @Index({ properties: ['fechaHora'] })
 @Index({ properties: ['cobrado'] })
 export class Pedido {
-  @PrimaryKey({ type: 'string', length: 15 })
+  @PrimaryKey({ type: 'string', length: 8 })
   idPedido!: string;
 
   @Property({ type: 'datetime' })

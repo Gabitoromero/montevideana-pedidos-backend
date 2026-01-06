@@ -15,7 +15,7 @@ export async function seedTipoEstados(em: EntityManager): Promise<void> {
     { id: 2, nombreEstado: 'PENDIENTE' },
     { id: 3, nombreEstado: 'EN PREPARACION' },
     { id: 4, nombreEstado: 'PREPARADO' },
-    { id: 5, nombreEstado: 'PAGADO' },
+    { id: 5, nombreEstado: 'TESORERIA' },
     { id: 6, nombreEstado: 'ENTREGADO' }
   ];
 

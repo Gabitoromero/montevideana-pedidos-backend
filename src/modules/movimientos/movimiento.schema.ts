@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createMovimientoSchema = z.object({
   username: z.string().min(1, 'El username es requerido'),
   password: z.string().min(1, 'La contraseña es requerida'),
-  idPedido: z.string().min(1, 'El ID de pedido no puede estar vacío').regex(/^\d{4} - \d{8}$/, 'El ID de pedido debe tener el formato "XXXX - XXXXXXXX"'),
+  idPedido: z.string().regex(/^\d{8}$/, 'El ID de pedido debe ser un string de 8 dígitos'),
   estadoInicial: z.number().int().positive('El estado inicial debe ser un número positivo'),
   estadoFinal: z.number().int().positive('El estado final debe ser un número positivo'),
 }).refine((data) => data.estadoInicial !== data.estadoFinal, {
@@ -16,7 +16,7 @@ export const movimientoIdSchema = z.object({
 });
 
 export const movimientoPorPedidoSchema = z.object({
-  idPedido: z.string().min(1, 'El ID de pedido no puede estar vacío'),
+  idPedido: z.string().regex(/^\d{8}$/, 'El ID de pedido debe ser un string de 8 dígitos'),
 });
 
 export const movimientoQuerySchema = z.object({
@@ -28,7 +28,7 @@ export const movimientoQuerySchema = z.object({
 });
 
 export const inicializarChessSchema = z.object({
-  idPedido: z.string().min(1, 'El ID de pedido no puede estar vacío').regex(/^\d{4} - \d{8}$/, 'El ID de pedido debe tener el formato "XXXX - XXXXXXXX"'),
+  idPedido: z.string().regex(/^\d{8}$/, 'El ID de pedido debe ser un string de 8 dígitos'),
   fechaHora: z.string().datetime('La fecha y hora deben estar en formato ISO 8601'),
   idFleteroCarga: z.number().int().positive('El ID del fletero debe ser un número positivo'),
 });

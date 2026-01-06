@@ -56,13 +56,20 @@ export class ChessService {
   }
 
   /**
-   * Validar formato de planillaCarga: "XXXX - XXXXXXXX"
+   * Extraer los últimos 8 dígitos del formato de planillaCarga de CHESS
+   * Formato esperado: "XXXX - XXXXXXXX" (ej: "0000 - 00226957")
+   * Retorna: "XXXXXXXX" (ej: "00226957")
    */
-  private validarPlanillaCarga(planillaCarga: string): void {
-    // Formato esperado: "0000 - 00284505" (4 dígitos - 8 dígitos)
-    if (!/^\d{4} - \d{8}$/.test(planillaCarga)) {
+  private extractIdPedido(planillaCarga: string): string {
+    // Validar formato esperado: "0000 - 00284505" (4 dígitos - 8 dígitos)
+    const match = planillaCarga.match(/^\d{4} - (\d{8})$/);
+    
+    if (!match) {
       throw new Error(`Formato inválido de planillaCarga. Esperado: "XXXX - XXXXXXXX", recibido: "${planillaCarga}"`);
     }
+    
+    // Retornar solo los 8 dígitos finales (grupo de captura 1)
+    return match[1];
   }
 
   public async testConnection(): Promise<{ 
@@ -520,14 +527,13 @@ export class ChessService {
             continue;
           }
 
+          let idPedido: string;
           try {
-            this.validarPlanillaCarga(venta.planillaCarga);
+            idPedido = this.extractIdPedido(venta.planillaCarga);
           } catch (error: any) {
             console.error(`❌ ${error.message}`);
             continue;
           }
-
-          const idPedido = venta.planillaCarga;
 
           // Verificar si ya existe un pedido con este idPedido
           const pedidoExistente = await this.em.count(Pedido, {

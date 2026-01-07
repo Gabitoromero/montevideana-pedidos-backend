@@ -23,8 +23,8 @@ export const ESTADO_NOMBRES = {
 export const SECTORES = {
   CHESS: 'CHESS',
   ADMIN: 'admin',
-  CAMARA: 'camara',
-  EXPEDICION: 'expedicion',
+  CAMARA: 'CAMARA',
+  EXPEDICION: 'EXPEDICION',
 } as const;
 
 // Helper para validar si un estado permite marcar como cobrado

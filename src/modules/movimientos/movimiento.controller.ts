@@ -58,20 +58,25 @@ export class MovimientoController {
     // 5. Validar permisos según sector y estado final
     // CAMARA: puede crear movimientos con estado final EN_PREPARACION (3) o PREPARADO (4)
     if (usuario.sector === SECTORES.CAMARA) {
-      if (data.estadoFinal !== ESTADO_IDS.EN_PREPARACION && 
-          data.estadoFinal !== ESTADO_IDS.PREPARADO) {
+      if (data.estadoFinal !== ESTADO_IDS.EN_PREPARACION && data.estadoFinal !== ESTADO_IDS.PREPARADO) {
         throw AppError.badRequest(
           `El usuario del sector CAMARA solo puede realizar movimientos con estado final EN PREPARACIÓN o PREPARADO`
         );
       }
     }
 
-    // EXPEDICION: puede crear movimientos con estado final TESORERIA (5) o ENTREGADO (6)
+    // EXPEDICION: puede crear movimientos UNICAMENTE desde PREPARADO (4) hacia ENTREGADO (6)
     if (usuario.sector === SECTORES.EXPEDICION) {
-      if (data.estadoFinal !== ESTADO_IDS.TESORERIA && 
-          data.estadoFinal !== ESTADO_IDS.ENTREGADO) {
+      // Validar que el estado final sea ENTREGADO
+      if (data.estadoFinal !== ESTADO_IDS.ENTREGADO) {
         throw AppError.badRequest(
-          `El usuario del sector EXPEDICION solo puede realizar movimientos con estado final TESORERIA o ENTREGADO`
+          `El usuario del sector EXPEDICION solo puede realizar movimientos con estado final ENTREGADO`
+        );
+      }
+      // Validar que el estado inicial sea PREPARADO
+      if (data.estadoInicial !== ESTADO_IDS.PREPARADO) {
+        throw AppError.badRequest(
+          `El usuario del sector EXPEDICION solo puede realizar movimientos desde el estado PREPARADO`
         );
       }
     }

@@ -15,7 +15,23 @@ export async function seedUsuarios(em: EntityManager): Promise<void> {
       nombre: 'Sistema',
       apellido: 'Automatico',
       sector: 'CHESS',
-      password: 'vivacristorey', // Contraseña sin hashear - se hasheará automáticamente
+      password: '52937', 
+      activo: true,
+    },
+    {
+      username: 'peter',
+      nombre: 'Peter',
+      apellido: 'Parker',
+      sector: 'CAMARA',
+      password: '1111', 
+      activo: true,
+    },
+    {
+      username: 'marce',
+      nombre: 'Marcela',
+      apellido: 'Macia',
+      sector: 'EXPEDICION',
+      password: '2222', 
       activo: true,
     }
   ];

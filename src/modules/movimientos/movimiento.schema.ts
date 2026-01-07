@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
 export const createMovimientoSchema = z.object({
-  username: z.string().min(1, 'El username es requerido'),
-  password: z.string().min(1, 'La contraseña es requerida'),
+  pin: z.string().regex(/^\d{4,10}$/, 'El PIN debe ser numérico y tener entre 4 y 10 dígitos'),
   idPedido: z.string().regex(/^\d{8}$/, 'El ID de pedido debe ser un string de 8 dígitos'),
   estadoInicial: z.number().int().positive('El estado inicial debe ser un número positivo'),
   estadoFinal: z.number().int().positive('El estado final debe ser un número positivo'),

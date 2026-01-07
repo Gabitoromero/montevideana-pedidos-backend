@@ -6,7 +6,8 @@ import {
   esEstadoTesoreria,
   puedeRealizarMovimientoCamara,
   puedeRealizarMovimientoExpedicion,
-  esEstadoDeCamara
+  esEstadoDeCamara,
+  esEstadoDeExpedicion
 } from '../src/shared/constants/estados.js';
 
 describe('Estado Constants', () => {
@@ -75,13 +76,27 @@ describe('Estado Constants', () => {
     it('should return true for camara states', () => {
       expect(esEstadoDeCamara(ESTADO_IDS.EN_PREPARACION)).toBe(true);
       expect(esEstadoDeCamara(ESTADO_IDS.PREPARADO)).toBe(true);
-      expect(esEstadoDeCamara(ESTADO_IDS.ENTREGADO)).toBe(true);
     });
 
     it('should return false for non-camara states', () => {
       expect(esEstadoDeCamara(ESTADO_IDS.CHESS)).toBe(false);
       expect(esEstadoDeCamara(ESTADO_IDS.PENDIENTE)).toBe(false);
       expect(esEstadoDeCamara(ESTADO_IDS.TESORERIA)).toBe(false);
+      expect(esEstadoDeCamara(ESTADO_IDS.ENTREGADO)).toBe(false);
+    });
+  });
+
+  describe('esEstadoDeExpedicion', () => {
+    it('should return true for expedicion states', () => {
+      expect(esEstadoDeExpedicion(ESTADO_IDS.TESORERIA)).toBe(true);
+      expect(esEstadoDeExpedicion(ESTADO_IDS.ENTREGADO)).toBe(true);
+    });
+
+    it('should return false for non-expedicion states', () => {
+      expect(esEstadoDeExpedicion(ESTADO_IDS.CHESS)).toBe(false);
+      expect(esEstadoDeExpedicion(ESTADO_IDS.PENDIENTE)).toBe(false);
+      expect(esEstadoDeExpedicion(ESTADO_IDS.EN_PREPARACION)).toBe(false);
+      expect(esEstadoDeExpedicion(ESTADO_IDS.PREPARADO)).toBe(false);
     });
   });
 });

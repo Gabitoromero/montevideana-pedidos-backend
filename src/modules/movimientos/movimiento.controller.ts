@@ -12,6 +12,7 @@ import { HashUtil } from '../../shared/utils/hash.js';
 import { StringUtil } from '../../shared/utils/string.js';
 import { 
   ESTADO_IDS, 
+  SECTORES,
   esEstadoTesoreria, 
   puedeRealizarMovimientoCamara, 
   puedeRealizarMovimientoExpedicion 
@@ -24,37 +25,54 @@ export class MovimientoController {
   async create(data: CreateMovimientoDTO) { 
     const em = fork();
 
-    // 1. Buscar usuario por username
-    const usuario = await em.findOne(Usuario, { username: data.username });
-    if (!usuario) {
-      throw AppError.badRequest('Credenciales inválidas');
+    // 1. Buscar TODOS los usuarios activos de sectores CAMARA y EXPEDICION
+    const usuariosOperativos = await em.find(Usuario, { 
+      sector: { $in: [SECTORES.CAMARA, SECTORES.EXPEDICION] },
+      activo: true 
+    });
+
+    if (usuariosOperativos.length === 0) {
+      throw AppError.badRequest('No hay usuarios activos en los sectores operativos');
     }
 
-    // 2. Validar contraseña
-    const passwordValida = await HashUtil.compare(data.password, usuario.passwordHash);
-    if (!passwordValida) {
-      throw AppError.badRequest('Credenciales inválidas');
-    }
-
-    // 3. Validar que el usuario está activo
-    if (!usuario.activo) {
-      throw AppError.unauthorized('Usuario inactivo');
-    }
-
-    // 4. Validar permisos según sector
-    // Estados de cámara: EN_PREPARACION (3), PREPARADO (4), ENTREGADO (6)
-    if (data.estadoFinal === ESTADO_IDS.EN_PREPARACION || 
-        data.estadoFinal === ESTADO_IDS.PREPARADO || 
-        data.estadoFinal === ESTADO_IDS.ENTREGADO) {
-      if (!puedeRealizarMovimientoCamara(usuario.sector)) {
-        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de cámara y no puede realizar movimientos de estado`);
+    // 2. Buscar el usuario cuyo password hasheado coincida con el PIN
+    let usuario: Usuario | null = null;
+    for (const u of usuariosOperativos) {
+      const pinValido = await HashUtil.compare(data.pin, u.passwordHash);
+      if (pinValido) {
+        usuario = u;
+        break;
       }
     }
 
-    // Estado de expedición: TESORERIA (5)
-    if (data.estadoFinal === ESTADO_IDS.TESORERIA) {
-      if (!puedeRealizarMovimientoExpedicion(usuario.sector)) {
-        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de expedición y no puede realizar movimientos de estado`);
+    // 3. Si no se encontró usuario con ese PIN
+    if (!usuario) {
+      throw AppError.badRequest('Usuario no perteneciente a los sectores operativos');
+    }
+
+    // 4. Validar que el usuario está activo (redundante pero por seguridad)
+    if (!usuario.activo) {
+      throw AppError.badRequest('Lo siento, el usuario está inactivo. No se puede realizar el movimiento');
+    }
+
+    // 5. Validar permisos según sector y estado final
+    // CAMARA: puede crear movimientos con estado final EN_PREPARACION (3) o PREPARADO (4)
+    if (usuario.sector === SECTORES.CAMARA) {
+      if (data.estadoFinal !== ESTADO_IDS.EN_PREPARACION && 
+          data.estadoFinal !== ESTADO_IDS.PREPARADO) {
+        throw AppError.badRequest(
+          `El usuario del sector CAMARA solo puede realizar movimientos con estado final EN PREPARACIÓN o PREPARADO`
+        );
+      }
+    }
+
+    // EXPEDICION: puede crear movimientos con estado final TESORERIA (5) o ENTREGADO (6)
+    if (usuario.sector === SECTORES.EXPEDICION) {
+      if (data.estadoFinal !== ESTADO_IDS.TESORERIA && 
+          data.estadoFinal !== ESTADO_IDS.ENTREGADO) {
+        throw AppError.badRequest(
+          `El usuario del sector EXPEDICION solo puede realizar movimientos con estado final TESORERIA o ENTREGADO`
+        );
       }
     }
 

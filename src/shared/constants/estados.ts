@@ -49,6 +49,11 @@ export function puedeRealizarMovimientoExpedicion(sector: string): boolean {
 // Helper para validar si un estado es de cámara
 export function esEstadoDeCamara(estadoId: number): boolean {
   return estadoId === ESTADO_IDS.EN_PREPARACION || 
-         estadoId === ESTADO_IDS.PREPARADO || 
+         estadoId === ESTADO_IDS.PREPARADO;
+}
+
+// Helper para validar si un estado es de expedición
+export function esEstadoDeExpedicion(estadoId: number): boolean {
+  return estadoId === ESTADO_IDS.TESORERIA || 
          estadoId === ESTADO_IDS.ENTREGADO;
 }

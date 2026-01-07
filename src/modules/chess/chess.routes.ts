@@ -48,6 +48,18 @@ router.post(
   }
 );
 
+// Sincronización de ventas del día anterior
+router.post(
+  '/sync-dia-anterior',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await getController().syncDiaAnterior(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Obtener ventas desde CHESS con filtros
 router.get(
   '/ventas',

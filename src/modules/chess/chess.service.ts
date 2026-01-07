@@ -421,8 +421,9 @@ export class ChessService {
 
   /**
    * Sincronizar ventas de CHESS con el sistema interno
+   * @param fechaOverride - Fecha opcional para sincronizar (por defecto: hoy)
    */
-  public async syncVentas(): Promise<ChessSyncResult> {
+  public async syncVentas(fechaOverride?: Date): Promise<ChessSyncResult> {
     const startTime = new Date();
     console.log(`\n🚀 ========== INICIO SINCRONIZACIÓN CHESS ==========`);
     console.log(`⏰ Hora de inicio: ${startTime.toLocaleString('es-AR')}`);
@@ -467,10 +468,16 @@ export class ChessService {
 
       console.log(`✅ Validaciones iniciales completadas`);
 
-      // 2. Obtener fecha actual en formato YYYY-MM-DD
-      const hoy = new Date();
-      const fechaStr = hoy.toISOString().split('T')[0].replace(/-/g, '-');
-      const fechaStr2 = hoy.toISOString().split('T')[0].replace(/-/g, '/');
+      // 2. Usar fecha override o fecha actual
+      const fechaSync = fechaOverride || new Date();
+      const esDiaAnterior = fechaOverride && fechaOverride < new Date(new Date().setHours(0, 0, 0, 0));
+      
+      if (esDiaAnterior) {
+        console.log(`🌅 Sincronizando pedidos del DÍA ANTERIOR`);
+      }
+      
+      const fechaStr = fechaSync.toISOString().split('T')[0].replace(/-/g, '-');
+      const fechaStr2 = fechaSync.toISOString().split('T')[0].replace(/-/g, '/');
       console.log(`📅 Fecha de sincronización: ${fechaStr}`);
 
       // 3. Obtener todas las ventas del día

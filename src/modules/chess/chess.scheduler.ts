@@ -5,11 +5,13 @@ import type { MySqlDriver } from '@mikro-orm/mysql';
 
 /**
  * Scheduler para sincronización automática de ventas CHESS
- * Se ejecuta cada 10 minutos entre las 6:00 AM y 9:00 PM
+ * - Sincroniza día anterior a las 6:00 AM
+ * - Sincroniza día actual cada 5 minutos entre las 6:00 AM y 11:00 PM
  */
 export class ChessScheduler {
   private orm: MikroORM;
-  private task: ScheduledTask | null = null;
+  private taskDiaActual: ScheduledTask | null = null;
+  private taskDiaAnterior: ScheduledTask | null = null;
   private isRunningYet = false;
   private failureCount = 0;
   private readonly MAX_FAILURES = 3;
@@ -103,9 +105,28 @@ export class ChessScheduler {
    * Iniciar el scheduler
    */
   start() {
-    // Expresión cron: cada 10 minutos, de 6:00 AM a 9:00 PM
-    // */10 6-20 * * * = cada 10 minutos, entre las 6 y las 20 horas (última ejecución a las 8:50 PM)
-    this.task = cron.schedule('*/10 6-20 * * *', async () => {
+    // Cron 1: Sincronizar día anterior a las 6:00 AM
+    this.taskDiaAnterior = cron.schedule('0 6 * * *', async () => {
+      console.log('\n🌅 ========== CRON: Sincronizando pedidos del DÍA ANTERIOR ==========');
+      
+      const em = this.orm.em.fork();
+      const chessService = new ChessService(em);
+      
+      try {
+        const ayer = new Date();
+        ayer.setDate(ayer.getDate() - 1);
+        await chessService.syncVentas(ayer);
+        console.log('✅ Sincronización del día anterior completada');
+      } catch (error: any) {
+        console.error('❌ Error en sincronización del día anterior:', error.message);
+      } finally {
+        await em.clear();
+      }
+    });
+
+    // Cron 2: Sincronizar día actual cada 5 minutos (6 AM - 11 PM)
+    // */5 6-23 * * * = cada 5 minutos, entre las 6 y las 23 horas
+    this.taskDiaActual = cron.schedule('*/5 6-23 * * *', async () => {
       if (this.isRunningYet) {
         console.log('⏭️ Sincronización anterior aún en progreso, omitiendo...');
         return;
@@ -149,17 +170,22 @@ export class ChessScheduler {
       }
     });
 
-    console.log('✅ Scheduler CHESS iniciado: cada 10 minutos (6:00 AM - 9:00 PM)');
+    console.log('✅ Scheduler CHESS iniciado:');
+    console.log('   - Día anterior: 6:00 AM');
+    console.log('   - Día actual: cada 5 minutos (6:00 AM - 11:00 PM)');
   }
 
   /**
    * Detener el scheduler
    */
   stop() {
-    if (this.task) {
-      this.task.stop();
-      console.log('🛑 Scheduler CHESS detenido');
+    if (this.taskDiaActual) {
+      this.taskDiaActual.stop();
     }
+    if (this.taskDiaAnterior) {
+      this.taskDiaAnterior.stop();
+    }
+    console.log('🛑 Scheduler CHESS detenido');
   }
 
   /**

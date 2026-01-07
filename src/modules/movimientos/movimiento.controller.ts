@@ -12,16 +12,16 @@ import { HashUtil } from '../../shared/utils/hash.js';
 import { StringUtil } from '../../shared/utils/string.js';
 import { 
   ESTADO_IDS, 
-  esEstadoPagado, 
-  puedeRealizarMovimientoArmado, 
-  puedeRealizarMovimientoFacturacion 
+  esEstadoTesoreria, 
+  puedeRealizarMovimientoCamara, 
+  puedeRealizarMovimientoExpedicion 
 } from '../../shared/constants/estados.js';
 
 export class MovimientoController {
   private reglaController = new ReglaController();
 
   
-  async create(data: CreateMovimientoDTO) {
+  async create(data: CreateMovimientoDTO) { 
     const em = fork();
 
     // 1. Buscar usuario por username
@@ -42,19 +42,19 @@ export class MovimientoController {
     }
 
     // 4. Validar permisos según sector
-    // Estados de armado: EN_PREPARACION (3), PREPARADO (4), ENTREGADO (6)
+    // Estados de cámara: EN_PREPARACION (3), PREPARADO (4), ENTREGADO (6)
     if (data.estadoFinal === ESTADO_IDS.EN_PREPARACION || 
         data.estadoFinal === ESTADO_IDS.PREPARADO || 
         data.estadoFinal === ESTADO_IDS.ENTREGADO) {
-      if (!puedeRealizarMovimientoArmado(usuario.sector)) {
-        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de armado y no puede realizar movimientos de estado`);
+      if (!puedeRealizarMovimientoCamara(usuario.sector)) {
+        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de cámara y no puede realizar movimientos de estado`);
       }
     }
 
-    // Estado de facturación: PAGADO (5)
-    if (data.estadoFinal === ESTADO_IDS.PAGADO) {
-      if (!puedeRealizarMovimientoFacturacion(usuario.sector)) {
-        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de facturación y no puede realizar movimientos de estado`);
+    // Estado de expedición: TESORERIA (5)
+    if (data.estadoFinal === ESTADO_IDS.TESORERIA) {
+      if (!puedeRealizarMovimientoExpedicion(usuario.sector)) {
+        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de expedición y no puede realizar movimientos de estado`);
       }
     }
 
@@ -94,7 +94,7 @@ export class MovimientoController {
     // 9. Crear el movimiento
     // Usar transacción para garantizar atomicidad
     const movimiento = await em.transactional(async (transactionalEm) => {
-      if (esEstadoPagado(data.estadoFinal)) {
+      if (esEstadoTesoreria(data.estadoFinal)) {
         pedido.cobrado = true;
       }
 
@@ -580,7 +580,7 @@ export class MovimientoController {
       'PENDIENTE': ESTADO_IDS.PENDIENTE,
       'EN PREPARACION': ESTADO_IDS.EN_PREPARACION,
       'PREPARADO': ESTADO_IDS.PREPARADO,
-      'PAGADO': ESTADO_IDS.PAGADO,
+      'TESORERIA': ESTADO_IDS.TESORERIA,
       'ENTREGADO': ESTADO_IDS.ENTREGADO,
     };
 

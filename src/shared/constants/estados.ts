@@ -6,7 +6,7 @@ export const ESTADO_IDS = {
   PENDIENTE: 2,
   EN_PREPARACION: 3,
   PREPARADO: 4,
-  PAGADO: 5,
+  TESORERIA: 5,
   ENTREGADO: 6,
 } as const;
 
@@ -15,7 +15,7 @@ export const ESTADO_NOMBRES = {
   PENDIENTE: 'PENDIENTE',
   EN_PREPARACION: 'EN PREPARACIÓN',
   PREPARADO: 'PREPARADO',
-  PAGADO: 'PAGADO',
+  TESORERIA: 'TESORERIA',
   ENTREGADO: 'ENTREGADO',
 } as const;
 
@@ -23,31 +23,31 @@ export const ESTADO_NOMBRES = {
 export const SECTORES = {
   CHESS: 'CHESS',
   ADMIN: 'admin',
-  ARMADO: 'armado',
-  FACTURACION: 'facturacion',
+  CAMARA: 'camara',
+  EXPEDICION: 'expedicion',
 } as const;
 
 // Helper para validar si un estado permite marcar como cobrado
-export function esEstadoPagado(estadoId: number): boolean {
-  return estadoId === ESTADO_IDS.PAGADO;
+export function esEstadoTesoreria(estadoId: number): boolean {
+  return estadoId === ESTADO_IDS.TESORERIA;
 }
 
-// Helper para validar permisos de armado
-export function puedeRealizarMovimientoArmado(sector: string): boolean {
-  return sector === SECTORES.ARMADO || 
+// Helper para validar permisos de cámara
+export function puedeRealizarMovimientoCamara(sector: string): boolean {
+  return sector === SECTORES.CAMARA || 
          sector === SECTORES.CHESS || 
          sector === SECTORES.ADMIN;
 }
 
-// Helper para validar permisos de facturación
-export function puedeRealizarMovimientoFacturacion(sector: string): boolean {
-  return sector === SECTORES.FACTURACION || 
+// Helper para validar permisos de expedición
+export function puedeRealizarMovimientoExpedicion(sector: string): boolean {
+  return sector === SECTORES.EXPEDICION || 
          sector === SECTORES.ADMIN || 
          sector === SECTORES.CHESS;
 }
 
-// Helper para validar si un estado es de armado
-export function esEstadoDeArmado(estadoId: number): boolean {
+// Helper para validar si un estado es de cámara
+export function esEstadoDeCamara(estadoId: number): boolean {
   return estadoId === ESTADO_IDS.EN_PREPARACION || 
          estadoId === ESTADO_IDS.PREPARADO || 
          estadoId === ESTADO_IDS.ENTREGADO;

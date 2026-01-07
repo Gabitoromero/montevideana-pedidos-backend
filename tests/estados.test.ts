@@ -3,10 +3,10 @@ import {
   ESTADO_IDS, 
   ESTADO_NOMBRES, 
   SECTORES,
-  esEstadoPagado,
-  puedeRealizarMovimientoArmado,
-  puedeRealizarMovimientoFacturacion,
-  esEstadoDeArmado
+  esEstadoTesoreria,
+  puedeRealizarMovimientoCamara,
+  puedeRealizarMovimientoExpedicion,
+  esEstadoDeCamara
 } from '../src/shared/constants/estados.js';
 
 describe('Estado Constants', () => {
@@ -16,72 +16,72 @@ describe('Estado Constants', () => {
       expect(ESTADO_IDS.PENDIENTE).toBe(2);
       expect(ESTADO_IDS.EN_PREPARACION).toBe(3);
       expect(ESTADO_IDS.PREPARADO).toBe(4);
-      expect(ESTADO_IDS.PAGADO).toBe(5);
+      expect(ESTADO_IDS.TESORERIA).toBe(5);
       expect(ESTADO_IDS.ENTREGADO).toBe(6);
     });
   });
 
-  describe('esEstadoPagado', () => {
-    it('should return true for PAGADO state', () => {
-      expect(esEstadoPagado(ESTADO_IDS.PAGADO)).toBe(true);
+  describe('esEstadoTesoreria', () => {
+    it('should return true for TESORERIA state', () => {
+      expect(esEstadoTesoreria(ESTADO_IDS.TESORERIA)).toBe(true);
     });
 
     it('should return false for other states', () => {
-      expect(esEstadoPagado(ESTADO_IDS.CHESS)).toBe(false);
-      expect(esEstadoPagado(ESTADO_IDS.PENDIENTE)).toBe(false);
-      expect(esEstadoPagado(ESTADO_IDS.EN_PREPARACION)).toBe(false);
-      expect(esEstadoPagado(ESTADO_IDS.PREPARADO)).toBe(false);
-      expect(esEstadoPagado(ESTADO_IDS.ENTREGADO)).toBe(false);
+      expect(esEstadoTesoreria(ESTADO_IDS.CHESS)).toBe(false);
+      expect(esEstadoTesoreria(ESTADO_IDS.PENDIENTE)).toBe(false);
+      expect(esEstadoTesoreria(ESTADO_IDS.EN_PREPARACION)).toBe(false);
+      expect(esEstadoTesoreria(ESTADO_IDS.PREPARADO)).toBe(false);
+      expect(esEstadoTesoreria(ESTADO_IDS.ENTREGADO)).toBe(false);
     });
   });
 
-  describe('puedeRealizarMovimientoArmado', () => {
-    it('should return true for armado sector', () => {
-      expect(puedeRealizarMovimientoArmado(SECTORES.ARMADO)).toBe(true);
+  describe('puedeRealizarMovimientoCamara', () => {
+    it('should return true for camara sector', () => {
+      expect(puedeRealizarMovimientoCamara(SECTORES.CAMARA)).toBe(true);
     });
 
     it('should return true for admin sector', () => {
-      expect(puedeRealizarMovimientoArmado(SECTORES.ADMIN)).toBe(true);
+      expect(puedeRealizarMovimientoCamara(SECTORES.ADMIN)).toBe(true);
     });
 
     it('should return true for CHESS sector', () => {
-      expect(puedeRealizarMovimientoArmado(SECTORES.CHESS)).toBe(true);
+      expect(puedeRealizarMovimientoCamara(SECTORES.CHESS)).toBe(true);
     });
 
-    it('should return false for facturacion sector', () => {
-      expect(puedeRealizarMovimientoArmado(SECTORES.FACTURACION)).toBe(false);
+    it('should return false for expedicion sector', () => {
+      expect(puedeRealizarMovimientoCamara(SECTORES.EXPEDICION)).toBe(false);
     });
   });
 
-  describe('puedeRealizarMovimientoFacturacion', () => {
-    it('should return true for facturacion sector', () => {
-      expect(puedeRealizarMovimientoFacturacion(SECTORES.FACTURACION)).toBe(true);
+  describe('puedeRealizarMovimientoExpedicion', () => {
+    it('should return true for expedicion sector', () => {
+      expect(puedeRealizarMovimientoExpedicion(SECTORES.EXPEDICION)).toBe(true);
     });
 
     it('should return true for admin sector', () => {
-      expect(puedeRealizarMovimientoFacturacion(SECTORES.ADMIN)).toBe(true);
+      expect(puedeRealizarMovimientoExpedicion(SECTORES.ADMIN)).toBe(true);
     });
 
     it('should return true for CHESS sector', () => {
-      expect(puedeRealizarMovimientoFacturacion(SECTORES.CHESS)).toBe(true);
+      expect(puedeRealizarMovimientoExpedicion(SECTORES.CHESS)).toBe(true);
     });
 
-    it('should return false for armado sector', () => {
-      expect(puedeRealizarMovimientoFacturacion(SECTORES.ARMADO)).toBe(false);
+    it('should return false for camara sector', () => {
+      expect(puedeRealizarMovimientoExpedicion(SECTORES.CAMARA)).toBe(false);
     });
   });
 
-  describe('esEstadoDeArmado', () => {
-    it('should return true for armado states', () => {
-      expect(esEstadoDeArmado(ESTADO_IDS.EN_PREPARACION)).toBe(true);
-      expect(esEstadoDeArmado(ESTADO_IDS.PREPARADO)).toBe(true);
-      expect(esEstadoDeArmado(ESTADO_IDS.ENTREGADO)).toBe(true);
+  describe('esEstadoDeCamara', () => {
+    it('should return true for camara states', () => {
+      expect(esEstadoDeCamara(ESTADO_IDS.EN_PREPARACION)).toBe(true);
+      expect(esEstadoDeCamara(ESTADO_IDS.PREPARADO)).toBe(true);
+      expect(esEstadoDeCamara(ESTADO_IDS.ENTREGADO)).toBe(true);
     });
 
-    it('should return false for non-armado states', () => {
-      expect(esEstadoDeArmado(ESTADO_IDS.CHESS)).toBe(false);
-      expect(esEstadoDeArmado(ESTADO_IDS.PENDIENTE)).toBe(false);
-      expect(esEstadoDeArmado(ESTADO_IDS.PAGADO)).toBe(false);
+    it('should return false for non-camara states', () => {
+      expect(esEstadoDeCamara(ESTADO_IDS.CHESS)).toBe(false);
+      expect(esEstadoDeCamara(ESTADO_IDS.PENDIENTE)).toBe(false);
+      expect(esEstadoDeCamara(ESTADO_IDS.TESORERIA)).toBe(false);
     });
   });
 });

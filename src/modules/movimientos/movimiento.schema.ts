@@ -47,8 +47,8 @@ export const movimientosByUsuarioQuerySchema = z.object({
 
 // Schema para validar params de estado
 export const movimientosByEstadoParamsSchema = z.object({
-  estado: z.enum(['PENDIENTE', 'EN PREPARACION', 'PREPARADO', 'PAGADO', 'ENTREGADO'], {
-    errorMap: () => ({ message: 'El estado debe ser uno de: PENDIENTE, EN PREPARACION, PREPARADO, PAGADO, ENTREGADO' })
+  estado: z.enum(['PENDIENTE', 'EN PREPARACION', 'PREPARADO', 'TESORERIA', 'ENTREGADO'], {
+    errorMap: () => ({ message: 'El estado debe ser uno de: PENDIENTE, EN PREPARACION, PREPARADO, TESORERIA, ENTREGADO' })
   }),
 });
 

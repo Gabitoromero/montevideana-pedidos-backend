@@ -113,4 +113,27 @@ export class PedidoController {
       next(error);
     }
   };
+
+  /**
+   * PATCH /api/pedidos/:idPedido/evaluacion
+   * Actualizar la calificación de un pedido
+   * Solo permitido para ADMIN, CHESS, EXPEDICION
+   * Solo cuando el pedido está en estado ENTREGADO
+   */
+  actualizarCalificacion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { idPedido } = req.params;
+      const { calificacion } = req.body;
+
+      const pedidoActualizado = await this.pedidoService.actualizarCalificacion(idPedido, calificacion);
+
+      res.status(200).json({
+        success: true,
+        message: 'Calificación actualizada correctamente',
+        data: pedidoActualizado,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

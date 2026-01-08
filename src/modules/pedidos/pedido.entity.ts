@@ -15,6 +15,9 @@ export class Pedido {
   @Property({ type: 'boolean', default: false })
   cobrado!: boolean;
 
+  @Property({ type: 'integer', nullable: true })
+  calificacion?: number;
+
   @ManyToOne(() => Fletero, { nullable: false })
   fletero!: Fletero;
 

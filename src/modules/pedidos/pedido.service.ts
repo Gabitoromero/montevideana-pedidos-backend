@@ -182,4 +182,51 @@ export class PedidoService {
     }
     await this.em.remove(pedido).flush();
   }
+
+  /**
+   * Actualizar la calificación de un pedido
+   * Solo se puede calificar si el pedido está en estado ENTREGADO
+   */
+  async actualizarCalificacion(idPedido: string, calificacion: number): Promise<Pedido> {
+    // Validar rango de calificación
+    if (calificacion < 1 || calificacion > 5) {
+      throw new AppError('La calificación debe estar entre 1 y 5', 400);
+    }
+
+    // Buscar pedido con movimientos
+    const pedido = await this.em.findOne(
+      Pedido,
+      { idPedido },
+      { populate: ['movimientos', 'movimientos.estadoFinal', 'fletero'] }
+    );
+
+    if (!pedido) {
+      throw new AppError('Pedido no encontrado', 404);
+    }
+
+    // Obtener último movimiento
+    const movimientos = pedido.movimientos.getItems().sort((a, b) => 
+      b.fechaHora.getTime() - a.fechaHora.getTime()
+    );
+
+    if (movimientos.length === 0) {
+      throw new AppError('El pedido no tiene movimientos', 400);
+    }
+
+    const ultimoMovimiento = movimientos[0];
+
+    // Verificar que esté en estado ENTREGADO (ID: 6)
+    if (ultimoMovimiento.estadoFinal.id !== 6) {
+      throw new AppError(
+        `Solo se puede calificar pedidos en estado ENTREGADO. Estado actual: ${ultimoMovimiento.estadoFinal.nombreEstado}`,
+        400
+      );
+    }
+
+    // Actualizar calificación
+    pedido.calificacion = calificacion;
+    await this.em.flush();
+
+    return pedido;
+  }
 }

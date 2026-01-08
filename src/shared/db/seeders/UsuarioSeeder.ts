@@ -27,11 +27,19 @@ export async function seedUsuarios(em: EntityManager): Promise<void> {
       activo: true,
     },
     {
-      username: 'marce',
-      nombre: 'Marcela',
-      apellido: 'Macia',
+      username: 'ironman',
+      nombre: 'Tony',
+      apellido: 'Stark',
       sector: 'EXPEDICION',
       password: '2222', 
+      activo: true,
+    },
+    {
+      username: 'romi',
+      nombre: 'Romina',
+      apellido: 'Verón',
+      sector: 'ADMIN',
+      password: '3333', 
       activo: true,
     }
   ];

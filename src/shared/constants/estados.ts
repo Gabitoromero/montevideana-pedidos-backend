@@ -22,7 +22,7 @@ export const ESTADO_NOMBRES = {
 // Sectores de usuarios
 export const SECTORES = {
   CHESS: 'CHESS',
-  ADMIN: 'admin',
+  ADMIN: 'ADMIN',
   CAMARA: 'CAMARA',
   EXPEDICION: 'EXPEDICION',
 } as const;

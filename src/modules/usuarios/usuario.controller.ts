@@ -8,8 +8,29 @@ export class UsuarioController {
   async create(data: CreateUsuarioDTO) {
     const em = fork();
 
+    // 1. Validar que el username no exista
+    const existingUser = await em.findOne(Usuario, { username: data.username });
+    if (existingUser) {
+      throw AppError.conflict(`El username "${data.username}" ya está en uso`);
+    }
+
+    // 2. Validar que la contraseña sea única
+    // Obtener todos los usuarios para comparar contraseñas hasheadas
+    const todosLosUsuarios = await em.find(Usuario, {});
+    
+    for (const usuario of todosLosUsuarios) {
+      const passwordCoincide = await HashUtil.compare(data.password, usuario.passwordHash);
+      if (passwordCoincide) {
+        throw AppError.conflict(
+          `La contraseña ya está en uso por otro usuario. Por favor, elija una contraseña diferente`
+        );
+      }
+    }
+
+    // 3. Hashear la contraseña
     const passwordHash = await HashUtil.hash(data.password);
 
+    // 4. Crear el usuario
     const usuario = em.create(Usuario, {
       username: data.username,
       nombre: data.nombre,
@@ -98,6 +119,21 @@ export class UsuarioController {
     if (data.apellido) usuario.apellido = data.apellido;
     if (data.sector) usuario.sector = data.sector;
     if (data.password) {
+      // Validar que la nueva contraseña sea única
+      const todosLosUsuarios = await em.find(Usuario, {});
+      
+      for (const u of todosLosUsuarios) {
+        // Saltar la comparación con el mismo usuario que estamos actualizando
+        if (u.id === id) continue;
+        
+        const passwordCoincide = await HashUtil.compare(data.password, u.passwordHash);
+        if (passwordCoincide) {
+          throw AppError.conflict(
+            `La contraseña ya está en uso por otro usuario. Por favor, elija una contraseña diferente`
+          );
+        }
+      }
+      
       usuario.passwordHash = await HashUtil.hash(data.password);
     }
 

@@ -42,6 +42,9 @@ const apiLimiter = rateLimit({
 export const createApp = (): Application => {
   const app = express();
 
+  // Necesario porque estás detrás de Nginx. Sin esto, req.ip siempre es 127.0.0.1 y las cookies secure no funcionan bien nativamente.
+  app.set('trust proxy', 1);
+
   // Configurar Helmet para headers de seguridad
   app.use(helmet({
     // Desactivar CSP en desarrollo para evitar bloqueos
@@ -53,12 +56,9 @@ export const createApp = (): Application => {
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: [
-          "'self'", 
-          "http://localhost:3000",
-          "http://119.8.149.13",
-          "https://119.8.149.13",
-          "http://119.8.149.13:3000",
-          "https://119.8.149.13:3000",
+          "'self'",
+          "https://montheladoturnero.com",
+          "https://www.montheladoturnero.com",
         ],
       },
     } : false, // Desactivado en desarrollo

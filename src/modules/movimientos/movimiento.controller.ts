@@ -25,9 +25,9 @@ export class MovimientoController {
   async create(data: CreateMovimientoDTO) { 
     const em = fork();
 
-    // 1. Buscar TODOS los usuarios activos de sectores CAMARA y EXPEDICION
+    // 1. Buscar TODOS los usuarios activos de sectores operativos (CAMARA, EXPEDICION, ADMIN, CHESS)
     const usuariosOperativos = await em.find(Usuario, { 
-      sector: { $in: [SECTORES.CAMARA, SECTORES.EXPEDICION] },
+      sector: { $in: [SECTORES.CAMARA, SECTORES.EXPEDICION, SECTORES.ADMIN, SECTORES.CHESS] },
       activo: true 
     });
 
@@ -47,7 +47,7 @@ export class MovimientoController {
 
     // 3. Si no se encontró usuario con ese PIN
     if (!usuario) {
-      throw AppError.badRequest('Usuario no perteneciente a los sectores operativos');
+      throw AppError.badRequest('PIN inválido o usuario no autorizado para crear movimientos');
     }
 
     // 4. Validar que el usuario está activo (redundante pero por seguridad)
@@ -56,6 +56,7 @@ export class MovimientoController {
     }
 
     // 5. Validar permisos según sector y estado final
+    // ADMIN y CHESS: pueden crear cualquier tipo de movimiento sin restricciones
     // CAMARA: puede crear movimientos con estado final EN_PREPARACION (3) o PREPARADO (4)
     if (usuario.sector === SECTORES.CAMARA) {
       if (data.estadoFinal !== ESTADO_IDS.EN_PREPARACION && data.estadoFinal !== ESTADO_IDS.PREPARADO) {

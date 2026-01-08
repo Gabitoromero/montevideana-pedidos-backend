@@ -5,7 +5,7 @@ export const createUsuarioSchema = z.object({
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   apellido: z.string().min(3, 'El apellido debe tener al menos 3 caracteres'),
   sector: z.string().min(3, 'El sector debe tener al menos 3 caracteres'),
-  password: z.string().min(4, 'La contraseña debe tener al menos 4 caracteres'),
+  password: z.string().regex(/^\d{4,10}$/, 'La contraseña debe ser numérica y tener entre 4 y 10 dígitos'),
 });
 
 export const updateUsuarioSchema = z.object({
@@ -13,7 +13,7 @@ export const updateUsuarioSchema = z.object({
   nombre: z.string().min(3).optional(),
   apellido: z.string().min(3).optional(),
   sector: z.string().min(3).optional(),
-  password: z.string().min(4).optional(),
+  password: z.string().regex(/^\d{4,10}$/, 'La contraseña debe ser numérica y tener entre 4 y 10 dígitos').optional(),
 });
 
 export const usuarioIdSchema = z.object({

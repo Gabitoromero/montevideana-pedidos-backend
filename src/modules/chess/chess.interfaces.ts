@@ -50,7 +50,9 @@ export interface ChessSyncResult {
   totalFleterosActualizados: number;
   totalPedidosDescartadosPorSeguimiento: number;
   totalPedidosCreados: number;
+  totalPedidosActualizadosConLiquidacion: number;
   totalMovimientosCreados: number;
+  totalMovimientosTesoreriaCreados: number;
   lotesProcesados: number;
   errors: string[];
 }

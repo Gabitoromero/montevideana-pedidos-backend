@@ -113,4 +113,26 @@ export class PedidoController {
       next(error);
     }
   };
+
+  /**
+   * PATCH /api/pedidos/:idPedido/evaluacion
+   * Actualizar la calificación de un pedido
+   * Requiere PIN de usuario con sector ADMIN, CHESS, o EXPEDICION
+   */
+  actualizarCalificacion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { idPedido } = req.params;
+      const { calificacion, pin } = req.body;
+
+      const pedidoActualizado = await this.pedidoService.actualizarCalificacion(idPedido, calificacion, pin);
+
+      res.status(200).json({
+        success: true,
+        message: 'Calificación actualizada correctamente',
+        data: pedidoActualizado,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

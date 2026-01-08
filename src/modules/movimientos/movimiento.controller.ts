@@ -12,49 +12,73 @@ import { HashUtil } from '../../shared/utils/hash.js';
 import { StringUtil } from '../../shared/utils/string.js';
 import { 
   ESTADO_IDS, 
-  esEstadoPagado, 
-  puedeRealizarMovimientoArmado, 
-  puedeRealizarMovimientoFacturacion 
+  SECTORES,
+  esEstadoTesoreria, 
+  puedeRealizarMovimientoCamara, 
+  puedeRealizarMovimientoExpedicion 
 } from '../../shared/constants/estados.js';
 
 export class MovimientoController {
   private reglaController = new ReglaController();
 
   
-  async create(data: CreateMovimientoDTO) {
+  async create(data: CreateMovimientoDTO) { 
     const em = fork();
 
-    // 1. Buscar usuario por username
-    const usuario = await em.findOne(Usuario, { username: data.username });
-    if (!usuario) {
-      throw AppError.badRequest('Credenciales inválidas');
+    // 1. Buscar TODOS los usuarios activos de sectores operativos (CAMARA, EXPEDICION, ADMIN, CHESS)
+    const usuariosOperativos = await em.find(Usuario, { 
+      sector: { $in: [SECTORES.CAMARA, SECTORES.EXPEDICION, SECTORES.ADMIN, SECTORES.CHESS] },
+      activo: true 
+    });
+
+    if (usuariosOperativos.length === 0) {
+      throw AppError.badRequest('No hay usuarios activos en los sectores operativos');
     }
 
-    // 2. Validar contraseña
-    const passwordValida = await HashUtil.compare(data.password, usuario.passwordHash);
-    if (!passwordValida) {
-      throw AppError.badRequest('Credenciales inválidas');
-    }
-
-    // 3. Validar que el usuario está activo
-    if (!usuario.activo) {
-      throw AppError.unauthorized('Usuario inactivo');
-    }
-
-    // 4. Validar permisos según sector
-    // Estados de armado: EN_PREPARACION (3), PREPARADO (4), ENTREGADO (6)
-    if (data.estadoFinal === ESTADO_IDS.EN_PREPARACION || 
-        data.estadoFinal === ESTADO_IDS.PREPARADO || 
-        data.estadoFinal === ESTADO_IDS.ENTREGADO) {
-      if (!puedeRealizarMovimientoArmado(usuario.sector)) {
-        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de armado y no puede realizar movimientos de estado`);
+    // 2. Buscar el usuario cuyo password hasheado coincida con el PIN
+    let usuario: Usuario | null = null;
+    for (const u of usuariosOperativos) {
+      const pinValido = await HashUtil.compare(data.pin, u.passwordHash);
+      if (pinValido) {
+        usuario = u;
+        break;
       }
     }
 
-    // Estado de facturación: PAGADO (5)
-    if (data.estadoFinal === ESTADO_IDS.PAGADO) {
-      if (!puedeRealizarMovimientoFacturacion(usuario.sector)) {
-        throw AppError.badRequest(`El usuario ${usuario.username} no pertenece al sector de facturación y no puede realizar movimientos de estado`);
+    // 3. Si no se encontró usuario con ese PIN
+    if (!usuario) {
+      throw AppError.badRequest('PIN inválido o usuario no autorizado para crear movimientos');
+    }
+
+    // 4. Validar que el usuario está activo (redundante pero por seguridad)
+    if (!usuario.activo) {
+      throw AppError.badRequest('Lo siento, el usuario está inactivo. No se puede realizar el movimiento');
+    }
+
+    // 5. Validar permisos según sector y estado final
+    // ADMIN y CHESS: pueden crear cualquier tipo de movimiento sin restricciones
+    // CAMARA: puede crear movimientos con estado final EN_PREPARACION (3) o PREPARADO (4)
+    if (usuario.sector === SECTORES.CAMARA) {
+      if (data.estadoFinal !== ESTADO_IDS.EN_PREPARACION && data.estadoFinal !== ESTADO_IDS.PREPARADO) {
+        throw AppError.badRequest(
+          `El usuario del sector CAMARA solo puede realizar movimientos con estado final EN PREPARACIÓN o PREPARADO`
+        );
+      }
+    }
+
+    // EXPEDICION: puede crear movimientos UNICAMENTE desde PREPARADO (4) hacia ENTREGADO (6)
+    if (usuario.sector === SECTORES.EXPEDICION) {
+      // Validar que el estado final sea ENTREGADO
+      if (data.estadoFinal !== ESTADO_IDS.ENTREGADO) {
+        throw AppError.badRequest(
+          `El usuario del sector EXPEDICION solo puede realizar movimientos con estado final ENTREGADO`
+        );
+      }
+      // Validar que el estado inicial sea PREPARADO
+      if (data.estadoInicial !== ESTADO_IDS.PREPARADO) {
+        throw AppError.badRequest(
+          `El usuario del sector EXPEDICION solo puede realizar movimientos desde el estado PREPARADO`
+        );
       }
     }
 
@@ -94,7 +118,7 @@ export class MovimientoController {
     // 9. Crear el movimiento
     // Usar transacción para garantizar atomicidad
     const movimiento = await em.transactional(async (transactionalEm) => {
-      if (esEstadoPagado(data.estadoFinal)) {
+      if (esEstadoTesoreria(data.estadoFinal)) {
         pedido.cobrado = true;
       }
 
@@ -580,7 +604,7 @@ export class MovimientoController {
       'PENDIENTE': ESTADO_IDS.PENDIENTE,
       'EN PREPARACION': ESTADO_IDS.EN_PREPARACION,
       'PREPARADO': ESTADO_IDS.PREPARADO,
-      'PAGADO': ESTADO_IDS.PAGADO,
+      'TESORERIA': ESTADO_IDS.TESORERIA,
       'ENTREGADO': ESTADO_IDS.ENTREGADO,
     };
 

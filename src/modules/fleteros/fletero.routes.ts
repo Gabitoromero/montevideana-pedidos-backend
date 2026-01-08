@@ -7,7 +7,7 @@ const controller = new FleterosController();
 
 // Todas las rutas requieren autenticación y permisos de admin
 router.use(authMiddleware);
-router.use(authorize('admin','CHESS'));
+router.use(authorize('ADMIN','CHESS'));
 
 /**
  * GET /fleteros - Listar todos los fleteros

@@ -4,6 +4,9 @@ import { PedidoService } from './pedido.service.js';
 import { RequestContext } from '@mikro-orm/core';
 import { getORM } from '../../shared/db/orm.js';
 import { authMiddleware } from '../../shared/auth/auth.middleware.js';
+import { validateSchema } from '../../shared/middlewares/validateSchema.js';
+import { actualizarCalificacionSchema } from './pedido.schema.js';
+import { AppError } from '../../shared/errors/AppError.js';
 
 const router = Router();
 
@@ -33,6 +36,13 @@ router.get('/estado/:idEstado', (req, res, next) => getController().findByEstado
 router.get('/:idPedido', (req, res, next) => getController().findOne(req, res, next));
 router.post('/', (req, res, next) => getController().create(req, res, next));
 router.delete('/:idPedido', (req, res, next) => getController().delete(req, res, next));
+
+// Ruta para actualizar calificación (validación por PIN en service layer)
+router.patch(
+  '/:idPedido/evaluacion',
+  validateSchema(actualizarCalificacionSchema),
+  (req, res, next) => getController().actualizarCalificacion(req, res, next)
+);
 
 export default router;
 

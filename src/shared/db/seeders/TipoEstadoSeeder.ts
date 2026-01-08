@@ -15,7 +15,7 @@ export async function seedTipoEstados(em: EntityManager): Promise<void> {
     { id: 2, nombreEstado: 'PENDIENTE' },
     { id: 3, nombreEstado: 'EN PREPARACION' },
     { id: 4, nombreEstado: 'PREPARADO' },
-    { id: 5, nombreEstado: 'PAGADO' },
+    { id: 5, nombreEstado: 'TESORERIA' },
     { id: 6, nombreEstado: 'ENTREGADO' }
   ];
 
@@ -48,7 +48,7 @@ export async function seedTipoEstados(em: EntityManager): Promise<void> {
     { idEstado: 6, idEstadoNecesario: 2 }, // ENTREGADO necesita PENDIENTE
     { idEstado: 6, idEstadoNecesario: 3 }, // ENTREGADO necesita EN PREPARACION
     { idEstado: 6, idEstadoNecesario: 4 }, // ENTREGADO necesita PREPARADO
-    { idEstado: 6, idEstadoNecesario: 5 }, // ENTREGADO necesita PAGADO
+    { idEstado: 6, idEstadoNecesario: 5 }, // ENTREGADO necesita TESORERIA
   ];
 
   for (const reglaData of reglas) {

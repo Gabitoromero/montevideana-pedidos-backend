@@ -99,7 +99,7 @@ router.get(
 // Obtener historial completo de movimientos de un pedido (solo admin y CHESS)
 router.get(
   '/pedido/:idPedido/historial',
-  authorize('admin', 'CHESS'),
+  authorize('ADMIN', 'CHESS'),
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -115,7 +115,7 @@ router.get(
 // Obtener movimientos por usuario con rango de fechas (solo admin y CHESS)
 router.get(
   '/usuario/:idUsuario',
-  authorize('admin', 'CHESS'),
+  authorize('ADMIN', 'CHESS'),
   validateSchema(movimientosByUsuarioParamsSchema, 'params'),
   validateSchema(movimientosByUsuarioQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -138,7 +138,7 @@ router.get(
 // Obtener movimientos por estado con rango de fechas (solo admin y CHESS)
 router.get(
   '/estado/:estado',
-  authorize('admin', 'CHESS'),
+  authorize('ADMIN', 'CHESS'),
   validateSchema(movimientosByEstadoParamsSchema, 'params'),
   validateSchema(movimientosByEstadoQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {

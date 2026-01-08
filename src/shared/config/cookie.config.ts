@@ -26,12 +26,18 @@ export const COOKIE_MAX_AGE = {
 /**
  * Configuración base de cookies con flags de seguridad
  */
-const getBaseCookieOptions = (): CookieOptions => ({
-  httpOnly: true,                    // No accesible desde JavaScript (protección XSS)
-  secure: false, // Solo HTTPS en producción
-  sameSite: 'lax',                // Protección CSRF
-  path: '/',                         // Disponible en toda la aplicación
-});
+const getBaseCookieOptions = (): CookieOptions => {
+
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  return {
+    httpOnly: true,                    // No accesible desde JavaScript (protección XSS)
+    secure: isProduction, // Solo HTTPS en producción
+    sameSite: 'lax',                // Protección CSRF
+    path: '/',                      
+    domain: isProduction ? '.montheladoturnero.com' : undefined,
+  };
+};
 
 /**
  * Configuración específica para access token

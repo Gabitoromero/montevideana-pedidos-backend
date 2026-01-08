@@ -182,4 +182,80 @@ export class PedidoService {
     }
     await this.em.remove(pedido).flush();
   }
+
+  /**
+   * Actualizar la calificación de un pedido
+   * Solo se puede calificar si el pedido está en estado ENTREGADO
+   * Valida que el usuario autenticado con PIN sea de sector ADMIN, CHESS o EXPEDICION
+   */
+  async actualizarCalificacion(idPedido: string, calificacion: number, pin: string): Promise<Pedido> {
+    // Validar rango de calificación
+    if (calificacion < 1 || calificacion > 5) {
+      throw new AppError('La calificación debe estar entre 1 y 5', 400);
+    }
+
+    // Buscar todos los usuarios activos y verificar PIN
+    const Usuario = (await import('../usuarios/usuario.entity.js')).Usuario;
+    const { HashUtil } = await import('../../shared/utils/hash.js');
+    
+    const usuariosActivos = await this.em.find(Usuario, { activo: true });
+    
+    let usuarioAutenticado = null;
+    for (const usuario of usuariosActivos) {
+      const pinValido = await HashUtil.compare(pin, usuario.passwordHash);
+      if (pinValido) {
+        usuarioAutenticado = usuario;
+        break;
+      }
+    }
+
+    if (!usuarioAutenticado) {
+      throw new AppError('PIN incorrecto o usuario inactivo', 401);
+    }
+
+    // Verificar que el usuario sea de sector permitido
+    const sectoresPermitidos = ['ADMIN', 'CHESS', 'EXPEDICION'];
+    if (!sectoresPermitidos.includes(usuarioAutenticado.sector)) {
+      throw new AppError(
+        `El usuario ${usuarioAutenticado.username} (${usuarioAutenticado.sector}) no tiene permisos para calificar pedidos`,
+        403
+      );
+    }
+
+    // Buscar pedido con movimientos
+    const pedido = await this.em.findOne(
+      Pedido,
+      { idPedido },
+      { populate: ['movimientos', 'movimientos.estadoFinal', 'fletero'] }
+    );
+
+    if (!pedido) {
+      throw new AppError('Pedido no encontrado', 404);
+    }
+
+    // Obtener último movimiento
+    const movimientos = pedido.movimientos.getItems().sort((a, b) => 
+      b.fechaHora.getTime() - a.fechaHora.getTime()
+    );
+
+    if (movimientos.length === 0) {
+      throw new AppError('El pedido no tiene movimientos', 400);
+    }
+
+    const ultimoMovimiento = movimientos[0];
+
+    // Verificar que esté en estado ENTREGADO (ID: 6)
+    if (ultimoMovimiento.estadoFinal.id !== 6) {
+      throw new AppError(
+        `Solo se puede calificar pedidos en estado ENTREGADO. Estado actual: ${ultimoMovimiento.estadoFinal.nombreEstado}`,
+        400
+      );
+    }
+
+    // Actualizar calificación
+    pedido.calificacion = calificacion;
+    await this.em.flush();
+
+    return pedido;
+  }
 }

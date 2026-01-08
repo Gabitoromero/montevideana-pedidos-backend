@@ -51,4 +51,23 @@ export class ChessController {
       next(error);
     }
   }
+
+  /**
+   * Endpoint para sincronizar ventas del día anterior
+   * Se ejecuta automáticamente a las 6:00 AM vía cron
+   */
+  async syncDiaAnterior(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ayer = new Date();
+      ayer.setDate(ayer.getDate() - 1);
+      
+      const result = await this.chessService.syncVentas(ayer);
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

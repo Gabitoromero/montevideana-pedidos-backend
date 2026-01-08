@@ -6,7 +6,7 @@ import type { MySqlDriver } from '@mikro-orm/mysql';
 /**
  * Scheduler para sincronización automática de ventas CHESS
  * - Sincroniza día anterior a las 6:00 AM
- * - Sincroniza día actual cada 5 minutos entre las 6:00 AM y 11:00 PM
+ * - Sincroniza día actual cada 1 minuto entre las 6:00 AM y 11:00 PM
  */
 export class ChessScheduler {
   private orm: MikroORM;
@@ -124,9 +124,9 @@ export class ChessScheduler {
       }
     });
 
-    // Cron 2: Sincronizar día actual cada 5 minutos (6 AM - 11 PM)
-    // */5 6-23 * * * = cada 5 minutos, entre las 6 y las 23 horas
-    this.taskDiaActual = cron.schedule('*/5 6-23 * * *', async () => {
+    // Cron 2: Sincronizar día actual cada 1 minuto (6 AM - 11 PM)
+    // */1 6-23 * * * = cada 1 minuto, entre las 6 y las 23 horas
+    this.taskDiaActual = cron.schedule('*/1 6-23 * * *', async () => {
       if (this.isRunningYet) {
         console.log('⏭️ Sincronización anterior aún en progreso, omitiendo...');
         return;
@@ -172,7 +172,7 @@ export class ChessScheduler {
 
     console.log('✅ Scheduler CHESS iniciado:');
     console.log('   - Día anterior: 6:00 AM');
-    console.log('   - Día actual: cada 5 minutos (6:00 AM - 11:00 PM)');
+    console.log('   - Día actual: cada 1 minuto (6:00 AM - 11:00 PM)');
   }
 
   /**
@@ -188,14 +188,7 @@ export class ChessScheduler {
     console.log('🛑 Scheduler CHESS detenido');
   }
 
-  /**
-   * Verificar si el scheduler está activo
-   */
-  // isRunning(): boolean {
-  //   return this.task !== null;
-  // }
 }
-
 /**
  * Inicializar y exportar el scheduler
  */

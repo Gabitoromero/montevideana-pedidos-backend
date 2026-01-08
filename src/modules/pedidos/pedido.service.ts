@@ -186,11 +186,40 @@ export class PedidoService {
   /**
    * Actualizar la calificación de un pedido
    * Solo se puede calificar si el pedido está en estado ENTREGADO
+   * Valida que el usuario autenticado con PIN sea de sector ADMIN, CHESS o EXPEDICION
    */
-  async actualizarCalificacion(idPedido: string, calificacion: number): Promise<Pedido> {
+  async actualizarCalificacion(idPedido: string, calificacion: number, pin: string): Promise<Pedido> {
     // Validar rango de calificación
     if (calificacion < 1 || calificacion > 5) {
       throw new AppError('La calificación debe estar entre 1 y 5', 400);
+    }
+
+    // Buscar todos los usuarios activos y verificar PIN
+    const Usuario = (await import('../usuarios/usuario.entity.js')).Usuario;
+    const { HashUtil } = await import('../../shared/utils/hash.js');
+    
+    const usuariosActivos = await this.em.find(Usuario, { activo: true });
+    
+    let usuarioAutenticado = null;
+    for (const usuario of usuariosActivos) {
+      const pinValido = await HashUtil.compare(pin, usuario.passwordHash);
+      if (pinValido) {
+        usuarioAutenticado = usuario;
+        break;
+      }
+    }
+
+    if (!usuarioAutenticado) {
+      throw new AppError('PIN incorrecto o usuario inactivo', 401);
+    }
+
+    // Verificar que el usuario sea de sector permitido
+    const sectoresPermitidos = ['ADMIN', 'CHESS', 'EXPEDICION'];
+    if (!sectoresPermitidos.includes(usuarioAutenticado.sector)) {
+      throw new AppError(
+        `El usuario ${usuarioAutenticado.username} (${usuarioAutenticado.sector}) no tiene permisos para calificar pedidos`,
+        403
+      );
     }
 
     // Buscar pedido con movimientos

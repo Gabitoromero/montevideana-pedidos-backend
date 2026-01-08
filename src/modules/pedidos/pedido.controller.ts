@@ -117,15 +117,14 @@ export class PedidoController {
   /**
    * PATCH /api/pedidos/:idPedido/evaluacion
    * Actualizar la calificación de un pedido
-   * Solo permitido para ADMIN, CHESS, EXPEDICION
-   * Solo cuando el pedido está en estado ENTREGADO
+   * Requiere PIN de usuario con sector ADMIN, CHESS, o EXPEDICION
    */
   actualizarCalificacion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { idPedido } = req.params;
-      const { calificacion } = req.body;
+      const { calificacion, pin } = req.body;
 
-      const pedidoActualizado = await this.pedidoService.actualizarCalificacion(idPedido, calificacion);
+      const pedidoActualizado = await this.pedidoService.actualizarCalificacion(idPedido, calificacion, pin);
 
       res.status(200).json({
         success: true,

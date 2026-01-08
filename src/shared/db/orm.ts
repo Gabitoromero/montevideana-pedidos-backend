@@ -13,8 +13,7 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
     if (orm) {
         return orm;
     }
-
-    orm = await MikroORM.init<MySqlDriver>({
+orm = await MikroORM.init<MySqlDriver>({
         driver: MySqlDriver,
         highlighter: new SqlHighlighter(),
         host: process.env.DB_HOST || 'localhost',
@@ -24,9 +23,19 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
         dbName: process.env.DB_NAME || 'montevideana_pedidos',
         entities: ['dist/**/*.entity.js'],
         entitiesTs: ['src/**/*.entity.ts'],
-        debug: process.env.NODE_ENV === 'development', // Solo logs en desarrollo
+        debug: process.env.NODE_ENV === 'development',
         charset: 'utf8mb4',
         collate: 'utf8mb4_unicode_ci',
+        
+        // --- CORRECCIÓN 1: Configuración del Pool en la raíz ---
+        // MikroORM maneja el pool directamente, no dentro de driverOptions
+        pool: {
+            min: 2,
+            max: 10,
+            idleTimeoutMillis: 30000,
+            acquireTimeoutMillis: 10000 // Aquí es donde debe ir el acquireTimeout
+        },
+
         migrations: {
             path: path.join(__dirname, '../../../migrations'),
             pathTs: path.join(__dirname, '../../../migrations'),
@@ -36,18 +45,16 @@ export const initORM = async (): Promise<MikroORM<MySqlDriver>> => {
             createForeignKeyConstraints: true,
             ignoreSchema: [],
         },
+
+        // --- CORRECCIÓN 2: Limpieza de driverOptions ---
+        // Aquí solo van opciones nativas de la conexión de mysql2
         driverOptions: {
+            // Ya no es necesario anidar en "connection" si usas driverOptions directamente, 
+            // pero si tu versión lo requiere así, lo mantenemos limpio:
             connection: {
-                // Timeouts para prevenir conexiones colgadas
-                connectTimeout: 10000,      // 10 segundos para conectar
-                acquireTimeout: 10000,      // 10 segundos para adquirir conexión del pool
-                timeout: 30000,             // 30 segundos timeout general
-            },
-            pool: {
-                min: 2,                     // Mínimo de conexiones en el pool
-                max: 10,                    // Máximo de conexiones en el pool
-                idleTimeoutMillis: 30000,   // Cerrar conexiones inactivas después de 30s
-                acquireTimeoutMillis: 10000 // Timeout para adquirir del pool
+                connectTimeout: 10000, // OK: Tiempo para establecer conexión TCP
+                // acquireTimeout: 10000, <-- ELIMINADO: Esto causaba el error rojo
+                // timeout: 30000,        <-- ELIMINADO: A veces causa conflictos, mejor dejar el default
             }
         },
     });

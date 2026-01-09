@@ -33,8 +33,8 @@ importers:
         specifier: ^2.8.5
         version: 2.8.5
       date-fns-tz:
-        specifier: ^3.2.0
-        version: 3.2.0(date-fns@4.1.0)
+        specifier: 2.0.0
+        version: 2.0.0(date-fns@4.1.0)
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -1213,10 +1213,10 @@ packages:
   dataloader@2.2.3:
     resolution: {integrity: sha512-y2krtASINtPFS1rSDjacrFgn1dcUuoREVabwlOGOe4SdxenREqwjwjElAdwvbGM7kgZz9a3KVicWR7vcz8rnzA==}
 
-  date-fns-tz@3.2.0:
-    resolution: {integrity: sha512-sg8HqoTEulcbbbVXeg84u5UnlsQa8GS5QXMqjjYIhS4abEVVKIUwe0/l/UhrZdKaL/W5eWZNlbTeEIiOXTcsBQ==}
+  date-fns-tz@2.0.0:
+    resolution: {integrity: sha512-OAtcLdB9vxSXTWHdT8b398ARImVwQMyjfYGkKD2zaGpHseG2UPHbHjXELReErZFxWdSLph3c2zOaaTyHfOhERQ==}
     peerDependencies:
-      date-fns: ^3.0.0 || ^4.0.0
+      date-fns: '>=2.0.0'
 
   date-fns@4.1.0:
     resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
@@ -3965,7 +3965,7 @@ snapshots:
 
   dataloader@2.2.3: {}
 
-  date-fns-tz@3.2.0(date-fns@4.1.0):
+  date-fns-tz@2.0.0(date-fns@4.1.0):
     dependencies:
       date-fns: 4.1.0
 

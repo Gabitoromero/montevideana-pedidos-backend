@@ -34,7 +34,7 @@
     "body-parser": "^2.2.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "date-fns-tz": "^3.2.0",
+    "date-fns-tz": "2.0.0",
     "dotenv": "^16.4.7",
     "dotenv-vault": "^1.27.0",
     "exceljs": "^4.4.0",

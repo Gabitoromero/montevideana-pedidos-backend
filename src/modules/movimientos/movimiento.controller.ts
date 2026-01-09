@@ -1,38 +1,50 @@
-import { fork } from '../../shared/db/orm.js';
-import { Movimiento } from './movimiento.entity.js';
-import { Usuario } from '../usuarios/usuario.entity.js';
-import { TipoEstado } from '../estados/tipoEstado.entity.js';
-import { Pedido } from '../pedidos/pedido.entity.js';
-import { Fletero } from '../fleteros/fletero.entity.js';
-import { ReglaController } from '../reglas/regla.controller.js';
-import { CreateMovimientoDTO, MovimientoQueryDTO, ExportMovimientosQueryDTO } from './movimiento.schema.js';
-import { AppError } from '../../shared/errors/AppError.js';
-import { DateUtil } from '../../shared/utils/date.js';
-import { HashUtil } from '../../shared/utils/hash.js';
-import { StringUtil } from '../../shared/utils/string.js';
-import { 
-  ESTADO_IDS, 
+import { fork } from "../../shared/db/orm.js";
+import { Movimiento } from "./movimiento.entity.js";
+import { Usuario } from "../usuarios/usuario.entity.js";
+import { TipoEstado } from "../estados/tipoEstado.entity.js";
+import { Pedido } from "../pedidos/pedido.entity.js";
+import { Fletero } from "../fleteros/fletero.entity.js";
+import { ReglaController } from "../reglas/regla.controller.js";
+import {
+  CreateMovimientoDTO,
+  MovimientoQueryDTO,
+  ExportMovimientosQueryDTO,
+} from "./movimiento.schema.js";
+import { AppError } from "../../shared/errors/AppError.js";
+import { DateUtil } from "../../shared/utils/date.js";
+import { HashUtil } from "../../shared/utils/hash.js";
+import { StringUtil } from "../../shared/utils/string.js";
+import {
+  ESTADO_IDS,
   SECTORES,
-  esEstadoTesoreria, 
-  puedeRealizarMovimientoCamara, 
-  puedeRealizarMovimientoExpedicion 
-} from '../../shared/constants/estados.js';
+  esEstadoTesoreria,
+  puedeRealizarMovimientoCamara,
+  puedeRealizarMovimientoExpedicion,
+} from "../../shared/constants/estados.js";
 
 export class MovimientoController {
   private reglaController = new ReglaController();
 
-  
-  async create(data: CreateMovimientoDTO) { 
+  async create(data: CreateMovimientoDTO) {
     const em = fork();
 
     // 1. Buscar TODOS los usuarios activos de sectores operativos (CAMARA, EXPEDICION, ADMIN, CHESS)
-    const usuariosOperativos = await em.find(Usuario, { 
-      sector: { $in: [SECTORES.CAMARA, SECTORES.EXPEDICION, SECTORES.ADMIN, SECTORES.CHESS] },
-      activo: true 
+    const usuariosOperativos = await em.find(Usuario, {
+      sector: {
+        $in: [
+          SECTORES.CAMARA,
+          SECTORES.EXPEDICION,
+          SECTORES.ADMIN,
+          SECTORES.CHESS,
+        ],
+      },
+      activo: true,
     });
 
     if (usuariosOperativos.length === 0) {
-      throw AppError.badRequest('No hay usuarios activos en los sectores operativos');
+      throw AppError.badRequest(
+        "No hay usuarios activos en los sectores operativos"
+      );
     }
 
     // 2. Buscar el usuario cuyo password hasheado coincida con el PIN
@@ -47,19 +59,26 @@ export class MovimientoController {
 
     // 3. Si no se encontró usuario con ese PIN
     if (!usuario) {
-      throw AppError.badRequest('PIN inválido o usuario no autorizado para crear movimientos');
+      throw AppError.badRequest(
+        "PIN inválido o usuario no autorizado para crear movimientos"
+      );
     }
 
     // 4. Validar que el usuario está activo (redundante pero por seguridad)
     if (!usuario.activo) {
-      throw AppError.badRequest('Lo siento, el usuario está inactivo. No se puede realizar el movimiento');
+      throw AppError.badRequest(
+        "Lo siento, el usuario está inactivo. No se puede realizar el movimiento"
+      );
     }
 
     // 5. Validar permisos según sector y estado final
     // ADMIN y CHESS: pueden crear cualquier tipo de movimiento sin restricciones
     // CAMARA: puede crear movimientos con estado final EN_PREPARACION (3) o PREPARADO (4)
     if (usuario.sector === SECTORES.CAMARA) {
-      if (data.estadoFinal !== ESTADO_IDS.EN_PREPARACION && data.estadoFinal !== ESTADO_IDS.PREPARADO) {
+      if (
+        data.estadoFinal !== ESTADO_IDS.EN_PREPARACION &&
+        data.estadoFinal !== ESTADO_IDS.PREPARADO
+      ) {
         throw AppError.badRequest(
           `El usuario del sector CAMARA solo puede realizar movimientos con estado final EN PREPARACIÓN o PREPARADO`
         );
@@ -70,13 +89,16 @@ export class MovimientoController {
         // Buscar el último movimiento que terminó en EN_PREPARACION para este pedido
         const movimientos = await em.find(
           Movimiento,
-          { pedido: { idPedido: data.idPedido }, estadoFinal: { id: ESTADO_IDS.EN_PREPARACION } },
-          { populate: ['usuario'], orderBy: { fechaHora: 'DESC' }, limit: 1 }
+          {
+            pedido: { idPedido: data.idPedido },
+            estadoFinal: { id: ESTADO_IDS.EN_PREPARACION },
+          },
+          { populate: ["usuario"], orderBy: { fechaHora: "DESC" }, limit: 1 }
         );
 
         if (movimientos.length > 0) {
           const ultimoMovimientoEnPreparacion = movimientos[0];
-          
+
           // Verificar que el usuario actual sea el mismo que hizo el movimiento a EN_PREPARACION
           if (ultimoMovimientoEnPreparacion.usuario.id !== usuario.id) {
             throw AppError.badRequest(
@@ -104,7 +126,11 @@ export class MovimientoController {
     }
 
     // 5. Validar que el pedido existe
-    const pedido = await em.findOne(Pedido, { idPedido: data.idPedido }, { populate: ['fletero'] });
+    const pedido = await em.findOne(
+      Pedido,
+      { idPedido: data.idPedido },
+      { populate: ["fletero"] }
+    );
     if (!pedido) {
       const sanitizedId = StringUtil.sanitizePedidoId(data.idPedido);
       throw AppError.notFound(`Pedido con ID ${sanitizedId} no encontrado`);
@@ -118,9 +144,12 @@ export class MovimientoController {
           `Los pedidos del fletero ${pedido.fletero.dsFletero} se liquidan automáticamente desde CHESS.`
         );
       }
-      
+
       // Validar que solo usuarios ADMIN o CHESS puedan crear movimientos a TESORERIA
-      if (usuario.sector !== SECTORES.ADMIN && usuario.sector !== SECTORES.CHESS) {
+      if (
+        usuario.sector !== SECTORES.ADMIN &&
+        usuario.sector !== SECTORES.CHESS
+      ) {
         throw AppError.badRequest(
           `Solo usuarios de los sectores ADMIN o CHESS pueden crear movimientos a TESORERIA`
         );
@@ -128,14 +157,20 @@ export class MovimientoController {
     }
 
     // 6. Validar que ambos estados existen
-    const estadoInicial = await em.findOne(TipoEstado, { id: data.estadoInicial });
+    const estadoInicial = await em.findOne(TipoEstado, {
+      id: data.estadoInicial,
+    });
     if (!estadoInicial) {
-      throw AppError.notFound(`Estado inicial con código ${data.estadoInicial} no encontrado`);
+      throw AppError.notFound(
+        `Estado inicial con código ${data.estadoInicial} no encontrado`
+      );
     }
 
     const estadoFinal = await em.findOne(TipoEstado, { id: data.estadoFinal });
     if (!estadoFinal) {
-      throw AppError.notFound(`Estado final con código ${data.estadoFinal} no encontrado`);
+      throw AppError.notFound(
+        `Estado final con código ${data.estadoFinal} no encontrado`
+      );
     }
 
     // 7. Validar que la transición es legal según las reglas de EstadoNecesario
@@ -165,11 +200,11 @@ export class MovimientoController {
         pedido: pedido,
         estadoInicial: estadoInicial,
         estadoFinal: estadoFinal,
-        usuario: usuario
+        usuario: usuario,
       });
 
       await transactionalEm.persist(nuevoMovimiento).flush();
-      
+
       return nuevoMovimiento;
     });
 
@@ -181,16 +216,16 @@ export class MovimientoController {
         fletero: {
           idFletero: pedido.fletero.idFletero,
           dsFletero: pedido.fletero.dsFletero,
-          seguimiento: pedido.fletero.seguimiento
-        }
+          seguimiento: pedido.fletero.seguimiento,
+        },
       },
       estadoInicial: {
         idEstado: estadoInicial.id,
-        nombreEstado: estadoInicial.nombreEstado
+        nombreEstado: estadoInicial.nombreEstado,
       },
       estadoFinal: {
         idEstado: estadoFinal.id,
-        nombreEstado: estadoFinal.nombreEstado
+        nombreEstado: estadoFinal.nombreEstado,
       },
       usuario: {
         id: usuario.id,
@@ -200,9 +235,12 @@ export class MovimientoController {
       },
     };
   }
-    
 
-  async findAll(filters?: MovimientoQueryDTO, page: number = 1, limit: number = 50) {
+  async findAll(
+    filters?: MovimientoQueryDTO,
+    page: number = 1,
+    limit: number = 50
+  ) {
     const em = fork();
     const where: any = {};
 
@@ -227,19 +265,23 @@ export class MovimientoController {
       }
     }
 
-    const [movimientos, total] = await em.findAndCount(
-      Movimiento,
-      where,
-      {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido', 'pedido.fletero'],
-        orderBy: { fechaHora: 'DESC' },
-        limit,
-        offset: (page - 1) * limit
-      }
-    );
+    const [movimientos, total] = await em.findAndCount(Movimiento, where, {
+      populate: [
+        "usuario",
+        "estadoInicial",
+        "estadoFinal",
+        "pedido",
+        "pedido.fletero",
+      ],
+      orderBy: { fechaHora: "DESC" },
+      limit,
+      offset: (page - 1) * limit,
+    });
 
     if (total === 0) {
-      throw AppError.notFound(`No se encontraron movimientos que coincidan con los filtros proporcionados`);
+      throw AppError.notFound(
+        `No se encontraron movimientos que coincidan con los filtros proporcionados`
+      );
     }
 
     return {
@@ -251,8 +293,8 @@ export class MovimientoController {
           fletero: {
             idFletero: m.pedido.fletero.idFletero,
             dsFletero: m.pedido.fletero.dsFletero,
-            seguimiento: m.pedido.fletero.seguimiento
-          }
+            seguimiento: m.pedido.fletero.seguimiento,
+          },
         },
         estadoInicial: m.estadoInicial,
         estadoFinal: m.estadoFinal,
@@ -269,8 +311,8 @@ export class MovimientoController {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -284,11 +326,21 @@ export class MovimientoController {
     const movimiento = await em.findOne(
       Movimiento,
       { pedido, fechaHora },
-      { populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido', 'pedido.fletero'] }
+      {
+        populate: [
+          "usuario",
+          "estadoInicial",
+          "estadoFinal",
+          "pedido",
+          "pedido.fletero",
+        ],
+      }
     );
 
     if (!movimiento) {
-      throw AppError.notFound(`Movimiento no encontrado para el pedido ${idPedido} en la fecha ${fechaHora}`);
+      throw AppError.notFound(
+        `Movimiento no encontrado para el pedido ${idPedido} en la fecha ${fechaHora}`
+      );
     }
 
     return {
@@ -299,8 +351,8 @@ export class MovimientoController {
         fletero: {
           idFletero: movimiento.pedido.fletero.idFletero,
           dsFletero: movimiento.pedido.fletero.dsFletero,
-          seguimiento: movimiento.pedido.fletero.seguimiento
-        }
+          seguimiento: movimiento.pedido.fletero.seguimiento,
+        },
       },
       estadoInicial: movimiento.estadoInicial,
       estadoFinal: movimiento.estadoFinal,
@@ -326,8 +378,14 @@ export class MovimientoController {
       Movimiento,
       { pedido },
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido', 'pedido.fletero'],
-        orderBy: { fechaHora: 'ASC' },
+        populate: [
+          "usuario",
+          "estadoInicial",
+          "estadoFinal",
+          "pedido",
+          "pedido.fletero",
+        ],
+        orderBy: { fechaHora: "ASC" },
       }
     );
 
@@ -339,8 +397,8 @@ export class MovimientoController {
         fletero: {
           idFletero: m.pedido.fletero.idFletero,
           dsFletero: m.pedido.fletero.dsFletero,
-          seguimiento: m.pedido.fletero.seguimiento
-        }
+          seguimiento: m.pedido.fletero.seguimiento,
+        },
       },
       estadoInicial: m.estadoInicial,
       estadoFinal: m.estadoFinal,
@@ -380,7 +438,7 @@ export class MovimientoController {
   // }
   async getEstadoActual(idPedido: string) {
     const em = fork();
-    
+
     const pedido = await em.findOne(Pedido, { idPedido });
     if (!pedido) {
       throw AppError.notFound(`Pedido con ID ${idPedido} no encontrado`);
@@ -391,14 +449,16 @@ export class MovimientoController {
       Movimiento,
       { pedido },
       {
-        populate: ['estadoFinal', 'pedido', 'pedido.fletero'],
-        orderBy: { fechaHora: 'DESC' },
-        limit: 1  // Solo traer el primero (el más reciente)
+        populate: ["estadoFinal", "pedido", "pedido.fletero"],
+        orderBy: { fechaHora: "DESC" },
+        limit: 1, // Solo traer el primero (el más reciente)
       }
     );
 
     if (!movimientos || movimientos.length === 0) {
-      throw AppError.notFound(`No se encontraron movimientos para el pedido ${idPedido}`);
+      throw AppError.notFound(
+        `No se encontraron movimientos para el pedido ${idPedido}`
+      );
     }
 
     const ultimoMovimiento = movimientos[0];
@@ -410,12 +470,12 @@ export class MovimientoController {
         fletero: {
           idFletero: ultimoMovimiento.pedido.fletero.idFletero,
           dsFletero: ultimoMovimiento.pedido.fletero.dsFletero,
-          seguimiento: ultimoMovimiento.pedido.fletero.seguimiento
-        }
+          seguimiento: ultimoMovimiento.pedido.fletero.seguimiento,
+        },
       },
       estadoActual: {
         idEstado: ultimoMovimiento.estadoFinal.id,
-        nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado
+        nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado,
       },
       fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
     };
@@ -425,15 +485,21 @@ export class MovimientoController {
    * Inicializa un pedido desde CHESS con el usuario Sistema
    * Estado 1 (CHESS) → Estado 2 (Pendiente)
    */
-  async inicializarDesdeChess(data: { idPedido: string; fechaHora: string; idFleteroCarga: number }) {
+  async inicializarDesdeChess(data: {
+    idPedido: string;
+    fechaHora: string;
+    idFleteroCarga: number;
+  }) {
     const em = fork();
     const USUARIO_SISTEMA_ID = 1; // ID del usuario "Sistema"
 
     // 1. Verificar que el usuario Sistema existe
-    const usuarioSistema = await em.findOne(Usuario, { id: USUARIO_SISTEMA_ID });
+    const usuarioSistema = await em.findOne(Usuario, {
+      id: USUARIO_SISTEMA_ID,
+    });
     if (!usuarioSistema) {
       throw AppError.internal(
-        'Usuario Sistema no encontrado. Debe existir un usuario con ID 1 para inicializar pedidos desde CHESS.'
+        "Usuario Sistema no encontrado. Debe existir un usuario con ID 1 para inicializar pedidos desde CHESS."
       );
     }
 
@@ -441,19 +507,23 @@ export class MovimientoController {
     const estadoChess = await em.findOne(TipoEstado, { id: ESTADO_IDS.CHESS });
     if (!estadoChess) {
       throw AppError.internal(
-        'Estado CHESS (1) no encontrado. Debe existir en la base de datos.'
+        "Estado CHESS (1) no encontrado. Debe existir en la base de datos."
       );
     }
 
-    const estadoPendiente = await em.findOne(TipoEstado, { id: ESTADO_IDS.PENDIENTE });
+    const estadoPendiente = await em.findOne(TipoEstado, {
+      id: ESTADO_IDS.PENDIENTE,
+    });
     if (!estadoPendiente) {
       throw AppError.internal(
-        'Estado PENDIENTE (2) no encontrado. Debe existir en la base de datos.'
+        "Estado PENDIENTE (2) no encontrado. Debe existir en la base de datos."
       );
     }
 
     // 3. Verificar que el pedido no existe ya
-    const pedidoExistente = await em.findOne(Pedido, { idPedido: data.idPedido });
+    const pedidoExistente = await em.findOne(Pedido, {
+      idPedido: data.idPedido,
+    });
     if (pedidoExistente) {
       throw AppError.conflict(
         `El pedido ${data.idPedido} ya existe en el sistema. No se puede inicializar nuevamente.`
@@ -461,7 +531,9 @@ export class MovimientoController {
     }
 
     // 3. Verificar que el fletero existe
-    const fletero = await em.findOne(Fletero, { idFletero: data.idFleteroCarga });
+    const fletero = await em.findOne(Fletero, {
+      idFletero: data.idFleteroCarga,
+    });
     if (!fletero) {
       throw AppError.internal(
         `Fletero con ID ${data.idFleteroCarga} no encontrado. Debe existir en la base de datos.`
@@ -482,7 +554,7 @@ export class MovimientoController {
       pedido: pedido,
       estadoInicial: estadoChess,
       estadoFinal: estadoPendiente,
-      usuario: usuarioSistema
+      usuario: usuarioSistema,
     });
 
     await em.persist([pedido, movimiento]).flush();
@@ -495,22 +567,22 @@ export class MovimientoController {
         fletero: {
           idFletero: pedido.fletero.idFletero,
           dsFletero: pedido.fletero.dsFletero,
-          seguimiento: pedido.fletero.seguimiento
-        }
+          seguimiento: pedido.fletero.seguimiento,
+        },
       },
       estadoInicial: {
         idEstado: estadoChess.id,
-        nombreEstado: estadoChess.nombreEstado
+        nombreEstado: estadoChess.nombreEstado,
       },
       estadoFinal: {
         idEstado: estadoPendiente.id,
-        nombreEstado: estadoPendiente.nombreEstado
+        nombreEstado: estadoPendiente.nombreEstado,
       },
       usuario: {
         id: usuarioSistema.id,
-        nombre: usuarioSistema.nombre
+        nombre: usuarioSistema.nombre,
       },
-      mensaje: 'Pedido inicializado desde CHESS correctamente'
+      mensaje: "Pedido inicializado desde CHESS correctamente",
     };
   }
 
@@ -520,7 +592,7 @@ export class MovimientoController {
    */
   async findMovimientosByPedido(idPedido: string) {
     const em = fork();
-    
+
     const pedido = await em.findOne(Pedido, { idPedido });
     if (!pedido) {
       throw AppError.notFound(`Pedido con ID ${idPedido} no encontrado`);
@@ -530,13 +602,15 @@ export class MovimientoController {
       Movimiento,
       { pedido },
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
-        orderBy: { fechaHora: 'DESC' },
+        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido"],
+        orderBy: { fechaHora: "DESC" },
       }
     );
 
     if (movimientos.length === 0) {
-      throw AppError.notFound(`No se encontraron movimientos para el pedido ${idPedido}`);
+      throw AppError.notFound(
+        `No se encontraron movimientos para el pedido ${idPedido}`
+      );
     }
 
     return movimientos.map((m) => ({
@@ -571,14 +645,14 @@ export class MovimientoController {
     }
 
     // Parsear fechas
-    const fechaInicioDate = new Date(fechaInicio + 'T00:00:00');
-    const fechaFinDate = fechaFin 
-      ? new Date(fechaFin + 'T23:59:59.999')
-      : new Date(fechaInicio + 'T23:59:59.999');
+    const fechaInicioDate = new Date(fechaInicio + "T00:00:00");
+    const fechaFinDate = fechaFin
+      ? new Date(fechaFin + "T23:59:59.999")
+      : new Date(fechaInicio + "T23:59:59.999");
 
     // Validar que las fechas sean válidas
     if (isNaN(fechaInicioDate.getTime()) || isNaN(fechaFinDate.getTime())) {
-      throw AppError.badRequest('Formato de fecha inválido');
+      throw AppError.badRequest("Formato de fecha inválido");
     }
 
     const [movimientos, total] = await em.findAndCount(
@@ -591,8 +665,8 @@ export class MovimientoController {
         },
       },
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
-        orderBy: { fechaHora: 'DESC' },
+        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido"],
+        orderBy: { fechaHora: "DESC" },
         limit,
         offset: (page - 1) * limit,
       }
@@ -639,11 +713,11 @@ export class MovimientoController {
 
     // Mapear nombre de estado a ID
     const estadoMap: Record<string, number> = {
-      'PENDIENTE': ESTADO_IDS.PENDIENTE,
-      'EN PREPARACION': ESTADO_IDS.EN_PREPARACION,
-      'PREPARADO': ESTADO_IDS.PREPARADO,
-      'TESORERIA': ESTADO_IDS.TESORERIA,
-      'ENTREGADO': ESTADO_IDS.ENTREGADO,
+      PENDIENTE: ESTADO_IDS.PENDIENTE,
+      "EN PREPARACION": ESTADO_IDS.EN_PREPARACION,
+      PREPARADO: ESTADO_IDS.PREPARADO,
+      TESORERIA: ESTADO_IDS.TESORERIA,
+      ENTREGADO: ESTADO_IDS.ENTREGADO,
     };
 
     const estadoId = estadoMap[estado];
@@ -654,18 +728,20 @@ export class MovimientoController {
     // Verificar que el estado existe
     const estadoEntity = await em.findOne(TipoEstado, { id: estadoId });
     if (!estadoEntity) {
-      throw AppError.notFound(`Estado ${estado} no encontrado en la base de datos`);
+      throw AppError.notFound(
+        `Estado ${estado} no encontrado en la base de datos`
+      );
     }
 
     // Parsear fechas
-    const fechaInicioDate = new Date(fechaInicio + 'T00:00:00');
-    const fechaFinDate = fechaFin 
-      ? new Date(fechaFin + 'T23:59:59.999')
-      : new Date(fechaInicio + 'T23:59:59.999');
+    const fechaInicioDate = new Date(fechaInicio + "T00:00:00");
+    const fechaFinDate = fechaFin
+      ? new Date(fechaFin + "T23:59:59.999")
+      : new Date(fechaInicio + "T23:59:59.999");
 
     // Validar que las fechas sean válidas
     if (isNaN(fechaInicioDate.getTime()) || isNaN(fechaFinDate.getTime())) {
-      throw AppError.badRequest('Formato de fecha inválido');
+      throw AppError.badRequest("Formato de fecha inválido");
     }
 
     const [movimientos, total] = await em.findAndCount(
@@ -678,8 +754,8 @@ export class MovimientoController {
         },
       },
       {
-        populate: ['usuario', 'estadoInicial', 'estadoFinal', 'pedido'],
-        orderBy: { fechaHora: 'DESC' },
+        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido"],
+        orderBy: { fechaHora: "DESC" },
         limit,
         offset: (page - 1) * limit,
       }
@@ -719,8 +795,8 @@ export class MovimientoController {
     const em = fork();
 
     // Parsear fechas
-    const fechaDesde = new Date(query.fechaDesde + 'T00:00:00');
-    const fechaHasta = new Date(query.fechaHasta + 'T23:59:59.999');
+    const fechaDesde = new Date(query.fechaDesde + "T00:00:00");
+    const fechaHasta = new Date(query.fechaHasta + "T23:59:59.999");
 
     // Obtener todos los pedidos creados en el rango de fechas
     const pedidos = await em.find(
@@ -732,13 +808,15 @@ export class MovimientoController {
         },
       },
       {
-        populate: ['fletero'],
-        orderBy: { fechaHora: 'ASC' },
+        populate: ["fletero"],
+        orderBy: { fechaHora: "ASC" },
       }
     );
 
     if (pedidos.length === 0) {
-      throw AppError.notFound('No se encontraron pedidos en el rango de fechas especificado');
+      throw AppError.notFound(
+        "No se encontraron pedidos en el rango de fechas especificado"
+      );
     }
 
     // Para cada pedido, obtener todos sus movimientos
@@ -748,8 +826,8 @@ export class MovimientoController {
           Movimiento,
           { pedido },
           {
-            populate: ['usuario', 'estadoInicial', 'estadoFinal'],
-            orderBy: { fechaHora: 'ASC' },
+            populate: ["usuario", "estadoInicial", "estadoFinal"],
+            orderBy: { fechaHora: "ASC" },
           }
         );
 
@@ -761,52 +839,76 @@ export class MovimientoController {
     );
 
     // Crear workbook de Excel usando ExcelJS
-    const ExcelJS = (await import('exceljs')).default;
+    const ExcelJS = (await import("exceljs")).default;
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Movimientos');
+    const worksheet = workbook.addWorksheet("Movimientos");
 
     // Definir columnas con headers
     worksheet.columns = [
-      { header: 'ID Pedido', key: 'idPedido', width: 12 },
-      { header: 'PENDIENTE - Fecha', key: 'pendienteFecha', width: 20 },
-      { header: 'PENDIENTE - Usuario', key: 'pendienteUsuario', width: 25 },
-      { header: 'PENDIENTE - Estado', key: 'pendienteEstado', width: 18 },
-      { header: 'EN PREPARACIÓN - Fecha', key: 'enPreparacionFecha', width: 20 },
-      { header: 'EN PREPARACIÓN - Usuario', key: 'enPreparacionUsuario', width: 25 },
-      { header: 'EN PREPARACIÓN - Estado', key: 'enPreparacionEstado', width: 18 },
-      { header: 'PREPARADO - Fecha', key: 'preparadoFecha', width: 20 },
-      { header: 'PREPARADO - Usuario', key: 'preparadoUsuario', width: 25 },
-      { header: 'PREPARADO - Estado', key: 'preparadoEstado', width: 18 },
-      { header: 'TESORERIA - Fecha', key: 'tesoreriaFecha', width: 20 },
-      { header: 'TESORERIA - Usuario', key: 'tesoreriaUsuario', width: 25 },
-      { header: 'TESORERIA - Estado', key: 'tesoreriaEstado', width: 18 },
-      { header: 'ENTREGADO - Fecha', key: 'entregadoFecha', width: 20 },
-      { header: 'ENTREGADO - Usuario', key: 'entregadoUsuario', width: 25 },
-      { header: 'ENTREGADO - Estado', key: 'entregadoEstado', width: 18 },
+      { header: "ID Pedido", key: "idPedido", width: 12 },
+      { header: "Evaluación", key: "evaluacion", width: 12 },
+      { header: "PENDIENTE - Fecha", key: "pendienteFecha", width: 22 },
+      { header: "PENDIENTE - Usuario", key: "pendienteUsuario", width: 25 },
+      { header: "PENDIENTE - Estado", key: "pendienteEstado", width: 18 },
+      {
+        header: "EN PREPARACIÓN - Fecha",
+        key: "enPreparacionFecha",
+        width: 22,
+      },
+      {
+        header: "EN PREPARACIÓN - Usuario",
+        key: "enPreparacionUsuario",
+        width: 25,
+      },
+      {
+        header: "EN PREPARACIÓN - Estado",
+        key: "enPreparacionEstado",
+        width: 18,
+      },
+      { header: "PREPARADO - Fecha", key: "preparadoFecha", width: 22 },
+      { header: "PREPARADO - Usuario", key: "preparadoUsuario", width: 25 },
+      { header: "PREPARADO - Estado", key: "preparadoEstado", width: 18 },
+      { header: "TESORERIA - Fecha", key: "tesoreriaFecha", width: 22 },
+      { header: "TESORERIA - Usuario", key: "tesoreriaUsuario", width: 25 },
+      { header: "TESORERIA - Estado", key: "tesoreriaEstado", width: 18 },
+      { header: "ENTREGADO - Fecha", key: "entregadoFecha", width: 22 },
+      { header: "ENTREGADO - Usuario", key: "entregadoUsuario", width: 25 },
+      { header: "ENTREGADO - Estado", key: "entregadoEstado", width: 18 },
     ];
 
     // Estilizar header
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }, // Azul
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4472C4" }, // Azul
     };
-    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }; // Texto blanco
+    worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }; // Texto blanco
 
     // Agregar datos
     for (const { pedido, movimientos } of pedidosConMovimientos) {
       // Organizar movimientos por estado final
       const movimientosPorEstado = {
-        [ESTADO_IDS.PENDIENTE]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.PENDIENTE),
-        [ESTADO_IDS.EN_PREPARACION]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.EN_PREPARACION),
-        [ESTADO_IDS.PREPARADO]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.PREPARADO),
-        [ESTADO_IDS.TESORERIA]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.TESORERIA),
-        [ESTADO_IDS.ENTREGADO]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.ENTREGADO),
+        [ESTADO_IDS.PENDIENTE]: movimientos.find(
+          (m) => m.estadoFinal.id === ESTADO_IDS.PENDIENTE
+        ),
+        [ESTADO_IDS.EN_PREPARACION]: movimientos.find(
+          (m) => m.estadoFinal.id === ESTADO_IDS.EN_PREPARACION
+        ),
+        [ESTADO_IDS.PREPARADO]: movimientos.find(
+          (m) => m.estadoFinal.id === ESTADO_IDS.PREPARADO
+        ),
+        [ESTADO_IDS.TESORERIA]: movimientos.find(
+          (m) => m.estadoFinal.id === ESTADO_IDS.TESORERIA
+        ),
+        [ESTADO_IDS.ENTREGADO]: movimientos.find(
+          (m) => m.estadoFinal.id === ESTADO_IDS.ENTREGADO
+        ),
       };
 
       const row: any = {
         idPedido: pedido.idPedido,
+        evaluacion: pedido.calificacion ?? "Sin evaluar",
       };
 
       // PENDIENTE
@@ -816,9 +918,9 @@ export class MovimientoController {
         row.pendienteUsuario = `${movPendiente.usuario.nombre} ${movPendiente.usuario.apellido}`;
         row.pendienteEstado = movPendiente.estadoFinal.nombreEstado;
       } else {
-        row.pendienteFecha = 'Sin datos';
-        row.pendienteUsuario = 'Sin datos';
-        row.pendienteEstado = 'Sin datos';
+        row.pendienteFecha = "Sin datos";
+        row.pendienteUsuario = "Sin datos";
+        row.pendienteEstado = "Sin datos";
       }
 
       // EN PREPARACIÓN
@@ -828,9 +930,9 @@ export class MovimientoController {
         row.enPreparacionUsuario = `${movEnPreparacion.usuario.nombre} ${movEnPreparacion.usuario.apellido}`;
         row.enPreparacionEstado = movEnPreparacion.estadoFinal.nombreEstado;
       } else {
-        row.enPreparacionFecha = 'Sin datos';
-        row.enPreparacionUsuario = 'Sin datos';
-        row.enPreparacionEstado = 'Sin datos';
+        row.enPreparacionFecha = "Sin datos";
+        row.enPreparacionUsuario = "Sin datos";
+        row.enPreparacionEstado = "Sin datos";
       }
 
       // PREPARADO
@@ -840,9 +942,9 @@ export class MovimientoController {
         row.preparadoUsuario = `${movPreparado.usuario.nombre} ${movPreparado.usuario.apellido}`;
         row.preparadoEstado = movPreparado.estadoFinal.nombreEstado;
       } else {
-        row.preparadoFecha = 'Sin datos';
-        row.preparadoUsuario = 'Sin datos';
-        row.preparadoEstado = 'Sin datos';
+        row.preparadoFecha = "Sin datos";
+        row.preparadoUsuario = "Sin datos";
+        row.preparadoEstado = "Sin datos";
       }
 
       // TESORERIA
@@ -852,9 +954,9 @@ export class MovimientoController {
         row.tesoreriaUsuario = `${movTesoreria.usuario.nombre} ${movTesoreria.usuario.apellido}`;
         row.tesoreriaEstado = movTesoreria.estadoFinal.nombreEstado;
       } else {
-        row.tesoreriaFecha = 'Sin datos';
-        row.tesoreriaUsuario = 'Sin datos';
-        row.tesoreriaEstado = 'Sin datos';
+        row.tesoreriaFecha = "Sin datos";
+        row.tesoreriaUsuario = "Sin datos";
+        row.tesoreriaEstado = "Sin datos";
       }
 
       // ENTREGADO
@@ -864,18 +966,31 @@ export class MovimientoController {
         row.entregadoUsuario = `${movEntregado.usuario.nombre} ${movEntregado.usuario.apellido}`;
         row.entregadoEstado = movEntregado.estadoFinal.nombreEstado;
       } else {
-        row.entregadoFecha = 'Sin datos';
-        row.entregadoUsuario = 'Sin datos';
-        row.entregadoEstado = 'Sin datos';
+        row.entregadoFecha = "Sin datos";
+        row.entregadoUsuario = "Sin datos";
+        row.entregadoEstado = "Sin datos";
       }
 
       worksheet.addRow(row);
     }
 
+    // Aplicar formato de fecha y hora a todas las columnas de fecha
+    // Formato: dd/mm/yyyy hh:mm:ss
+    const dateColumns = [3, 6, 9, 12, 15]; // Columnas de fecha (PENDIENTE, EN PREPARACIÓN, PREPARADO, TESORERIA, ENTREGADO)
+    
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) { // Saltar el header
+        dateColumns.forEach(colNumber => {
+          const cell = row.getCell(colNumber);
+          if (cell.value && cell.value !== 'Sin datos') {
+            cell.numFmt = 'dd/mm/yyyy hh:mm:ss';
+          }
+        });
+      }
+    });
+
     // Generar buffer del archivo Excel
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
   }
-
 }
-

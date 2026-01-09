@@ -78,6 +78,19 @@ export class FleterosService {
   }
 
   /**
+   * Actualizar el campo liquidacion_manual de un fletero
+   */
+  async updateLiquidacionManual(id: number, liquidacionManual: boolean): Promise<Fletero> {
+    const fletero = await this.findOne(id);
+    
+    fletero.liquidacionManual = liquidacionManual;
+    await this.em.persist(fletero).flush();
+    
+    console.log(`✅ Fletero ${fletero.dsFletero} actualizado: liquidacion_manual = ${liquidacionManual}`);
+    return fletero;
+  }
+
+  /**
    * Sincronizar fleteros desde Chess (optimizado para grandes volúmenes)
    * @param fleteros Array de [idFletero, dsFletero]
    * @returns { created: number, updated: number }
@@ -114,6 +127,7 @@ export class FleterosService {
           idFletero,
           dsFletero,
           seguimiento: false,
+          liquidacionManual: false,
         });
         toCreate.push(nuevoFletero);
         created++;

@@ -5,7 +5,7 @@ import { TipoEstado } from '../estados/tipoEstado.entity.js';
 import { Pedido } from '../pedidos/pedido.entity.js';
 import { Fletero } from '../fleteros/fletero.entity.js';
 import { ReglaController } from '../reglas/regla.controller.js';
-import { CreateMovimientoDTO, MovimientoQueryDTO } from './movimiento.schema.js';
+import { CreateMovimientoDTO, MovimientoQueryDTO, ExportMovimientosQueryDTO } from './movimiento.schema.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { DateUtil } from '../../shared/utils/date.js';
 import { HashUtil } from '../../shared/utils/hash.js';
@@ -709,6 +709,159 @@ export class MovimientoController {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Exportar movimientos a CSV
+   * Genera un archivo CSV con una fila por pedido y columnas para cada estado
+   */
+  async exportMovimientos(query: ExportMovimientosQueryDTO): Promise<string> {
+    const em = fork();
+
+    // Parsear fechas
+    const fechaDesde = new Date(query.fechaDesde + 'T00:00:00');
+    const fechaHasta = new Date(query.fechaHasta + 'T23:59:59.999');
+
+    // Obtener todos los pedidos creados en el rango de fechas
+    const pedidos = await em.find(
+      Pedido,
+      {
+        fechaHora: {
+          $gte: fechaDesde,
+          $lte: fechaHasta,
+        },
+      },
+      {
+        populate: ['fletero'],
+        orderBy: { fechaHora: 'ASC' },
+      }
+    );
+
+    if (pedidos.length === 0) {
+      throw AppError.notFound('No se encontraron pedidos en el rango de fechas especificado');
+    }
+
+    // Para cada pedido, obtener todos sus movimientos
+    const pedidosConMovimientos = await Promise.all(
+      pedidos.map(async (pedido) => {
+        const movimientos = await em.find(
+          Movimiento,
+          { pedido },
+          {
+            populate: ['usuario', 'estadoInicial', 'estadoFinal'],
+            orderBy: { fechaHora: 'ASC' },
+          }
+        );
+
+        return {
+          pedido,
+          movimientos,
+        };
+      })
+    );
+
+    // Generar CSV
+    const csvLines: string[] = [];
+
+    // Headers
+    const headers = [
+      'ID Pedido',
+      'PENDIENTE - Fecha',
+      'PENDIENTE - Usuario',
+      'PENDIENTE - Estado',
+      'EN PREPARACIÓN - Fecha',
+      'EN PREPARACIÓN - Usuario',
+      'EN PREPARACIÓN - Estado',
+      'PREPARADO - Fecha',
+      'PREPARADO - Usuario',
+      'PREPARADO - Estado',
+      'TESORERIA - Fecha',
+      'TESORERIA - Usuario',
+      'TESORERIA - Estado',
+      'ENTREGADO - Fecha',
+      'ENTREGADO - Usuario',
+      'ENTREGADO - Estado',
+    ];
+    csvLines.push(headers.join(','));
+
+    // Datos
+    for (const { pedido, movimientos } of pedidosConMovimientos) {
+      const row: string[] = [];
+
+      // ID Pedido
+      row.push(pedido.idPedido);
+
+      // Organizar movimientos por estado final
+      const movimientosPorEstado = {
+        [ESTADO_IDS.PENDIENTE]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.PENDIENTE),
+        [ESTADO_IDS.EN_PREPARACION]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.EN_PREPARACION),
+        [ESTADO_IDS.PREPARADO]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.PREPARADO),
+        [ESTADO_IDS.TESORERIA]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.TESORERIA),
+        [ESTADO_IDS.ENTREGADO]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.ENTREGADO),
+      };
+
+      // PENDIENTE
+      const movPendiente = movimientosPorEstado[ESTADO_IDS.PENDIENTE];
+      if (movPendiente) {
+        row.push(movPendiente.fechaHora.toISOString());
+        row.push(`${movPendiente.usuario.nombre} ${movPendiente.usuario.apellido}`);
+        row.push(movPendiente.estadoFinal.nombreEstado);
+      } else {
+        row.push('Sin datos', 'Sin datos', 'Sin datos');
+      }
+
+      // EN PREPARACIÓN
+      const movEnPreparacion = movimientosPorEstado[ESTADO_IDS.EN_PREPARACION];
+      if (movEnPreparacion) {
+        row.push(movEnPreparacion.fechaHora.toISOString());
+        row.push(`${movEnPreparacion.usuario.nombre} ${movEnPreparacion.usuario.apellido}`);
+        row.push(movEnPreparacion.estadoFinal.nombreEstado);
+      } else {
+        row.push('Sin datos', 'Sin datos', 'Sin datos');
+      }
+
+      // PREPARADO
+      const movPreparado = movimientosPorEstado[ESTADO_IDS.PREPARADO];
+      if (movPreparado) {
+        row.push(movPreparado.fechaHora.toISOString());
+        row.push(`${movPreparado.usuario.nombre} ${movPreparado.usuario.apellido}`);
+        row.push(movPreparado.estadoFinal.nombreEstado);
+      } else {
+        row.push('Sin datos', 'Sin datos', 'Sin datos');
+      }
+
+      // TESORERIA
+      const movTesoreria = movimientosPorEstado[ESTADO_IDS.TESORERIA];
+      if (movTesoreria) {
+        row.push(movTesoreria.fechaHora.toISOString());
+        row.push(`${movTesoreria.usuario.nombre} ${movTesoreria.usuario.apellido}`);
+        row.push(movTesoreria.estadoFinal.nombreEstado);
+      } else {
+        row.push('Sin datos', 'Sin datos', 'Sin datos');
+      }
+
+      // ENTREGADO
+      const movEntregado = movimientosPorEstado[ESTADO_IDS.ENTREGADO];
+      if (movEntregado) {
+        row.push(movEntregado.fechaHora.toISOString());
+        row.push(`${movEntregado.usuario.nombre} ${movEntregado.usuario.apellido}`);
+        row.push(movEntregado.estadoFinal.nombreEstado);
+      } else {
+        row.push('Sin datos', 'Sin datos', 'Sin datos');
+      }
+
+      // Escapar comas y comillas en los valores
+      const escapedRow = row.map((value) => {
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      });
+
+      csvLines.push(escapedRow.join(','));
+    }
+
+    return csvLines.join('\n');
   }
 
 }

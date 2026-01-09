@@ -58,6 +58,19 @@ export const movimientosByEstadoQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
+// Schema para validar query de exportación a CSV
+export const exportMovimientosQuerySchema = z.object({
+  fechaDesde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha desde debe tener el formato YYYY-MM-DD'),
+  fechaHasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha hasta debe tener el formato YYYY-MM-DD'),
+}).refine((data) => {
+  const desde = new Date(data.fechaDesde);
+  const hasta = new Date(data.fechaHasta);
+  return desde <= hasta;
+}, {
+  message: 'La fecha desde debe ser menor o igual a la fecha hasta',
+  path: ['fechaHasta'],
+});
+
 export type CreateMovimientoDTO = z.infer<typeof createMovimientoSchema>;
 export type MovimientoIdDTO = z.infer<typeof movimientoIdSchema>;
 export type MovimientoPorPedidoDTO = z.infer<typeof movimientoPorPedidoSchema>;
@@ -67,3 +80,4 @@ export type MovimientosByUsuarioParamsDTO = z.infer<typeof movimientosByUsuarioP
 export type MovimientosByUsuarioQueryDTO = z.infer<typeof movimientosByUsuarioQuerySchema>;
 export type MovimientosByEstadoParamsDTO = z.infer<typeof movimientosByEstadoParamsSchema>;
 export type MovimientosByEstadoQueryDTO = z.infer<typeof movimientosByEstadoQuerySchema>;
+export type ExportMovimientosQueryDTO = z.infer<typeof exportMovimientosQuerySchema>;

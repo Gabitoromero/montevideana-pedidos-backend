@@ -11,6 +11,7 @@ import {
   movimientosByUsuarioQuerySchema,
   movimientosByEstadoParamsSchema,
   movimientosByEstadoQuerySchema,
+  exportMovimientosQuerySchema,
 } from './movimiento.schema.js';
 import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js';
 
@@ -152,6 +153,25 @@ router.get(
         page || 1
       );
       res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Exportar movimientos a CSV (solo ADMIN y CHESS)
+router.get(
+  '/export',
+  authorize('ADMIN', 'CHESS'),
+  validateSchema(exportMovimientosQuerySchema, 'query'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const csvContent = await controller.exportMovimientos(req.query as any);
+      
+      // Configurar headers para descarga de CSV
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="movimientos_${req.query.fechaDesde}_${req.query.fechaHasta}.csv"`);
+      res.status(200).send(csvContent);
     } catch (error) {
       next(error);
     }

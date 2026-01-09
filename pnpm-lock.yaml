@@ -23,9 +23,6 @@ importers:
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
-      body-parser:
-        specifier: ^2.2.2
-        version: 2.2.2
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7

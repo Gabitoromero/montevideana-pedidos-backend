@@ -31,7 +31,6 @@
     "axios": "^1.13.2",
     "axios-cookiejar-support": "^6.0.5",
     "bcryptjs": "^2.4.3",
-    "body-parser": "^2.2.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",

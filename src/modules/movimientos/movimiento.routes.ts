@@ -159,19 +159,19 @@ router.get(
   }
 );
 
-// Exportar movimientos a CSV (solo ADMIN y CHESS)
+// Exportar movimientos a Excel (solo ADMIN y CHESS)
 router.get(
   '/export',
   authorize('ADMIN', 'CHESS'),
   validateSchema(exportMovimientosQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const csvContent = await controller.exportMovimientos(req.query as any);
+      const excelBuffer = await controller.exportMovimientos(req.query as any);
       
-      // Configurar headers para descarga de CSV
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="movimientos_${req.query.fechaDesde}_${req.query.fechaHasta}.csv"`);
-      res.status(200).send(csvContent);
+      // Configurar headers para descarga de Excel
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="movimientos_${req.query.fechaDesde}_${req.query.fechaHasta}.xlsx"`);
+      res.status(200).send(excelBuffer);
     } catch (error) {
       next(error);
     }

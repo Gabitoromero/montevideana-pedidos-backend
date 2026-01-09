@@ -712,10 +712,10 @@ export class MovimientoController {
   }
 
   /**
-   * Exportar movimientos a CSV
-   * Genera un archivo CSV con una fila por pedido y columnas para cada estado
+   * Exportar movimientos a Excel
+   * Genera un archivo Excel (.xlsx) con una fila por pedido y columnas para cada estado
    */
-  async exportMovimientos(query: ExportMovimientosQueryDTO): Promise<string> {
+  async exportMovimientos(query: ExportMovimientosQueryDTO): Promise<Buffer> {
     const em = fork();
 
     // Parsear fechas
@@ -760,37 +760,42 @@ export class MovimientoController {
       })
     );
 
-    // Generar CSV
-    const csvLines: string[] = [];
+    // Crear workbook de Excel usando ExcelJS
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Movimientos');
 
-    // Headers
-    const headers = [
-      'ID Pedido',
-      'PENDIENTE - Fecha',
-      'PENDIENTE - Usuario',
-      'PENDIENTE - Estado',
-      'EN PREPARACIÓN - Fecha',
-      'EN PREPARACIÓN - Usuario',
-      'EN PREPARACIÓN - Estado',
-      'PREPARADO - Fecha',
-      'PREPARADO - Usuario',
-      'PREPARADO - Estado',
-      'TESORERIA - Fecha',
-      'TESORERIA - Usuario',
-      'TESORERIA - Estado',
-      'ENTREGADO - Fecha',
-      'ENTREGADO - Usuario',
-      'ENTREGADO - Estado',
+    // Definir columnas con headers
+    worksheet.columns = [
+      { header: 'ID Pedido', key: 'idPedido', width: 12 },
+      { header: 'PENDIENTE - Fecha', key: 'pendienteFecha', width: 20 },
+      { header: 'PENDIENTE - Usuario', key: 'pendienteUsuario', width: 25 },
+      { header: 'PENDIENTE - Estado', key: 'pendienteEstado', width: 18 },
+      { header: 'EN PREPARACIÓN - Fecha', key: 'enPreparacionFecha', width: 20 },
+      { header: 'EN PREPARACIÓN - Usuario', key: 'enPreparacionUsuario', width: 25 },
+      { header: 'EN PREPARACIÓN - Estado', key: 'enPreparacionEstado', width: 18 },
+      { header: 'PREPARADO - Fecha', key: 'preparadoFecha', width: 20 },
+      { header: 'PREPARADO - Usuario', key: 'preparadoUsuario', width: 25 },
+      { header: 'PREPARADO - Estado', key: 'preparadoEstado', width: 18 },
+      { header: 'TESORERIA - Fecha', key: 'tesoreriaFecha', width: 20 },
+      { header: 'TESORERIA - Usuario', key: 'tesoreriaUsuario', width: 25 },
+      { header: 'TESORERIA - Estado', key: 'tesoreriaEstado', width: 18 },
+      { header: 'ENTREGADO - Fecha', key: 'entregadoFecha', width: 20 },
+      { header: 'ENTREGADO - Usuario', key: 'entregadoUsuario', width: 25 },
+      { header: 'ENTREGADO - Estado', key: 'entregadoEstado', width: 18 },
     ];
-    csvLines.push(headers.join(','));
 
-    // Datos
+    // Estilizar header
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }, // Azul
+    };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }; // Texto blanco
+
+    // Agregar datos
     for (const { pedido, movimientos } of pedidosConMovimientos) {
-      const row: string[] = [];
-
-      // ID Pedido
-      row.push(pedido.idPedido);
-
       // Organizar movimientos por estado final
       const movimientosPorEstado = {
         [ESTADO_IDS.PENDIENTE]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.PENDIENTE),
@@ -800,68 +805,76 @@ export class MovimientoController {
         [ESTADO_IDS.ENTREGADO]: movimientos.find((m) => m.estadoFinal.id === ESTADO_IDS.ENTREGADO),
       };
 
+      const row: any = {
+        idPedido: pedido.idPedido,
+      };
+
       // PENDIENTE
       const movPendiente = movimientosPorEstado[ESTADO_IDS.PENDIENTE];
       if (movPendiente) {
-        row.push(movPendiente.fechaHora.toISOString());
-        row.push(`${movPendiente.usuario.nombre} ${movPendiente.usuario.apellido}`);
-        row.push(movPendiente.estadoFinal.nombreEstado);
+        row.pendienteFecha = movPendiente.fechaHora;
+        row.pendienteUsuario = `${movPendiente.usuario.nombre} ${movPendiente.usuario.apellido}`;
+        row.pendienteEstado = movPendiente.estadoFinal.nombreEstado;
       } else {
-        row.push('Sin datos', 'Sin datos', 'Sin datos');
+        row.pendienteFecha = 'Sin datos';
+        row.pendienteUsuario = 'Sin datos';
+        row.pendienteEstado = 'Sin datos';
       }
 
       // EN PREPARACIÓN
       const movEnPreparacion = movimientosPorEstado[ESTADO_IDS.EN_PREPARACION];
       if (movEnPreparacion) {
-        row.push(movEnPreparacion.fechaHora.toISOString());
-        row.push(`${movEnPreparacion.usuario.nombre} ${movEnPreparacion.usuario.apellido}`);
-        row.push(movEnPreparacion.estadoFinal.nombreEstado);
+        row.enPreparacionFecha = movEnPreparacion.fechaHora;
+        row.enPreparacionUsuario = `${movEnPreparacion.usuario.nombre} ${movEnPreparacion.usuario.apellido}`;
+        row.enPreparacionEstado = movEnPreparacion.estadoFinal.nombreEstado;
       } else {
-        row.push('Sin datos', 'Sin datos', 'Sin datos');
+        row.enPreparacionFecha = 'Sin datos';
+        row.enPreparacionUsuario = 'Sin datos';
+        row.enPreparacionEstado = 'Sin datos';
       }
 
       // PREPARADO
       const movPreparado = movimientosPorEstado[ESTADO_IDS.PREPARADO];
       if (movPreparado) {
-        row.push(movPreparado.fechaHora.toISOString());
-        row.push(`${movPreparado.usuario.nombre} ${movPreparado.usuario.apellido}`);
-        row.push(movPreparado.estadoFinal.nombreEstado);
+        row.preparadoFecha = movPreparado.fechaHora;
+        row.preparadoUsuario = `${movPreparado.usuario.nombre} ${movPreparado.usuario.apellido}`;
+        row.preparadoEstado = movPreparado.estadoFinal.nombreEstado;
       } else {
-        row.push('Sin datos', 'Sin datos', 'Sin datos');
+        row.preparadoFecha = 'Sin datos';
+        row.preparadoUsuario = 'Sin datos';
+        row.preparadoEstado = 'Sin datos';
       }
 
       // TESORERIA
       const movTesoreria = movimientosPorEstado[ESTADO_IDS.TESORERIA];
       if (movTesoreria) {
-        row.push(movTesoreria.fechaHora.toISOString());
-        row.push(`${movTesoreria.usuario.nombre} ${movTesoreria.usuario.apellido}`);
-        row.push(movTesoreria.estadoFinal.nombreEstado);
+        row.tesoreriaFecha = movTesoreria.fechaHora;
+        row.tesoreriaUsuario = `${movTesoreria.usuario.nombre} ${movTesoreria.usuario.apellido}`;
+        row.tesoreriaEstado = movTesoreria.estadoFinal.nombreEstado;
       } else {
-        row.push('Sin datos', 'Sin datos', 'Sin datos');
+        row.tesoreriaFecha = 'Sin datos';
+        row.tesoreriaUsuario = 'Sin datos';
+        row.tesoreriaEstado = 'Sin datos';
       }
 
       // ENTREGADO
       const movEntregado = movimientosPorEstado[ESTADO_IDS.ENTREGADO];
       if (movEntregado) {
-        row.push(movEntregado.fechaHora.toISOString());
-        row.push(`${movEntregado.usuario.nombre} ${movEntregado.usuario.apellido}`);
-        row.push(movEntregado.estadoFinal.nombreEstado);
+        row.entregadoFecha = movEntregado.fechaHora;
+        row.entregadoUsuario = `${movEntregado.usuario.nombre} ${movEntregado.usuario.apellido}`;
+        row.entregadoEstado = movEntregado.estadoFinal.nombreEstado;
       } else {
-        row.push('Sin datos', 'Sin datos', 'Sin datos');
+        row.entregadoFecha = 'Sin datos';
+        row.entregadoUsuario = 'Sin datos';
+        row.entregadoEstado = 'Sin datos';
       }
 
-      // Escapar comas y comillas en los valores
-      const escapedRow = row.map((value) => {
-        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-          return `"${value.replace(/"/g, '""')}"`;
-        }
-        return value;
-      });
-
-      csvLines.push(escapedRow.join(','));
+      worksheet.addRow(row);
     }
 
-    return csvLines.join('\n');
+    // Generar buffer del archivo Excel
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 
 }

@@ -110,6 +110,23 @@ export class MovimientoController {
       throw AppError.notFound(`Pedido con ID ${sanitizedId} no encontrado`);
     }
 
+    // 5.1. Validar movimientos a TESORERIA según configuración del fletero
+    if (data.estadoFinal === ESTADO_IDS.TESORERIA) {
+      // Solo permitir movimientos manuales a TESORERIA si el fletero tiene liquidación manual activada
+      if (!pedido.fletero.liquidacionManual) {
+        throw AppError.badRequest(
+          `Los pedidos del fletero ${pedido.fletero.dsFletero} se liquidan automáticamente desde CHESS.`
+        );
+      }
+      
+      // Validar que solo usuarios ADMIN o CHESS puedan crear movimientos a TESORERIA
+      if (usuario.sector !== SECTORES.ADMIN && usuario.sector !== SECTORES.CHESS) {
+        throw AppError.badRequest(
+          `Solo usuarios de los sectores ADMIN o CHESS pueden crear movimientos a TESORERIA`
+        );
+      }
+    }
+
     // 6. Validar que ambos estados existen
     const estadoInicial = await em.findOne(TipoEstado, { id: data.estadoInicial });
     if (!estadoInicial) {

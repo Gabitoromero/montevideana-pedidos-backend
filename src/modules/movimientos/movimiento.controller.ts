@@ -64,6 +64,27 @@ export class MovimientoController {
           `El usuario del sector CAMARA solo puede realizar movimientos con estado final EN PREPARACIÓN o PREPARADO`
         );
       }
+
+      // Validación adicional: Si el estado final es PREPARADO (4), el operario debe ser el mismo que movió a EN_PREPARACION (3)
+      if (data.estadoFinal === ESTADO_IDS.PREPARADO) {
+        // Buscar el último movimiento que terminó en EN_PREPARACION para este pedido
+        const movimientos = await em.find(
+          Movimiento,
+          { pedido: { idPedido: data.idPedido }, estadoFinal: { id: ESTADO_IDS.EN_PREPARACION } },
+          { populate: ['usuario'], orderBy: { fechaHora: 'DESC' }, limit: 1 }
+        );
+
+        if (movimientos.length > 0) {
+          const ultimoMovimientoEnPreparacion = movimientos[0];
+          
+          // Verificar que el usuario actual sea el mismo que hizo el movimiento a EN_PREPARACION
+          if (ultimoMovimientoEnPreparacion.usuario.id !== usuario.id) {
+            throw AppError.badRequest(
+              `El pedido debe ser preparado por el mismo operario que lo puso en preparación: ${ultimoMovimientoEnPreparacion.usuario.nombre} ${ultimoMovimientoEnPreparacion.usuario.apellido}`
+            );
+          }
+        }
+      }
     }
 
     // EXPEDICION: puede crear movimientos UNICAMENTE desde PREPARADO (4) hacia ENTREGADO (6)

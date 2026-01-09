@@ -33,3 +33,4 @@ uploads/**
 !.gitkeep
 
 *.tsbuildinfo
+node_modules

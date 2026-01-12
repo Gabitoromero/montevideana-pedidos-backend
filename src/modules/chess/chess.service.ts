@@ -397,10 +397,7 @@ export class ChessService {
    * Verificar si una venta tiene datos de liquidación válidos
    */
   private hasLiquidacionData(venta: ChessVentaRaw): boolean {
-    return venta.idLiquidacion !== undefined && 
-           venta.idLiquidacion !== 0 && 
-           venta.fechaLiquidacion !== undefined && 
-           venta.fechaLiquidacion !== null;
+    return venta.idLiquidacion !== 0 && venta.fechaLiquidacion !== null;
   }
 
   /**

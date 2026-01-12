@@ -106,17 +106,31 @@ export class ChessScheduler {
    */
   start() {
     // Cron 1: Sincronizar día anterior a las 6:00 AM
+    // Si es lunes, sincroniza desde el viernes (3 días atrás)
+    // Si es otro día, sincroniza solo el día anterior
     this.taskDiaAnterior = cron.schedule('0 6 * * *', async () => {
-      console.log('\n🌅 ========== CRON: Sincronizando pedidos del DÍA ANTERIOR ==========');
+      const hoy = new Date();
+      const diaSemana = hoy.getDay(); // 0=Domingo, 1=Lunes, 2=Martes, etc.
+      const esLunes = diaSemana === 1;
+      
+      // Si es lunes, leer desde el viernes (3 días atrás)
+      // Si es otro día, leer solo el día anterior
+      const diasAtras = esLunes ? 3 : 1;
+      
+      console.log(`\n🌅 ========== CRON: Sincronizando pedidos de ${esLunes ? 'VIERNES (3 días atrás)' : 'DÍA ANTERIOR'} ==========`);
+      console.log(`📅 Hoy es ${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}`);
       
       const em = this.orm.em.fork();
       const chessService = new ChessService(em);
       
       try {
-        const ayer = new Date();
-        ayer.setDate(ayer.getDate() - 1);
-        await chessService.syncVentas(ayer);
-        console.log('✅ Sincronización del día anterior completada');
+        const fechaDesde = new Date();
+        fechaDesde.setDate(fechaDesde.getDate() - diasAtras);
+        
+        console.log(`🔍 Sincronizando desde: ${fechaDesde.toLocaleDateString('es-AR')}`);
+        
+        await chessService.syncVentas(fechaDesde);
+        console.log(`✅ Sincronización de ${diasAtras} día(s) atrás completada`);
       } catch (error: any) {
         console.error('❌ Error en sincronización del día anterior:', error.message);
       } finally {

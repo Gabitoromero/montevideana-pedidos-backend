@@ -41,6 +41,14 @@ export async function seedUsuarios(em: EntityManager): Promise<void> {
       sector: 'ADMIN',
       password: '3333', 
       activo: true,
+    },
+    {
+      username: 'tele',
+      nombre: 'Televisor',
+      apellido: 'Pantalla',
+      sector: 'TELEVISOR',
+      password: 'tele2024', 
+      activo: true,
     }
   ];
 

@@ -25,6 +25,7 @@ export const SECTORES = {
   ADMIN: 'ADMIN',
   CAMARA: 'CAMARA',
   EXPEDICION: 'EXPEDICION',
+  TELEVISOR: 'TELEVISOR',
 } as const;
 
 // Helper para validar si un estado permite marcar como cobrado

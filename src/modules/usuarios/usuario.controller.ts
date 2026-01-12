@@ -3,6 +3,7 @@ import { Usuario } from './usuario.entity.js';
 import { CreateUsuarioDTO, UpdateUsuarioDTO } from './usuario.schema.js';
 import { HashUtil } from '../../shared/utils/hash.js';
 import { AppError } from '../../shared/errors/AppError.js';
+import { SECTORES } from '../../shared/constants/estados.js';
 
 export class UsuarioController {
   async create(data: CreateUsuarioDTO) {
@@ -14,7 +15,18 @@ export class UsuarioController {
       throw AppError.conflict(`El username "${data.username}" ya está en uso`);
     }
 
-    // 2. Validar que la contraseña sea única
+    // 2. Validar formato de contraseña según sector
+    // TELEVISOR puede tener cualquier contraseña
+    // Otros sectores requieren formato numérico (4-10 dígitos)
+    if (data.sector !== SECTORES.TELEVISOR) {
+      if (!/^\d{4,10}$/.test(data.password)) {
+        throw AppError.badRequest(
+          'La contraseña debe ser numérica y tener entre 4 y 10 dígitos'
+        );
+      }
+    }
+
+    // 3. Validar que la contraseña sea única
     // Obtener todos los usuarios para comparar contraseñas hasheadas
     const todosLosUsuarios = await em.find(Usuario, {});
     
@@ -119,6 +131,16 @@ export class UsuarioController {
     if (data.apellido) usuario.apellido = data.apellido;
     if (data.sector) usuario.sector = data.sector;
     if (data.password) {
+      // Validar formato de contraseña según sector
+      const sectorActualizado = data.sector || usuario.sector;
+      if (sectorActualizado !== SECTORES.TELEVISOR) {
+        if (!/^\d{4,10}$/.test(data.password)) {
+          throw AppError.badRequest(
+            'La contraseña debe ser numérica y tener entre 4 y 10 dígitos'
+          );
+        }
+      }
+
       // Validar que la nueva contraseña sea única
       const todosLosUsuarios = await em.find(Usuario, {});
       

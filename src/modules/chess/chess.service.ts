@@ -575,38 +575,33 @@ export class ChessService {
           if (pedidoExistente) {
             // PEDIDO EXISTENTE: Verificar si necesita movimiento a TESORERIA
             if (tieneLiquidacion && !pedidoExistente.cobrado) {
-              // Verificar si el fletero tiene liquidación manual activada
-              if (pedidoExistente.fletero.liquidacion) {
-                console.log(`⏭️  Pedido ${idPedido} del fletero "${pedidoExistente.fletero.dsFletero}" tiene liquidación manual activada. Ignorando liquidación automática.`);
-              } else {
-                // Obtener estado actual del pedido
-                const estadoActual = await this.getCurrentState(pedidoExistente);
-                
-                if (!estadoActual) {
-                  console.error(`❌ No se pudo obtener estado actual del pedido ${idPedido}`);
-                  continue;
-                }
+              // Obtener estado actual del pedido
+              const estadoActual = await this.getCurrentState(pedidoExistente);
+              
+              if (!estadoActual) {
+                console.error(`❌ No se pudo obtener estado actual del pedido ${idPedido}`);
+                continue;
+              }
 
-                // Crear movimiento a TESORERIA usando transacción
-                await this.em.transactional(async (transactionalEm) => {
-                  const movimientoTesoreria = transactionalEm.create(Movimiento, {
-                    fechaHora: new Date(),
-                    estadoInicial: estadoActual,
-                    estadoFinal: estadoTesoreria,
-                    usuario: usuarioSistema,
-                    pedido: pedidoExistente,
-                  });
-
-                  pedidoExistente.cobrado = true;
-                  
-                  await transactionalEm.persist(movimientoTesoreria).flush();
+              // Crear movimiento a TESORERIA usando transacción
+              await this.em.transactional(async (transactionalEm) => {
+                const movimientoTesoreria = transactionalEm.create(Movimiento, {
+                  fechaHora: new Date(),
+                  estadoInicial: estadoActual,
+                  estadoFinal: estadoTesoreria,
+                  usuario: usuarioSistema,
+                  pedido: pedidoExistente,
                 });
 
-                result.totalPedidosActualizadosConLiquidacion++;
-                result.totalMovimientosTesoreriaCreados++;
-                result.totalMovimientosCreados++;
-                console.log(`✅ Pedido ${idPedido} actualizado con movimiento a TESORERIA (desde ${estadoActual.nombreEstado})`);
-              }
+                pedidoExistente.cobrado = true;
+                
+                await transactionalEm.persist(movimientoTesoreria).flush();
+              });
+
+              result.totalPedidosActualizadosConLiquidacion++;
+              result.totalMovimientosTesoreriaCreados++;
+              result.totalMovimientosCreados++;
+              console.log(`✅ Pedido ${idPedido} actualizado con movimiento a TESORERIA (desde ${estadoActual.nombreEstado})`);
             } else if (tieneLiquidacion && pedidoExistente.cobrado) {
               console.log(`⏭️  Pedido ${idPedido} ya tiene liquidación, omitiendo...`);
             } else {

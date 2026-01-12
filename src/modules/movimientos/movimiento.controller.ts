@@ -146,7 +146,7 @@ export class MovimientoController {
     // 5.1. Validar movimientos a TESORERIA según configuración del fletero
     if (data.estadoFinal === ESTADO_IDS.TESORERIA) {
       // Solo permitir movimientos manuales a TESORERIA si el fletero tiene liquidación manual activada
-      if (!pedido.fletero.liquidacionManual) {
+      if (!pedido.fletero.liquidacion) {
         throw AppError.badRequest(
           `Los pedidos del fletero ${pedido.fletero.dsFletero} se liquidan automáticamente desde CHESS.`
         );

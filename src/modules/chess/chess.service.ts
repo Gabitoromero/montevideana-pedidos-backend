@@ -579,7 +579,7 @@ export class ChessService {
             // PEDIDO EXISTENTE: Verificar si necesita movimiento a TESORERIA
             if (tieneLiquidacion && !pedidoExistente.cobrado) {
               // Verificar si el fletero tiene liquidación manual activada
-              if (pedidoExistente.fletero.liquidacionManual) {
+              if (pedidoExistente.fletero.liquidacion) {
                 console.log(`⏭️  Pedido ${idPedido} del fletero "${pedidoExistente.fletero.dsFletero}" tiene liquidación manual activada. Ignorando liquidación automática.`);
               } else {
                 // Obtener estado actual del pedido
@@ -647,7 +647,7 @@ export class ChessService {
             result.totalMovimientosCreados++;
 
             // Si tiene liquidación, verificar si el fletero permite liquidación automática
-            if (tieneLiquidacion && !fletero.liquidacionManual) {
+            if (tieneLiquidacion && fletero.liquidacion) {
               // Esperar 1 segundo para evitar colisión de PK (fecha_hora se redondea a segundos en MySQL)
               await new Promise(resolve => setTimeout(resolve, 1000));
               
@@ -664,10 +664,26 @@ export class ChessService {
               result.totalMovimientosCreados++;
               
               await transactionalEm.persist([nuevoPedido, movimientoInicial, movimientoTesoreria]).flush();
-              console.log(`✅ Pedido ${idPedido} creado con liquidación automática`);
-            } else if (tieneLiquidacion && fletero.liquidacionManual) {
-              await transactionalEm.persist([nuevoPedido, movimientoInicial]).flush();
-              console.log(`✅ Pedido ${idPedido} creado. Fletero "${fletero.dsFletero}" tiene liquidación manual - se requiere movimiento manual a TESORERIA`);
+              console.log(`✅ Pedido ${idPedido} creado con liquidación automática (liquidacion=1)`);
+            } else if (!fletero.liquidacion) {
+              // NUEVO: Si liquidacion = 0, crear automáticamente movimiento a TESORERIA después de PENDIENTE
+              // Esperar 1 segundo para evitar colisión de PK
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              const movimientoTesoreria = transactionalEm.create(Movimiento, {
+                fechaHora: new Date(),
+                estadoInicial: estadoPendiente,
+                estadoFinal: estadoTesoreria,
+                usuario: usuarioSistema,
+                pedido: nuevoPedido,
+              });
+
+              nuevoPedido.cobrado = true;
+              result.totalMovimientosTesoreriaCreados++;
+              result.totalMovimientosCreados++;
+              
+              await transactionalEm.persist([nuevoPedido, movimientoInicial, movimientoTesoreria]).flush();
+              console.log(`💰 Pedido ${idPedido} creado con movimiento automático a TESORERIA (liquidacion=0)`);
             } else {
               await transactionalEm.persist([nuevoPedido, movimientoInicial]).flush();
               console.log(`✅ Pedido ${idPedido} creado sin liquidación`);

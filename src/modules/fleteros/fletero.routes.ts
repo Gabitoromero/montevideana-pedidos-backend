@@ -56,9 +56,9 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 /**
  * PATCH /fleteros/:id/liquidacion-manual - Actualizar campo liquidacion_manual
  */
-router.patch('/:id/liquidacion-manual', async (req: Request, res: Response, next: NextFunction) => {
+router.patch('/:id/liquidacion', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await controller.updateLiquidacionManual(req, res);
+    await controller.updateLiquidacion(req, res);
   } catch (error) {
     next(error);
   }

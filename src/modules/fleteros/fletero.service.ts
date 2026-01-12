@@ -80,13 +80,14 @@ export class FleterosService {
   /**
    * Actualizar el campo liquidacion_manual de un fletero
    */
-  async updateLiquidacionManual(id: number, liquidacionManual: boolean): Promise<Fletero> {
-    const fletero = await this.findOne(id);
+  async updateLiquidacion(id: number, liquidacion: boolean): Promise<Fletero> {
+    const fletero = await this.em.findOne(Fletero, { idFletero: id });
+    if (!fletero) throw AppError.notFound(`Fletero con ID ${id} no encontrado`);
     
-    fletero.liquidacionManual = liquidacionManual;
-    await this.em.persist(fletero).flush();
+    fletero.liquidacion = liquidacion;
+    await this.em.flush();
     
-    console.log(`✅ Fletero ${fletero.dsFletero} actualizado: liquidacion_manual = ${liquidacionManual}`);
+    console.log(`✅ Fletero ${fletero.dsFletero} actualizado: liquidacion = ${liquidacion}`);
     return fletero;
   }
 
@@ -127,7 +128,7 @@ export class FleterosService {
           idFletero,
           dsFletero,
           seguimiento: false,
-          liquidacionManual: false,
+          liquidacion: false,
         });
         toCreate.push(nuevoFletero);
         created++;

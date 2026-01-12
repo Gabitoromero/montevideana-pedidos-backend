@@ -58,15 +58,15 @@ export class FleterosController {
   }
 
   /**
-   * PATCH /fleteros/:id/liquidacion-manual - Actualizar campo liquidacion_manual
+   * PATCH /fleteros/:id/liquidacion - Actualizar campo liquidacion
    */
-  async updateLiquidacionManual(req: Request, res: Response): Promise<void> {
+  async updateLiquidacion(req: Request, res: Response): Promise<void> {
     const em = fork();
     const service = new FleterosService(em);
     const id = parseInt(req.params.id);
-    const { liquidacionManual } = req.body;
+    const { liquidacion } = req.body;
     
-    const fletero = await service.updateLiquidacionManual(id, liquidacionManual);
+    const fletero = await service.updateLiquidacion(id, liquidacion);
     res.json({ success: true, data: fletero });
   }
 }

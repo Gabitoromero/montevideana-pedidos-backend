@@ -922,10 +922,8 @@ export class MovimientoController {
       // PENDIENTE
       const movPendiente = movimientosPorEstado[ESTADO_IDS.PENDIENTE];
       if (movPendiente) {
-        // Convertir UTC a fecha local de Argentina sin timezone
-        // Esto evita que Excel haga conversiones adicionales
-        const fechaStr = formatInTimeZone(movPendiente.fechaHora, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm:ss');
-        row.pendienteFecha = new Date(fechaStr);
+        // Guardar como texto formateado para evitar conversiones de timezone
+        row.pendienteFecha = formatInTimeZone(movPendiente.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.pendienteUsuario = `${movPendiente.usuario.nombre} ${movPendiente.usuario.apellido}`;
         row.pendienteEstado = movPendiente.estadoFinal.nombreEstado;
       } else {
@@ -937,8 +935,7 @@ export class MovimientoController {
       // EN PREPARACIÓN
       const movEnPreparacion = movimientosPorEstado[ESTADO_IDS.EN_PREPARACION];
       if (movEnPreparacion) {
-        const fechaStr = formatInTimeZone(movEnPreparacion.fechaHora, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm:ss');
-        row.enPreparacionFecha = new Date(fechaStr);
+        row.enPreparacionFecha = formatInTimeZone(movEnPreparacion.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.enPreparacionUsuario = `${movEnPreparacion.usuario.nombre} ${movEnPreparacion.usuario.apellido}`;
         row.enPreparacionEstado = movEnPreparacion.estadoFinal.nombreEstado;
       } else {
@@ -950,8 +947,7 @@ export class MovimientoController {
       // PREPARADO
       const movPreparado = movimientosPorEstado[ESTADO_IDS.PREPARADO];
       if (movPreparado) {
-        const fechaStr = formatInTimeZone(movPreparado.fechaHora, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm:ss');
-        row.preparadoFecha = new Date(fechaStr);
+        row.preparadoFecha = formatInTimeZone(movPreparado.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.preparadoUsuario = `${movPreparado.usuario.nombre} ${movPreparado.usuario.apellido}`;
         row.preparadoEstado = movPreparado.estadoFinal.nombreEstado;
       } else {
@@ -963,8 +959,7 @@ export class MovimientoController {
       // TESORERIA
       const movTesoreria = movimientosPorEstado[ESTADO_IDS.TESORERIA];
       if (movTesoreria) {
-        const fechaStr = formatInTimeZone(movTesoreria.fechaHora, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm:ss');
-        row.tesoreriaFecha = new Date(fechaStr);
+        row.tesoreriaFecha = formatInTimeZone(movTesoreria.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.tesoreriaUsuario = `${movTesoreria.usuario.nombre} ${movTesoreria.usuario.apellido}`;
         row.tesoreriaEstado = movTesoreria.estadoFinal.nombreEstado;
       } else {
@@ -976,8 +971,7 @@ export class MovimientoController {
       // ENTREGADO
       const movEntregado = movimientosPorEstado[ESTADO_IDS.ENTREGADO];
       if (movEntregado) {
-        const fechaStr = formatInTimeZone(movEntregado.fechaHora, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm:ss');
-        row.entregadoFecha = new Date(fechaStr);
+        row.entregadoFecha = formatInTimeZone(movEntregado.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.entregadoUsuario = `${movEntregado.usuario.nombre} ${movEntregado.usuario.apellido}`;
         row.entregadoEstado = movEntregado.estadoFinal.nombreEstado;
       } else {

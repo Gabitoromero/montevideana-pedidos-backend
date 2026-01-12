@@ -96,6 +96,35 @@ export class PedidoController {
   };
 
   /**
+   * GET /api/pedidos/estado/:idEstado/ordered
+   * Obtener pedidos del día de hoy cuyo último movimiento tenga un estado final específico
+   * Ordenados por idPedido (ASC)
+   */
+  findByEstadoFinalOrdered = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { idEstado } = req.params;
+      const idEstadoNum = parseInt(idEstado, 10);
+
+      if (isNaN(idEstadoNum)) {
+        res.status(400).json({
+          success: false,
+          message: 'El ID del estado debe ser un número válido',
+        });
+        return;
+      }
+
+      const pedidos = await this.pedidoService.findByEstadoFinalOrderedByIdPedido(idEstadoNum);
+
+      res.status(200).json({
+        success: true,
+        data: pedidos,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
    * DELETE /api/pedidos/:idPedido
    * Eliminar un pedido
    */

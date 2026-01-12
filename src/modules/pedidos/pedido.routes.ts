@@ -32,6 +32,7 @@ router.use(authMiddleware);
 
 // Rutas
 router.get('/', (req, res, next) => getController().findAll(req, res, next));
+router.get('/estado/:idEstado/ordered', (req, res, next) => getController().findByEstadoFinalOrdered(req, res, next));
 router.get('/estado/:idEstado', (req, res, next) => getController().findByEstadoFinal(req, res, next));
 router.get('/:idPedido', (req, res, next) => getController().findOne(req, res, next));
 router.post('/', (req, res, next) => getController().create(req, res, next));

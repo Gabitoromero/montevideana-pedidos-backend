@@ -8,16 +8,10 @@
 
 -- Renombrar columna liquidacionManual a liquidacion
 ALTER TABLE fleteros
-CHANGE COLUMN liquidacionManual liquidacion TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Indica si el fletero se liquida por CHESS (1) o automáticamente (0)';
+CHANGE COLUMN liquidacion_manual liquidacion TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Indica si el fletero se liquida por CHESS (1) o automáticamente (0)';
 
 -- Verificar el cambio
 DESCRIBE fleteros;
 
 -- Verificar datos
-SELECT
-    idFletero,
-    dsFletero,
-    seguimiento,
-    liquidacion
-FROM fleteros
-ORDER BY idFletero;
+SELECT * FROM fleteros ORDER BY id_fletero;

@@ -68,6 +68,9 @@ export class ChessService {
       throw new Error(`Formato inválido de planillaCarga. Esperado: "XXXX - XXXXXXXX", recibido: "${planillaCarga}"`);
     }
     
+    if(match[1] < '002867227'){
+      throw new Error(`PlanillaCarga inválida. Esperado menor a "0000 - 002867227", recibido: "${planillaCarga}"`);
+    }
     // Retornar solo los 8 dígitos finales (grupo de captura 1)
     return match[1];
   }
@@ -388,6 +391,9 @@ export class ChessService {
       if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') {
         return false;
       }
+
+      //8. planilla carga mayor a 0000 - 002867227
+      
 
       return true;
     });

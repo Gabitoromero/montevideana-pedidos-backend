@@ -44,7 +44,7 @@ router.delete('/:idPedido', authorize('ADMIN', 'CHESS'), (req, res, next) => get
 router.patch(
   '/:idPedido/evaluacion',
   validateSchema(actualizarCalificacionSchema),
-  authorize('ADMIN', 'CHESS'),
+  authorize('ADMIN', 'CHESS','EXPEDICION'),
   (req, res, next) => getController().actualizarCalificacion(req, res, next)
 );
 

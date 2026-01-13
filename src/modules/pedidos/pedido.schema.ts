@@ -9,7 +9,7 @@ export const actualizarCalificacionSchema = z.object({
     .min(1, 'La calificación mínima es 1')
     .max(5, 'La calificación máxima es 5'),
   pin: z.string()
-    .length(4, 'El PIN debe tener 4 dígitos')
+    .min(4, 'El PIN debe tener 4 dígitos')
     .regex(/^\d+$/, 'El PIN debe contener solo números'),
 });
 

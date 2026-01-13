@@ -69,7 +69,7 @@ export class ChessService {
     }
     
     if(match[1] < '00286227'){
-      throw new Error(`PlanillaCarga inválida. Esperado menor a "0000 - 002867227", recibido: "${planillaCarga}"`);
+      throw new Error(`PlanillaCarga inválida. Esperado menor a "0000 - 00286227", recibido: "${planillaCarga}"`);
     }
     // Retornar solo los 8 dígitos finales (grupo de captura 1)
     return match[1];

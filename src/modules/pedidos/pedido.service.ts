@@ -85,25 +85,13 @@ export class PedidoService {
   }
 
   /**
-   * Buscar pedidos del día de hoy cuyo último movimiento tenga un estado final específico
+   * Buscar todos los pedidos cuyo último movimiento tenga un estado final específico
    */
   async findByEstadoFinal(idEstado: number): Promise<any[]> {
-    const hoy = new Date();
-    const startOfDay = new Date(hoy);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(hoy);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Buscar todos los pedidos de hoy con sus movimientos y fletero
+    // Buscar todos los pedidos con sus movimientos y fletero
     const pedidos = await this.em.find(
       Pedido,
-      {
-        fechaHora: {
-          $gte: startOfDay,
-          $lte: endOfDay,
-        },
-      },
+      {},
       { 
         populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario', 'fletero'],
         orderBy: { fechaHora: 'ASC' }
@@ -173,26 +161,14 @@ export class PedidoService {
   }
 
   /**
-   * Buscar pedidos del día de hoy cuyo último movimiento tenga un estado final específico
+   * Buscar todos los pedidos cuyo último movimiento tenga un estado final específico
    * Ordenados por idPedido (ASC)
    */
   async findByEstadoFinalOrderedByIdPedido(idEstado: number): Promise<any[]> {
-    const hoy = new Date();
-    const startOfDay = new Date(hoy);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(hoy);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Buscar todos los pedidos de hoy con sus movimientos y fletero
+    // Buscar todos los pedidos con sus movimientos y fletero
     const pedidos = await this.em.find(
       Pedido,
-      {
-        fechaHora: {
-          $gte: startOfDay,
-          $lte: endOfDay,
-        },
-      },
+      {},
       { 
         populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario', 'fletero'],
         orderBy: { idPedido: 'ASC' }

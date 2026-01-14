@@ -610,7 +610,7 @@ export class MovimientoController {
       Movimiento,
       { pedido },
       {
-        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido"],
+        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido", "pedido.fletero"],
         orderBy: { fechaHora: "DESC" },
       }
     );
@@ -629,6 +629,10 @@ export class MovimientoController {
       usuario: {
         nombre: m.usuario.nombre,
         apellido: m.usuario.apellido,
+      },
+      fletero: {
+        idFletero: m.pedido.fletero.idFletero,
+        dsFletero: m.pedido.fletero.dsFletero,
       },
     }));
   }
@@ -673,7 +677,7 @@ export class MovimientoController {
         },
       },
       {
-        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido"],
+        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido", "pedido.fletero"],
         orderBy: { fechaHora: "DESC" },
         limit,
         offset: (page - 1) * limit,
@@ -695,6 +699,10 @@ export class MovimientoController {
         usuario: {
           nombre: m.usuario.nombre,
           apellido: m.usuario.apellido,
+        },
+        fletero: {
+          idFletero: m.pedido.fletero.idFletero,
+          dsFletero: m.pedido.fletero.dsFletero,
         },
       })),
       pagination: {
@@ -762,7 +770,7 @@ export class MovimientoController {
         },
       },
       {
-        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido"],
+        populate: ["usuario", "estadoInicial", "estadoFinal", "pedido", "pedido.fletero"],
         orderBy: { fechaHora: "DESC" },
         limit,
         offset: (page - 1) * limit,
@@ -784,6 +792,10 @@ export class MovimientoController {
         usuario: {
           nombre: m.usuario.nombre,
           apellido: m.usuario.apellido,
+        },
+        fletero: {
+          idFletero: m.pedido.fletero.idFletero,
+          dsFletero: m.pedido.fletero.dsFletero,
         },
       })),
       pagination: {
@@ -855,9 +867,9 @@ export class MovimientoController {
     worksheet.columns = [
       { header: "ID Pedido", key: "idPedido", width: 12 },
       { header: "Evaluación", key: "evaluacion", width: 12 },
+      { header: "Transporte", key: "transporte", width: 25 },
       { header: "PENDIENTE - Fecha", key: "pendienteFecha", width: 22 },
-      { header: "PENDIENTE - Usuario", key: "pendienteUsuario", width: 25 },
-      { header: "PENDIENTE - Estado", key: "pendienteEstado", width: 18 },
+      { header: "Tiempo PENDIENTE → EN PREPARACIÓN", key: "tiempoPendienteAEnPreparacion", width: 20 },
       {
         header: "EN PREPARACIÓN - Fecha",
         key: "enPreparacionFecha",
@@ -868,20 +880,13 @@ export class MovimientoController {
         key: "enPreparacionUsuario",
         width: 25,
       },
-      {
-        header: "EN PREPARACIÓN - Estado",
-        key: "enPreparacionEstado",
-        width: 18,
-      },
+      { header: "Tiempo EN PREPARACIÓN → PREPARADO", key: "tiempoEnPreparacionAPreparado", width: 20 },
       { header: "PREPARADO - Fecha", key: "preparadoFecha", width: 22 },
       { header: "PREPARADO - Usuario", key: "preparadoUsuario", width: 25 },
-      { header: "PREPARADO - Estado", key: "preparadoEstado", width: 18 },
       { header: "TESORERIA - Fecha", key: "tesoreriaFecha", width: 22 },
-      { header: "TESORERIA - Usuario", key: "tesoreriaUsuario", width: 25 },
-      { header: "TESORERIA - Estado", key: "tesoreriaEstado", width: 18 },
+      { header: "Tiempo PREPARADO → ENTREGADO", key: "tiempoPreparadoAEntregado", width: 20 },
       { header: "ENTREGADO - Fecha", key: "entregadoFecha", width: 22 },
       { header: "ENTREGADO - Usuario", key: "entregadoUsuario", width: 25 },
-      { header: "ENTREGADO - Estado", key: "entregadoEstado", width: 18 },
     ];
 
     // Estilizar header
@@ -917,6 +922,7 @@ export class MovimientoController {
       const row: any = {
         idPedido: pedido.idPedido,
         evaluacion: pedido.calificacion ?? "Sin evaluar",
+        transporte: pedido.fletero.dsFletero,
       };
 
       // PENDIENTE
@@ -924,60 +930,79 @@ export class MovimientoController {
       if (movPendiente) {
         // Guardar como texto formateado para evitar conversiones de timezone
         row.pendienteFecha = formatInTimeZone(movPendiente.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
-        row.pendienteUsuario = `${movPendiente.usuario.nombre} ${movPendiente.usuario.apellido}`;
-        row.pendienteEstado = movPendiente.estadoFinal.nombreEstado;
       } else {
         row.pendienteFecha = "Sin datos";
-        row.pendienteUsuario = "Sin datos";
-        row.pendienteEstado = "Sin datos";
+      }
+
+      // Calcular tiempo PENDIENTE → EN PREPARACIÓN
+      const movEnPreparacion = movimientosPorEstado[ESTADO_IDS.EN_PREPARACION];
+      if (movPendiente && movEnPreparacion) {
+        const diffMs = movEnPreparacion.fechaHora.getTime() - movPendiente.fechaHora.getTime();
+        const diffMinutes = Math.round(diffMs / 60000); // Convertir ms a minutos
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        row.tiempoPendienteAEnPreparacion = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      } else {
+        row.tiempoPendienteAEnPreparacion = "Sin datos";
       }
 
       // EN PREPARACIÓN
-      const movEnPreparacion = movimientosPorEstado[ESTADO_IDS.EN_PREPARACION];
       if (movEnPreparacion) {
         row.enPreparacionFecha = formatInTimeZone(movEnPreparacion.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.enPreparacionUsuario = `${movEnPreparacion.usuario.nombre} ${movEnPreparacion.usuario.apellido}`;
-        row.enPreparacionEstado = movEnPreparacion.estadoFinal.nombreEstado;
       } else {
         row.enPreparacionFecha = "Sin datos";
         row.enPreparacionUsuario = "Sin datos";
-        row.enPreparacionEstado = "Sin datos";
+      }
+
+      // Calcular tiempo EN PREPARACIÓN → PREPARADO
+      const movPreparado = movimientosPorEstado[ESTADO_IDS.PREPARADO];
+      if (movEnPreparacion && movPreparado) {
+        const diffMs = movPreparado.fechaHora.getTime() - movEnPreparacion.fechaHora.getTime();
+        const diffMinutes = Math.round(diffMs / 60000);
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        row.tiempoEnPreparacionAPreparado = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      } else {
+        row.tiempoEnPreparacionAPreparado = "Sin datos";
       }
 
       // PREPARADO
-      const movPreparado = movimientosPorEstado[ESTADO_IDS.PREPARADO];
       if (movPreparado) {
         row.preparadoFecha = formatInTimeZone(movPreparado.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.preparadoUsuario = `${movPreparado.usuario.nombre} ${movPreparado.usuario.apellido}`;
-        row.preparadoEstado = movPreparado.estadoFinal.nombreEstado;
       } else {
         row.preparadoFecha = "Sin datos";
         row.preparadoUsuario = "Sin datos";
-        row.preparadoEstado = "Sin datos";
       }
 
       // TESORERIA
       const movTesoreria = movimientosPorEstado[ESTADO_IDS.TESORERIA];
       if (movTesoreria) {
         row.tesoreriaFecha = formatInTimeZone(movTesoreria.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
-        row.tesoreriaUsuario = `${movTesoreria.usuario.nombre} ${movTesoreria.usuario.apellido}`;
-        row.tesoreriaEstado = movTesoreria.estadoFinal.nombreEstado;
       } else {
         row.tesoreriaFecha = "Sin datos";
-        row.tesoreriaUsuario = "Sin datos";
-        row.tesoreriaEstado = "Sin datos";
+      }
+
+      // Calcular tiempo PREPARADO → ENTREGADO
+      const movEntregado = movimientosPorEstado[ESTADO_IDS.ENTREGADO];
+      if (movPreparado && movEntregado) {
+        const diffMs = movEntregado.fechaHora.getTime() - movPreparado.fechaHora.getTime();
+        const diffMinutes = Math.round(diffMs / 60000);
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        row.tiempoPreparadoAEntregado = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      } else {
+        row.tiempoPreparadoAEntregado = "Sin datos";
       }
 
       // ENTREGADO
-      const movEntregado = movimientosPorEstado[ESTADO_IDS.ENTREGADO];
       if (movEntregado) {
         row.entregadoFecha = formatInTimeZone(movEntregado.fechaHora, 'America/Argentina/Buenos_Aires', 'dd/MM/yyyy HH:mm:ss');
         row.entregadoUsuario = `${movEntregado.usuario.nombre} ${movEntregado.usuario.apellido}`;
-        row.entregadoEstado = movEntregado.estadoFinal.nombreEstado;
       } else {
         row.entregadoFecha = "Sin datos";
         row.entregadoUsuario = "Sin datos";
-        row.entregadoEstado = "Sin datos";
       }
 
       worksheet.addRow(row);
@@ -985,7 +1010,7 @@ export class MovimientoController {
 
     // Aplicar formato de fecha y hora a todas las columnas de fecha
     // Formato: dd/mm/yyyy hh:mm:ss
-    const dateColumns = [3, 6, 9, 12, 15]; // Columnas de fecha (PENDIENTE, EN PREPARACIÓN, PREPARADO, TESORERIA, ENTREGADO)
+    const dateColumns = [4, 6, 9, 11, 13]; // Columnas de fecha (PENDIENTE, EN PREPARACIÓN, PREPARADO, TESORERIA, ENTREGADO)
     
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) { // Saltar el header

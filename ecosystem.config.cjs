@@ -8,12 +8,14 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         DISABLE_SCHEDULER: 'true', // Desactivar scheduler en workers del cluster
-        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174'
+        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174',
+        TZ: 'America/Argentina/Buenos_Aires'
       },
       env_production: {
         NODE_ENV: 'production',
         DISABLE_SCHEDULER: 'true',
-        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174'
+        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174',
+        TZ: 'America/Argentina/Buenos_Aires'
       },
       error_file: './logs/api-error.log',
       out_file: './logs/api-out.log',
@@ -31,12 +33,14 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         DISABLE_SCHEDULER: 'false', // Activar scheduler solo en este proceso
-        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174'
+        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174',
+        TZ: 'America/Argentina/Buenos_Aires'
       },
       env_production: {
         NODE_ENV: 'production',
         DISABLE_SCHEDULER: 'false',
-        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174'
+        ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174',
+        TZ: 'America/Argentina/Buenos_Aires'
       },
       error_file: './logs/scheduler-error.log',
       out_file: './logs/scheduler-out.log',

@@ -136,6 +136,8 @@ export class ChessScheduler {
       } finally {
         await em.clear();
       }
+    }, {
+        timezone: "America/Argentina/Buenos_Aires" // <--- Agrega esto en tu código
     });
 
     // Cron 2: Sincronizar día actual cada 1 minuto (6 AM - 11 PM)
@@ -182,6 +184,8 @@ export class ChessScheduler {
         await em.clear();
         this.isRunningYet = false;
       }
+    }, {
+        timezone: "America/Argentina/Buenos_Aires" // <--- Agrega esto en tu código
     });
 
     console.log('✅ Scheduler CHESS iniciado:');

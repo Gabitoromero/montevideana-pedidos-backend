@@ -140,8 +140,9 @@ export class ChessScheduler {
         timezone: "America/Argentina/Buenos_Aires" // <--- Agrega esto en tu código
     });
 
-    // Cron 2: Sincronizar día actual cada 1 minuto (6 AM - 11 PM)
+    // Cron 2: Sincronizar últimos 2 días cada 1 minuto (6 AM - 11 PM)
     // */1 6-23 * * * = cada 1 minuto, entre las 6 y las 23 horas
+    // Sincroniza AYER y HOY para capturar liquidaciones agregadas con retraso
     this.taskDiaActual = cron.schedule('*/1 6-23 * * *', async () => {
       if (this.isRunningYet) {
         console.log('⏭️ Sincronización anterior aún en progreso, omitiendo...');
@@ -149,14 +150,23 @@ export class ChessScheduler {
       }
 
       this.isRunningYet = true;
-      console.log('\n🔄 ========== CRON: Iniciando sincronización automática ==========');
+      console.log('\n🔄 ========== CRON: Iniciando sincronización automática (últimos 2 días) ==========');
       
       // Crear un fork del EntityManager para esta ejecución
       const em = this.orm.em.fork();
       const chessService = new ChessService(em);
       
       try {
+        // Sincronizar DÍA ANTERIOR (ayer)
+        const ayer = new Date();
+        ayer.setDate(ayer.getDate() - 1);
+        console.log(`📅 Sincronizando día anterior: ${ayer.toLocaleDateString('es-AR')}`);
+        await chessService.syncVentas(ayer);
+        
+        // Sincronizar DÍA ACTUAL (hoy)
+        console.log(`📅 Sincronizando día actual: ${new Date().toLocaleDateString('es-AR')}`);
         await chessService.syncVentas();
+        
         this.failureCount = 0; 
       } catch (error: any) {
         // Diferenciar tipos de error
@@ -190,7 +200,7 @@ export class ChessScheduler {
 
     console.log('✅ Scheduler CHESS iniciado:');
     console.log('   - Día anterior: 6:00 AM');
-    console.log('   - Día actual: cada 1 minuto (6:00 AM - 11:00 PM)');
+    console.log('   - Últimos 2 días (ayer y hoy): cada 1 minuto (6:00 AM - 11:00 PM)');
   }
 
   /**

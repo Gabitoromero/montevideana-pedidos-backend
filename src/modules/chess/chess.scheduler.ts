@@ -150,22 +150,22 @@ export class ChessScheduler {
       }
 
       this.isRunningYet = true;
-      console.log('\n🔄 ========== CRON: Iniciando sincronización automática (últimos 2 días) ==========');
+      console.log('\n🔄 ========== CRON: Iniciando sincronización automática (hoy y mañana) ==========');
       
       // Crear un fork del EntityManager para esta ejecución
       const em = this.orm.em.fork();
       const chessService = new ChessService(em);
       
       try {
-        // Sincronizar DÍA ANTERIOR (ayer)
-        const ayer = new Date();
-        ayer.setDate(ayer.getDate() - 1);
-        console.log(`📅 Sincronizando día anterior: ${ayer.toLocaleDateString('es-AR')}`);
-        await chessService.syncVentas(ayer);
-        
         // Sincronizar DÍA ACTUAL (hoy)
         console.log(`📅 Sincronizando día actual: ${new Date().toLocaleDateString('es-AR')}`);
         await chessService.syncVentas();
+        
+        // Sincronizar DÍA SIGUIENTE (mañana)
+        const mañana = new Date();
+        mañana.setDate(mañana.getDate() + 1);
+        console.log(`📅 Sincronizando día siguiente: ${mañana.toLocaleDateString('es-AR')}`);
+        await chessService.syncVentas(mañana);
         
         this.failureCount = 0; 
       } catch (error: any) {
@@ -200,7 +200,7 @@ export class ChessScheduler {
 
     console.log('✅ Scheduler CHESS iniciado:');
     console.log('   - Día anterior: 6:00 AM');
-    console.log('   - Últimos 2 días (ayer y hoy): cada 1 minuto (6:00 AM - 11:00 PM)');
+    console.log('   - Hoy y mañana: cada 1 minuto (6:00 AM - 11:00 PM)');
   }
 
   /**

@@ -15,7 +15,8 @@ export class ChessScheduler {
   private taskVerificacion: ScheduledTask | null = null;
   private isRunningYet = false;
   private failureCount = 0;
-  private readonly MAX_FAILURES = 3;
+  private readonly MAX_FAILURES = 10;
+  private readonly DISCORD_USER_ID = '368473961190916113';
 
   constructor(orm: MikroORM) {
     this.orm = orm;
@@ -56,32 +57,33 @@ export class ChessScheduler {
 
     try {
       const message = {
-        username: 'Alertas Sistema',
+        content: `<@${this.DISCORD_USER_ID}>`,
+        username: 'Montevideana Scheduler',
         avatar_url: 'https://cdn-icons-png.flaticon.com/512/2099/2099190.png',
         embeds: [{
-          title: '🚨 ALERTA: Fallos consecutivos en sincronización CHESS',
-          description: `Se han detectado **${this.failureCount}** fallos consecutivos en la sincronización con CHESS.`,
+          title: '🚨 ERROR: Fallos en Sincronización CHESS',
+          description: `Se detectaron **${this.failureCount} fallos consecutivos** al sincronizar con CHESS.\n\n**Acción requerida:** Revisar logs del servidor y conexión con CHESS.`,
           color: 15158332,
           fields: [
             {
-              name: '❌ Error',
-              value: `\`\`\`${error.message}\`\`\``,
+              name: '❌ Mensaje de Error',
+              value: `\`\`\`${error.message.substring(0, 1000)}\`\`\``,
               inline: false
             },
             {
-              name: '📅 Fecha',
+              name: '📅 Fecha y Hora',
               value: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
               inline: true
             },
             {
-              name: '🔢 Intentos fallidos',
-              value: `${this.failureCount}/${this.MAX_FAILURES}`,
+              name: '🔢 Intentos Fallidos',
+              value: `${this.failureCount} de ${this.MAX_FAILURES}`,
               inline: true
             }
           ],
           timestamp: new Date().toISOString(),
           footer: {
-            text: 'Sistema de Pedidos - Montevideana'
+            text: 'Sistema de Pedidos Montevideana'
           }
         }]
       };
@@ -96,6 +98,71 @@ export class ChessScheduler {
         console.error('❌ Error al enviar alerta a Discord:', response.statusText);
       } else {
         console.log('✅ Alerta enviada a Discord exitosamente');
+      }
+    } catch (fetchError: any) {
+      console.error('❌ Error al conectar con Discord:', fetchError.message);
+    }
+  }
+
+  /**
+   * Enviar alerta de verificación de liquidaciones a Discord
+   */
+  private async sendDiscordVerificacionAlert(resultado: any, fecha: Date): Promise<void> {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    
+    if (!webhookUrl) {
+      console.warn('⚠️ DISCORD_WEBHOOK_URL no configurado en .env');
+      return;
+    }
+
+    try {
+      const primeros5 = resultado.inconsistencias.slice(0, 5);
+      const pedidosTexto = primeros5.map((i: any) => 
+        `• **${i.idPedido}** - Liquidación: ${i.fechaLiquidacion} - Estado: ${i.estadoActual || 'N/A'}`
+      ).join('\n');
+
+      const message = {
+        content: `<@${this.DISCORD_USER_ID}>`,
+        username: 'Montevideana Scheduler',
+        avatar_url: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        embeds: [{
+          title: '⚠️ INCONSISTENCIAS: Liquidaciones No Procesadas',
+          description: `Se encontraron **${resultado.totalInconsistencias} pedidos** con liquidación en CHESS que no están cobrados en el sistema.\n\n**Acción requerida:** Revisar y procesar manualmente estos pedidos.`,
+          color: 16776960, // Amarillo
+          fields: [
+            {
+              name: '📅 Fecha Verificada',
+              value: fecha.toLocaleDateString('es-AR'),
+              inline: true
+            },
+            {
+              name: '🔢 Total Inconsistencias',
+              value: `${resultado.totalInconsistencias} pedidos`,
+              inline: true
+            },
+            {
+              name: '📦 Primeros 5 Pedidos',
+              value: pedidosTexto || 'No hay detalles disponibles',
+              inline: false
+            }
+          ],
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: 'Verificación Diaria de Liquidaciones'
+          }
+        }]
+      };
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message)
+      });
+
+      if (!response.ok) {
+        console.error('❌ Error al enviar alerta de verificación a Discord:', response.statusText);
+      } else {
+        console.log('✅ Alerta de verificación enviada a Discord exitosamente');
       }
     } catch (fetchError: any) {
       console.error('❌ Error al conectar con Discord:', fetchError.message);
@@ -138,7 +205,7 @@ export class ChessScheduler {
         await em.clear();
       }
     }, {
-        timezone: "America/Argentina/Buenos_Aires" // <--- Agrega esto en tu código
+        timezone: "America/Argentina/Buenos_Aires" 
     });
 
     // Cron 2: Sincronizar últimos 2 días cada 1 minuto (6 AM - 11 PM)
@@ -218,14 +285,7 @@ export class ChessScheduler {
           console.log(`⚠️  Se encontraron ${resultado.totalInconsistencias} inconsistencias`);
           
           // Enviar alerta a Discord
-          const error = new Error(
-            `🚨 ALERTA: Se encontraron ${resultado.totalInconsistencias} pedidos con liquidación no procesada\n\n` +
-            `Fecha verificada: ${ayer.toLocaleDateString('es-AR')}\n` +
-            `Primeros 5 pedidos:\n${resultado.inconsistencias.slice(0, 5).map(i => 
-              `- Pedido ${i.idPedido}: liquidación ${i.fechaLiquidacion}, estado ${i.estadoActual}`
-            ).join('\n')}`
-          );
-          await this.sendDiscordAlert(error);
+          await this.sendDiscordVerificacionAlert(resultado, ayer);
         } else {
           console.log('✅ No se encontraron inconsistencias');
         }

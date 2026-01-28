@@ -2,6 +2,9 @@ import { EntityManager } from '@mikro-orm/core';
 import { Fletero } from './fletero.entity.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { Pedido } from '../pedidos/pedido.entity.js';
+import { Movimiento } from '../movimientos/movimiento.entity.js';
+import { TipoEstado } from '../estados/tipoEstado.entity.js';
+import { Usuario } from '../usuarios/usuario.entity.js';
 
 export class FleterosService {
   constructor(private readonly em: EntityManager) {}
@@ -79,16 +82,93 @@ export class FleterosService {
 
   /**
    * Actualizar el campo liquidacion_manual de un fletero
+   * Si cambia a false (automática), procesa pedidos pendientes
    */
   async updateLiquidacion(id: number, liquidacion: boolean): Promise<Fletero> {
     const fletero = await this.em.findOne(Fletero, { idFletero: id });
     if (!fletero) throw AppError.notFound(`Fletero con ID ${id} no encontrado`);
     
+    const liquidacionAnterior = fletero.liquidacion;
     fletero.liquidacion = liquidacion;
     await this.em.flush();
     
     console.log(`✅ Fletero ${fletero.dsFletero} actualizado: liquidacion = ${liquidacion}`);
+    
+    // Si cambió de manual (true) a automática (false), procesar pedidos pendientes
+    if (liquidacionAnterior === true && liquidacion === false) {
+      const procesados = await this.procesarPedidosPendientes(fletero);
+      console.log(`🎯 Total de pedidos procesados automáticamente: ${procesados}`);
+    }
+    
     return fletero;
+  }
+
+  /**
+   * Procesar pedidos pendientes cuando un fletero cambia a liquidacion automática
+   * Crea movimientos a TESORERIA para todos los pedidos con cobrado = false
+   */
+  async procesarPedidosPendientes(fletero: Fletero): Promise<number> {
+    console.log(`🔄 Procesando pedidos pendientes del fletero ${fletero.dsFletero}...`);
+    
+    // Obtener todos los pedidos del fletero que no están cobrados
+    const pedidosPendientes = await this.em.find(
+      Pedido, 
+      { 
+        fletero: fletero,
+        cobrado: false 
+      },
+      { populate: ['movimientos', 'movimientos.estadoFinal'] }
+    );
+    
+    if (pedidosPendientes.length === 0) {
+      console.log(`✅ No hay pedidos pendientes para procesar`);
+      return 0;
+    }
+    
+    console.log(`📦 Se procesarán ${pedidosPendientes.length} pedidos pendientes`);
+    
+    // Obtener entidades necesarias
+    const estadoTesoreria = await this.em.findOne(TipoEstado, { nombreEstado: 'TESORERIA' });
+    const usuarioSistema = await this.em.findOne(Usuario, { username: 'sistema' });
+    
+    if (!estadoTesoreria || !usuarioSistema) {
+      throw new AppError('No se encontraron entidades requeridas (TESORERIA o usuario sistema)', 500);
+    }
+    
+    let procesados = 0;
+    
+    for (const pedido of pedidosPendientes) {
+      // Obtener el último movimiento para determinar el estado actual
+      const movimientos = pedido.movimientos.getItems();
+      if (movimientos.length === 0) continue;
+      
+      const ultimoMovimiento = movimientos.reduce((prev, current) => 
+        current.fechaHora > prev.fechaHora ? current : prev
+      );
+      
+      const estadoActual = ultimoMovimiento.estadoFinal as TipoEstado;
+      
+      // Crear movimiento a TESORERIA
+      const movimientoTesoreria = this.em.create(Movimiento, {
+        fechaHora: new Date(),
+        estadoInicial: estadoActual,
+        estadoFinal: estadoTesoreria,
+        usuario: usuarioSistema,
+        pedido: pedido,
+      });
+      
+      pedido.cobrado = true;
+      
+      await this.em.persist(movimientoTesoreria);
+      procesados++;
+      
+      console.log(`✅ Pedido ${pedido.idPedido}: ${estadoActual.nombreEstado} → TESORERIA`);
+    }
+    
+    await this.em.flush();
+    
+    console.log(`✅ ${procesados} pedidos procesados exitosamente`);
+    return procesados;
   }
 
   /**

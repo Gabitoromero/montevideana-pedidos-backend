@@ -578,6 +578,26 @@ export class ChessService {
             { populate: ['fletero'] }
           );
 
+          // Log estructurado para rastreo de liquidaciones
+          if (tieneLiquidacion) {
+            console.log(JSON.stringify({
+              type: 'LIQUIDACION_DETECTADA',
+              timestamp: new Date().toISOString(),
+              idPedido: idPedido,
+              fechaSync: fechaStr,
+              idLiquidacion: venta.idLiquidacion,
+              fechaLiquidacion: venta.fechaLiquidacion,
+              fechaPedido: venta.fechaPedido,
+              idFletero: venta.idFleteroCarga,
+              dsFletero: venta.dsFleteroCarga,
+              pedidoExistente: !!pedidoExistente,
+              cobrado: pedidoExistente?.cobrado ?? null,
+              accion: pedidoExistente 
+                ? (pedidoExistente.cobrado ? 'OMITIDO_YA_COBRADO' : 'ACTUALIZADO') 
+                : 'CREADO'
+            }));
+          }
+
           if (pedidoExistente) {
             // PEDIDO EXISTENTE: Verificar si necesita movimiento a TESORERIA
             if (tieneLiquidacion && !pedidoExistente.cobrado) {
@@ -728,5 +748,117 @@ export class ChessService {
       console.error(error);
       return result;
     }
+  }
+
+  /**
+   * Verificar liquidaciones comparando CHESS vs base de datos
+   * Detecta pedidos que tienen liquidación en CHESS pero cobrado = false en el sistema
+   */
+  public async verificarLiquidaciones(fecha: Date): Promise<{
+    inconsistencias: Array<{
+      idPedido: string;
+      idLiquidacion: number;
+      fechaLiquidacion: string;
+      fechaPedido: string;
+      cobradoEnSistema: boolean;
+      estadoActual: string | null;
+    }>;
+    totalInconsistencias: number;
+  }> {
+    console.log(`🔍 Verificando liquidaciones para fecha: ${fecha.toLocaleDateString('es-AR')}`);
+    
+    const fechaStr = fecha.toISOString().split('T')[0].replace(/-/g, '/');
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    // Obtener todas las ventas de CHESS para esa fecha
+    const { ventas } = await this.getAllVentasDelDia(fechaStr);
+    
+    // Filtrar solo las que tienen liquidación
+    const ventasConLiquidacion = ventas.filter(v => this.hasLiquidacionData(v));
+    
+    console.log(`📊 Total de ventas con liquidación en CHESS: ${ventasConLiquidacion.length}`);
+    
+    const inconsistencias: Array<{
+      idPedido: string;
+      idLiquidacion: number;
+      fechaLiquidacion: string;
+      fechaPedido: string;
+      cobradoEnSistema: boolean;
+      estadoActual: string | null;
+    }> = [];
+    
+    // Set para evitar duplicados (CHESS devuelve el mismo pedido múltiples veces)
+    const pedidosProcesados = new Set<string>();
+    
+    for (const venta of ventasConLiquidacion) {
+      try {
+        const idPedido = this.extractIdPedido(venta.planillaCarga!);
+        
+        // Evitar duplicados
+        if (pedidosProcesados.has(idPedido)) {
+          continue;
+        }
+        pedidosProcesados.add(idPedido);
+        
+        // Parsear fechaLiquidacion para comparar
+        const fechaLiquidacion = new Date(venta.fechaLiquidacion!);
+        fechaLiquidacion.setHours(0, 0, 0, 0);
+        
+        // Solo considerar inconsistencia si la fechaLiquidacion ya pasó (es anterior o igual a HOY)
+        if (fechaLiquidacion > hoy) {
+          // La liquidación es futura, no es una inconsistencia
+          continue;
+        }
+        
+        // Buscar el pedido en la base de datos
+        const pedido = await this.em.findOne(Pedido, 
+          { idPedido },
+          { populate: ['movimientos', 'movimientos.estadoFinal', 'fletero'] }
+        );
+        
+        // Si el pedido no existe, no es una inconsistencia
+        // Probablemente es de un fletero sin seguimiento
+        if (!pedido) {
+          continue;
+        }
+        
+        // Solo verificar pedidos que existen y no están cobrados
+        if (!pedido.cobrado) {
+          // Solo marcar como inconsistencia si el fletero tiene liquidacion = 1 (manual)
+          // Si tiene liquidacion = 0 (automática), el movimiento a TESORERIA se crea automáticamente
+          if (!pedido.fletero.liquidacion) {
+            // Fletero con liquidación automática, no es una inconsistencia
+            continue;
+          }
+          
+          // Pedido existe pero no está cobrado - INCONSISTENCIA REAL
+          const movimientos = pedido.movimientos.getItems();
+          const ultimoMovimiento = movimientos.length > 0
+            ? movimientos.reduce((prev, current) => 
+                current.fechaHora > prev.fechaHora ? current : prev
+              )
+            : null;
+          
+          inconsistencias.push({
+            idPedido,
+            idLiquidacion: venta.idLiquidacion!,
+            fechaLiquidacion: venta.fechaLiquidacion!,
+            fechaPedido: String(venta.fechaPedido || ''),
+            cobradoEnSistema: pedido.cobrado,
+            estadoActual: ultimoMovimiento?.estadoFinal.nombreEstado ?? null,
+          });
+        }
+      } catch (error) {
+        console.error(`❌ Error procesando pedido ${venta.planillaCarga}:`, error);
+      }
+    }
+    
+    console.log(`🎯 Inconsistencias encontradas: ${inconsistencias.length}`);
+    
+    return {
+      inconsistencias,
+      totalInconsistencias: inconsistencias.length,
+    };
   }
 }

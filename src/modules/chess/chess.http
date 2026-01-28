@@ -41,3 +41,10 @@ POST http://localhost:3000/api/chess/sync
 
 ### prueba webhook discord
 GET http://localhost:3000/api/chess/test-discord-alert
+
+
+###
+GET http://localhost:3000/api/chess/test-discord-verificacion
+
+###
+GET http://localhost:3000/api/chess/verificar-liquidaciones

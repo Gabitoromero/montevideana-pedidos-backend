@@ -12,6 +12,7 @@ export class ChessScheduler {
   private orm: MikroORM;
   private taskDiaActual: ScheduledTask | null = null;
   private taskDiaAnterior: ScheduledTask | null = null;
+  private taskVerificacion: ScheduledTask | null = null;
   private isRunningYet = false;
   private failureCount = 0;
   private readonly MAX_FAILURES = 3;
@@ -198,9 +199,50 @@ export class ChessScheduler {
         timezone: "America/Argentina/Buenos_Aires" // <--- Agrega esto en tu código
     });
 
+    // Cron de verificación de liquidaciones (11:30 PM todos los días)
+    this.taskVerificacion = cron.schedule('30 23 * * *', async () => {
+      console.log('\n🔍 ========== VERIFICACIÓN DE LIQUIDACIONES ==========');
+      console.log(`⏰ Hora: ${new Date().toLocaleString('es-AR')}`);
+      
+      const em = this.orm.em.fork();
+      const chessService = new ChessService(em);
+      
+      try {
+        // Verificar liquidaciones de ayer
+        const ayer = new Date();
+        ayer.setDate(ayer.getDate() - 1);
+        
+        const resultado = await chessService.verificarLiquidaciones(ayer);
+        
+        if (resultado.totalInconsistencias > 0) {
+          console.log(`⚠️  Se encontraron ${resultado.totalInconsistencias} inconsistencias`);
+          
+          // Enviar alerta a Discord
+          const error = new Error(
+            `🚨 ALERTA: Se encontraron ${resultado.totalInconsistencias} pedidos con liquidación no procesada\n\n` +
+            `Fecha verificada: ${ayer.toLocaleDateString('es-AR')}\n` +
+            `Primeros 5 pedidos:\n${resultado.inconsistencias.slice(0, 5).map(i => 
+              `- Pedido ${i.idPedido}: liquidación ${i.fechaLiquidacion}, estado ${i.estadoActual}`
+            ).join('\n')}`
+          );
+          await this.sendDiscordAlert(error);
+        } else {
+          console.log('✅ No se encontraron inconsistencias');
+        }
+      } catch (error: any) {
+        console.error('❌ Error en verificación de liquidaciones:', error.message);
+        await this.sendDiscordAlert(error);
+      } finally {
+        await em.clear();
+      }
+    }, {
+      timezone: "America/Argentina/Buenos_Aires"
+    });
+
     console.log('✅ Scheduler CHESS iniciado:');
     console.log('   - Día anterior: 6:00 AM');
     console.log('   - Hoy y mañana: cada 1 minuto (6:00 AM - 11:00 PM)');
+    console.log('   - Verificación de liquidaciones: 11:30 PM');
   }
 
   /**
@@ -212,6 +254,9 @@ export class ChessScheduler {
     }
     if (this.taskDiaAnterior) {
       this.taskDiaAnterior.stop();
+    }
+    if (this.taskVerificacion) {
+      this.taskVerificacion.stop();
     }
     console.log('🛑 Scheduler CHESS detenido');
   }

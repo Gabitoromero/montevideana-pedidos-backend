@@ -60,6 +60,18 @@ router.post(
   }
 );
 
+// Verificar liquidaciones comparando CHESS vs base de datos
+router.get(
+  '/verificar-liquidaciones',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await getController().verificarLiquidaciones(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Obtener ventas desde CHESS con filtros
 router.get(
   '/ventas',
@@ -97,6 +109,18 @@ router.get(
         success: true, 
         message: 'Alerta de prueba enviada a Discord. Revisa el canal configurado.' 
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Test Discord webhook para verificación de liquidaciones
+router.get(
+  '/test-discord-verificacion',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await getController().testDiscordVerificacion(req, res, next);
     } catch (error) {
       next(error);
     }

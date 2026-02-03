@@ -15,7 +15,9 @@ export class ChessScheduler {
   private taskVerificacion: ScheduledTask | null = null;
   private isRunningYet = false;
   private failureCount = 0;
+  private syncCounter = 0; // Contador para re-sync del día anterior
   private readonly MAX_FAILURES = 10;
+  private readonly SYNC_INTERVAL_FOR_YESTERDAY = 15; // Cada 15 syncs, re-sincronizar ayer
   private readonly DISCORD_USER_ID = '368473961190916113';
 
   constructor(orm: MikroORM) {
@@ -218,22 +220,43 @@ export class ChessScheduler {
       }
 
       this.isRunningYet = true;
-      console.log('\n🔄 ========== CRON: Iniciando sincronización automática (hoy y mañana) ==========');
+      
+      // Incrementar contador de sincronizaciones
+      this.syncCounter++;
+      
+      // Determinar si toca re-sincronizar el día anterior
+      const shouldSyncYesterday = this.syncCounter % this.SYNC_INTERVAL_FOR_YESTERDAY === 0;
+      
+      if (shouldSyncYesterday) {
+        console.log(`\n🔄 ========== CRON: Re-sincronización del DÍA ANTERIOR (sync #${this.syncCounter}) ==========`);
+      } else {
+        console.log(`\n🔄 ========== CRON: Sincronización automática (hoy y mañana) [${this.syncCounter}/${this.SYNC_INTERVAL_FOR_YESTERDAY}] ==========`);
+      }
       
       // Crear un fork del EntityManager para esta ejecución
       const em = this.orm.em.fork();
       const chessService = new ChessService(em);
       
       try {
-        // Sincronizar DÍA ACTUAL (hoy)
-        console.log(`📅 Sincronizando día actual: ${new Date().toLocaleDateString('es-AR')}`);
-        await chessService.syncVentas();
-        
-        // Sincronizar DÍA SIGUIENTE (mañana)
-        const mañana = new Date();
-        mañana.setDate(mañana.getDate() + 1);
-        console.log(`📅 Sincronizando día siguiente: ${mañana.toLocaleDateString('es-AR')}`);
-        await chessService.syncVentas(mañana);
+        if (shouldSyncYesterday) {
+          // Cada 15 sincronizaciones, re-sincronizar el día anterior
+          const ayer = new Date();
+          ayer.setDate(ayer.getDate() - 1);
+          console.log(`📅 Re-sincronizando día anterior: ${ayer.toLocaleDateString('es-AR')}`);
+          console.log(`💡 Motivo: Detectar liquidaciones agregadas tardíamente`);
+          await chessService.syncVentas(ayer);
+        } else {
+          // Sincronización normal: HOY y MAÑANA
+          // Sincronizar DÍA ACTUAL (hoy)
+          console.log(`📅 Sincronizando día actual: ${new Date().toLocaleDateString('es-AR')}`);
+          await chessService.syncVentas();
+          
+          // Sincronizar DÍA SIGUIENTE (mañana)
+          const mañana = new Date();
+          mañana.setDate(mañana.getDate() + 1);
+          console.log(`📅 Sincronizando día siguiente: ${mañana.toLocaleDateString('es-AR')}`);
+          await chessService.syncVentas(mañana);
+        }
         
         this.failureCount = 0; 
       } catch (error: any) {
@@ -300,8 +323,9 @@ export class ChessScheduler {
     });
 
     console.log('✅ Scheduler CHESS iniciado:');
-    console.log('   - Día anterior: 6:00 AM');
+    console.log('   - Día anterior: 6:00 AM (inicial)');
     console.log('   - Hoy y mañana: cada 1 minuto (6:00 AM - 11:00 PM)');
+    console.log(`   - Re-sync día anterior: cada ${this.SYNC_INTERVAL_FOR_YESTERDAY} sincronizaciones (~${this.SYNC_INTERVAL_FOR_YESTERDAY} min)`);
     console.log('   - Verificación de liquidaciones: 11:30 PM');
   }
 

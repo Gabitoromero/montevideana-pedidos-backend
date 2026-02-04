@@ -5,74 +5,101 @@ import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js'
 const router = Router();
 const controller = new FleterosController();
 
-// Todas las rutas requieren autenticación y permisos de admin
+// Todas las rutas requieren autenticación
 router.use(authMiddleware);
-router.use(authorize('ADMIN','CHESS'));
+
+// ========== RUTAS DE LECTURA (ADMIN, CHESS, EXPEDICION) ==========
 
 /**
  * GET /fleteros - Listar todos los fleteros
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await controller.findAll(req, res);
-  } catch (error) {
-    next(error);
+router.get(
+  '/',
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.findAll(req, res);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * GET /fleteros/activos - Listar fleteros con seguimiento activo
  */
-router.get('/activos', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await controller.findActivos(req, res);
-  } catch (error) {
-    next(error);
+router.get(
+  '/activos',
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.findActivos(req, res);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * GET /fleteros/inactivos - Listar fleteros con seguimiento inactivo
  */
-router.get('/inactivos', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await controller.findInactivos(req, res);
-  } catch (error) {
-    next(error);
+router.get(
+  '/inactivos',
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.findInactivos(req, res);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * GET /fleteros/:id - Obtener un fletero específico
  */
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await controller.findOne(req, res);
-  } catch (error) {
-    next(error);
+router.get(
+  '/:id',
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.findOne(req, res);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
+
+// ========== RUTAS DE ESCRITURA (SOLO ADMIN Y CHESS) ==========
 
 /**
- * PATCH /fleteros/:id/liquidacion-manual - Actualizar campo liquidacion_manual
+ * PATCH /fleteros/:id/liquidacion - Actualizar campo liquidacion
  */
-router.patch('/:id/liquidacion', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await controller.updateLiquidacion(req, res);
-  } catch (error) {
-    next(error);
+router.patch(
+  '/:id/liquidacion',
+  authorize('ADMIN', 'CHESS'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.updateLiquidacion(req, res);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * PATCH /fleteros/:id - Actualizar campo seguimiento
  */
-router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await controller.update(req, res);
-  } catch (error) {
-    next(error);
+router.patch(
+  '/:id',
+  authorize('ADMIN', 'CHESS'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.update(req, res);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 export default router;

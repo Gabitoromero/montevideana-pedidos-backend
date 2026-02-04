@@ -30,6 +30,13 @@ router.use((req, res, next) => {
 // Todas las rutas requieren autenticación
 router.use(authMiddleware);
 
+// Ruta para obtener pedidos anulados - ADMIN, CHESS y EXPEDICION
+router.get(
+  '/anulados',
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
+  (req, res, next) => getController().findAnulados(req, res, next)
+);
+
 // Rutas de lectura - permitidas para todos los sectores incluyendo TELEVISOR
 router.get('/', authorize('ADMIN', 'CHESS', 'CAMARA', 'EXPEDICION', 'TELEVISOR'), (req, res, next) => getController().findAll(req, res, next));
 router.get('/estado/:idEstado/ordered', authorize('ADMIN', 'CHESS', 'CAMARA', 'EXPEDICION', 'TELEVISOR'), (req, res, next) => getController().findByEstadoFinalOrdered(req, res, next));
@@ -47,6 +54,8 @@ router.patch(
   authorize('ADMIN', 'CHESS','EXPEDICION'),
   (req, res, next) => getController().actualizarCalificacion(req, res, next)
 );
+
+
 
 export default router;
 

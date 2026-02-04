@@ -8,6 +8,7 @@ export const ESTADO_IDS = {
   PREPARADO: 4,
   TESORERIA: 5,
   ENTREGADO: 6,
+  ANULADO: 7,
 } as const;
 
 export const ESTADO_NOMBRES = {
@@ -17,6 +18,7 @@ export const ESTADO_NOMBRES = {
   PREPARADO: 'PREPARADO',
   TESORERIA: 'TESORERIA',
   ENTREGADO: 'ENTREGADO',
+  ANULADO: 'ANULADO',
 } as const;
 
 // Sectores de usuarios
@@ -57,4 +59,10 @@ export function esEstadoDeCamara(estadoId: number): boolean {
 export function esEstadoDeExpedicion(estadoId: number): boolean {
   return estadoId === ESTADO_IDS.TESORERIA || 
          estadoId === ESTADO_IDS.ENTREGADO;
+}
+
+// Helper para validar si un estado es terminal (no se puede salir de él)
+export function esEstadoTerminal(estadoId: number): boolean {
+  return estadoId === ESTADO_IDS.ENTREGADO || 
+         estadoId === ESTADO_IDS.ANULADO;
 }

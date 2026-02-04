@@ -18,7 +18,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
     if (req.cookies?.accessToken) {
       token = req.cookies.accessToken;
     }
-    // Prioridad 2: Fallback a Authorization header (compatibilidad temporal)
+    // Prioridad 2: Fallback a Authorization header (compatibilidad)
     else if (req.headers.authorization) {
       const authHeader = req.headers.authorization;
       const [bearer, headerToken] = authHeader.split(' ');
@@ -28,7 +28,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
       }
     }
 
-    // Si no hay token en ninguno de los dos lugares
+    // Si no hay token en ninguno de los lugares
     if (!token) {
       throw AppError.unauthorized('Token no proporcionado');
     }

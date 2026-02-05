@@ -88,6 +88,21 @@ router.patch(
 );
 
 /**
+ * PATCH /fleteros/:id/telefonos - Actualizar teléfonos
+ */
+router.patch(
+  '/:id/telefonos',
+  authorize('ADMIN', 'CHESS'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await controller.updateTelefonos(req, res);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * PATCH /fleteros/:id - Actualizar campo seguimiento
  */
 router.patch(

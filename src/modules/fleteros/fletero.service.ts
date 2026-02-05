@@ -104,6 +104,24 @@ export class FleterosService {
   }
 
   /**
+   * Actualizar teléfonos de un fletero
+   */
+  async updateTelefonos(id: number, telefono1?: string, telefono2?: string): Promise<Fletero> {
+    const fletero = await this.em.findOne(Fletero, { idFletero: id });
+    if (!fletero) throw AppError.notFound(`Fletero con ID ${id} no encontrado`);
+    
+    // Actualizar teléfonos (pueden ser undefined para limpiar)
+    fletero.telefono1 = telefono1 || undefined;
+    fletero.telefono2 = telefono2 || undefined;
+    
+    await this.em.flush();
+    
+    console.log(`✅ Fletero ${fletero.dsFletero} actualizado: telefono1 = ${telefono1 || 'NULL'}, telefono2 = ${telefono2 || 'NULL'}`);
+    
+    return fletero;
+  }
+
+  /**
    * Procesar pedidos pendientes cuando un fletero cambia a liquidacion automática
    * Crea movimientos a TESORERIA para todos los pedidos con cobrado = false
    */

@@ -11,7 +11,14 @@ ON DUPLICATE KEY UPDATE
 
 -- 2. Agregar columna motivoAnulacion a movimientos
 ALTER TABLE movimientos
-ADD COLUMN motivoAnulacion TEXT NULL COMMENT 'Motivo de anulación del pedido (obligatorio cuando estadoFinal = 7)';
+ADD COLUMN motivoAnulacion TEXT NULL COMMENT 'Motivo de anulación del pedido';
+
+-- Agregar columna telefono1
+ALTER TABLE fleteros
+ADD COLUMN telefono1 VARCHAR(255) NULL AFTER liquidacion;
+-- Agregar columna telefono2
+ALTER TABLE fleteros
+ADD COLUMN telefono2 VARCHAR(255) NULL AFTER telefono1;
 
 -- Verificación
 SELECT * FROM tipos_estado WHERE id = 7;

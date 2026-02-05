@@ -15,6 +15,12 @@ export class Fletero {
   @Property({ nullable: false, type: 'boolean', default: false, fieldName: 'liquidacion' })
   liquidacion: boolean = false;
 
+  @Property({ nullable: true, type: 'string' })
+  telefono1?: string;
+
+  @Property({ nullable: true, type: 'string' })
+  telefono2?: string;
+
   @OneToMany(() => Pedido, (pedido) => pedido.fletero)
   pedidos = new Collection<Pedido>(this);
 }

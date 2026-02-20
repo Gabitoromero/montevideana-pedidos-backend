@@ -46,7 +46,7 @@ module.exports = {
       out_file: './logs/scheduler-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
-      max_memory_restart: '300M',
+      max_memory_restart: '800M',
       watch: false,
       ignore_watch: ['node_modules', 'logs'],
     }

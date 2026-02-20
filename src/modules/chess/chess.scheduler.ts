@@ -2,6 +2,8 @@ import cron, { ScheduledTask } from 'node-cron';
 import { ChessService } from './chess.service.js';
 import { MikroORM } from '@mikro-orm/core';
 import type { MySqlDriver } from '@mikro-orm/mysql';
+import { readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
 /**
  * Scheduler para sincronización automática de ventas CHESS
@@ -19,9 +21,40 @@ export class ChessScheduler {
   private readonly MAX_FAILURES = 10;
   private readonly SYNC_INTERVAL_FOR_YESTERDAY = 15; // Cada 15 syncs, re-sincronizar ayer
   private readonly DISCORD_USER_ID = '368473961190916113';
+  private readonly COUNTER_FILE = join('/tmp', 'chess-sync-counter.json');
 
   constructor(orm: MikroORM) {
     this.orm = orm;
+    this.syncCounter = this.loadCounter();
+  }
+
+  /**
+   * Cargar el contador de sincronizaciones desde el archivo persistido
+   */
+  private loadCounter(): number {
+    try {
+      const data = readFileSync(this.COUNTER_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      const value = Number(parsed.syncCounter);
+      if (!isNaN(value) && value >= 0) {
+        console.log(`🔄 Contador de sincronizaciones recuperado: ${value}/${this.SYNC_INTERVAL_FOR_YESTERDAY}`);
+        return value;
+      }
+    } catch {
+      // Si el archivo no existe o está corrupto, empezar desde 0
+    }
+    return 0;
+  }
+
+  /**
+   * Persistir el contador de sincronizaciones en disco
+   */
+  private saveCounter(): void {
+    try {
+      writeFileSync(this.COUNTER_FILE, JSON.stringify({ syncCounter: this.syncCounter }), 'utf-8');
+    } catch (err: any) {
+      console.warn(`⚠️ No se pudo persistir el contador de sync: ${err.message}`);
+    }
   }
 
   /**
@@ -221,8 +254,9 @@ export class ChessScheduler {
 
       this.isRunningYet = true;
       
-      // Incrementar contador de sincronizaciones
+      // Incrementar y persistir contador de sincronizaciones
       this.syncCounter++;
+      this.saveCounter();
       
       // Determinar si toca re-sincronizar el día anterior
       const shouldSyncYesterday = this.syncCounter % this.SYNC_INTERVAL_FOR_YESTERDAY === 0;

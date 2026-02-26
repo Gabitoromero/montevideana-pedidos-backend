@@ -16,7 +16,8 @@ export async function seedTipoEstados(em: EntityManager): Promise<void> {
     { id: 3, nombreEstado: 'EN PREPARACION' },
     { id: 4, nombreEstado: 'PREPARADO' },
     { id: 5, nombreEstado: 'TESORERIA' },
-    { id: 6, nombreEstado: 'ENTREGADO' }
+    { id: 6, nombreEstado: 'ENTREGADO' },
+    { id: 7, nombreEstado: 'ANULADO' }
   ];
 
   for (const estadoData of estados) {

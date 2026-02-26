@@ -5,9 +5,19 @@ export const createMovimientoSchema = z.object({
   idPedido: z.string().regex(/^\d{8}$/, 'El ID de pedido debe ser un string de 8 dígitos'),
   estadoInicial: z.number().int().positive('El estado inicial debe ser un número positivo'),
   estadoFinal: z.number().int().positive('El estado final debe ser un número positivo'),
+  motivoAnulacion: z.string().optional(),
 }).refine((data) => data.estadoInicial !== data.estadoFinal, {
   message: 'El estado inicial y final no pueden ser iguales',
   path: ['estadoFinal'],
+}).refine((data) => {
+  // Si el estado final es ANULADO (7), el motivo es obligatorio
+  if (data.estadoFinal === 7) {
+    return data.motivoAnulacion && data.motivoAnulacion.trim().length > 0;
+  }
+  return true;
+}, {
+  message: 'El motivo de anulación es obligatorio cuando se anula un pedido',
+  path: ['motivoAnulacion'],
 });
 
 export const movimientoIdSchema = z.object({

@@ -164,4 +164,22 @@ export class PedidoController {
       next(error);
     }
   };
+
+  /**
+   * GET /api/pedidos/anulados
+   * Obtener todos los pedidos anulados
+   * Requiere permisos de ADMIN, CHESS o EXPEDICION
+   */
+  findAnulados = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const pedidos = await this.pedidoService.findAnulados();
+
+      res.status(200).json({
+        success: true,
+        data: pedidos,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

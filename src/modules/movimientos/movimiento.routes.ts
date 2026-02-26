@@ -97,10 +97,10 @@ router.get(
   }
 );
 
-// Obtener historial completo de movimientos de un pedido (solo admin y CHESS)
+// Obtener historial completo de movimientos de un pedido
 router.get(
   '/pedido/:idPedido/historial',
-  authorize('ADMIN', 'CHESS'),
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -113,10 +113,10 @@ router.get(
   }
 );
 
-// Obtener movimientos por usuario con rango de fechas (solo admin y CHESS)
+// Obtener movimientos por usuario con rango de fechas
 router.get(
   '/usuario/:idUsuario',
-  authorize('ADMIN', 'CHESS'),
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
   validateSchema(movimientosByUsuarioParamsSchema, 'params'),
   validateSchema(movimientosByUsuarioQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -136,10 +136,10 @@ router.get(
   }
 );
 
-// Obtener movimientos por estado con rango de fechas (solo admin y CHESS)
+// Obtener movimientos por estado con rango de fechas
 router.get(
   '/estado/:estado',
-  authorize('ADMIN', 'CHESS'),
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
   validateSchema(movimientosByEstadoParamsSchema, 'params'),
   validateSchema(movimientosByEstadoQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -159,10 +159,10 @@ router.get(
   }
 );
 
-// Exportar movimientos a Excel (solo ADMIN y CHESS)
+// Exportar movimientos a Excel
 router.get(
   '/export',
-  authorize('ADMIN', 'CHESS'),
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
   validateSchema(exportMovimientosQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

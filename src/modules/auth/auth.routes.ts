@@ -25,7 +25,7 @@ router.post(
       res.cookie(COOKIE_NAMES.ACCESS_TOKEN, result.accessToken, getAccessTokenCookieOptions());
       res.cookie(COOKIE_NAMES.REFRESH_TOKEN, result.refreshToken, getRefreshTokenCookieOptions());
       
-      // Retornar solo datos del usuario (sin tokens en JSON)
+      // Retornar solo datos del usuario (sin tokens en JSON por seguridad)
       res.status(200).json({ 
         success: true, 
         data: {

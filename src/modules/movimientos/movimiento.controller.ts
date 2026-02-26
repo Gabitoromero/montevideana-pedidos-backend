@@ -144,7 +144,35 @@ export class MovimientoController {
       throw AppError.notFound(`Pedido con ID ${sanitizedId} no encontrado`);
     }
 
-    // 5.1. Validar movimientos a TESORERIA según configuración del fletero
+    // 5.1. VALIDACIÓN CRÍTICA: No permitir movimientos si el pedido está anulado
+    // Excepción: ADMIN y CHESS pueden des-anular (mover desde ANULADO a otro estado)
+    if (data.estadoInicial === ESTADO_IDS.ANULADO) {
+      // Solo ADMIN y CHESS pueden des-anular
+      if (
+        usuario.sector !== SECTORES.ADMIN &&
+        usuario.sector !== SECTORES.CHESS
+      ) {
+        throw AppError.badRequest(
+          `El pedido está anulado. Solo usuarios de ADMIN o CHESS pueden reactivarlo`
+        );
+      }
+      // Si es ADMIN o CHESS, permitir des-anular (continuar con el flujo normal)
+    }
+
+    // 5.2. Validación especial para estado ANULADO (anular un pedido)
+    if (data.estadoFinal === ESTADO_IDS.ANULADO) {
+      // Solo ADMIN y CHESS pueden anular pedidos
+      if (
+        usuario.sector !== SECTORES.ADMIN &&
+        usuario.sector !== SECTORES.CHESS
+      ) {
+        throw AppError.badRequest(
+          `Solo usuarios de los sectores ADMIN o CHESS pueden anular pedidos`
+        );
+      }
+    }
+
+    // 5.3. Validar movimientos a TESORERIA según configuración del fletero
     if (data.estadoFinal === ESTADO_IDS.TESORERIA) {
       // Solo permitir movimientos manuales a TESORERIA si el fletero tiene liquidación manual activada
       if (!pedido.fletero.liquidacion) {
@@ -182,17 +210,21 @@ export class MovimientoController {
     }
 
     // 7. Validar que la transición es legal según las reglas de EstadoNecesario
-    const esTransicionLegal = await this.reglaController.validarTransicion(
-      data.idPedido,
-      data.estadoInicial,
-      data.estadoFinal
-    );
-
-    if (!esTransicionLegal) {
-      const sanitizedId = StringUtil.sanitizePedidoId(data.idPedido);
-      throw AppError.badRequest(
-        `Transición ilegal: El pedido ${sanitizedId} no puede pasar al estado "${estadoFinal.nombreEstado}" porque no ha pasado por los estados necesarios previos`
+    // EXCEPCIÓN 1: ANULADO puede alcanzarse desde cualquier estado sin validar reglas
+    // EXCEPCIÓN 2: Se puede salir de ANULADO (des-anular) sin validar reglas
+    if (data.estadoFinal !== ESTADO_IDS.ANULADO && data.estadoInicial !== ESTADO_IDS.ANULADO) {
+      const esTransicionLegal = await this.reglaController.validarTransicion(
+        data.idPedido,
+        data.estadoInicial,
+        data.estadoFinal
       );
+
+      if (!esTransicionLegal) {
+        const sanitizedId = StringUtil.sanitizePedidoId(data.idPedido);
+        throw AppError.badRequest(
+          `Transición ilegal: El pedido ${sanitizedId} no puede pasar al estado "${estadoFinal.nombreEstado}" porque no ha pasado por los estados necesarios previos`
+        );
+      }
     }
 
     // 8. Si el estado final es "Pagado" (id: 5), marcar el pedido como cobrado
@@ -209,6 +241,7 @@ export class MovimientoController {
         estadoInicial: estadoInicial,
         estadoFinal: estadoFinal,
         usuario: usuario,
+        motivoAnulacion: data.motivoAnulacion,
       });
 
       await transactionalEm.persist(nuevoMovimiento).flush();
@@ -734,6 +767,7 @@ export class MovimientoController {
       PREPARADO: ESTADO_IDS.PREPARADO,
       TESORERIA: ESTADO_IDS.TESORERIA,
       ENTREGADO: ESTADO_IDS.ENTREGADO,
+      ANULADO: ESTADO_IDS.ANULADO,
     };
 
     const estadoId = estadoMap[estado];

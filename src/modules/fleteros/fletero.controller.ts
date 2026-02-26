@@ -69,4 +69,17 @@ export class FleterosController {
     const fletero = await service.updateLiquidacion(id, liquidacion);
     res.json({ success: true, data: fletero });
   }
+
+  /**
+   * PATCH /fleteros/:id/telefonos - Actualizar teléfonos
+   */
+  async updateTelefonos(req: Request, res: Response): Promise<void> {
+    const em = fork();
+    const service = new FleterosService(em);
+    const id = parseInt(req.params.id);
+    const { telefono1, telefono2 } = req.body;
+    
+    const fletero = await service.updateTelefonos(id, telefono1, telefono2);
+    res.json({ success: true, data: fletero });
+  }
 }

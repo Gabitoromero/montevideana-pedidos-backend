@@ -111,8 +111,10 @@ export class PedidoService {
           return null;
         }
 
-        // Buscar el último movimiento que NO sea "Pagado" (id: 5)
-        const ultimoMovimiento = movimientos.find(mov => mov.estadoFinal.id !== 5);
+        // Buscar el último movimiento que NO sea "Pagado" (id: 5) NI "Anulado" (id: 7)
+        const ultimoMovimiento = movimientos.find(mov => 
+          mov.estadoFinal.id !== 5 && mov.estadoFinal.id !== 7
+        );
 
         // Si todos los movimientos son "Pagado", no incluir este pedido
         if (!ultimoMovimiento) {
@@ -188,8 +190,10 @@ export class PedidoService {
           return null;
         }
 
-        // Buscar el último movimiento que NO sea "Pagado" (id: 5)
-        const ultimoMovimiento = movimientos.find(mov => mov.estadoFinal.id !== 5);
+        // Buscar el último movimiento que NO sea "Pagado" (id: 5) NI "Anulado" (id: 7)
+        const ultimoMovimiento = movimientos.find(mov => 
+          mov.estadoFinal.id !== 5
+        );
 
         // Si todos los movimientos son "Pagado", no incluir este pedido
         if (!ultimoMovimiento) {
@@ -321,5 +325,77 @@ export class PedidoService {
     await this.em.flush();
 
     return pedido;
+  }
+
+  /**
+   * Obtener todos los pedidos anulados
+   * Retorna pedidos cuyo último movimiento tenga estado final ANULADO (7)
+   */
+  async findAnulados(): Promise<any[]> {
+    // Buscar todos los pedidos con sus movimientos y fletero
+    const pedidos = await this.em.find(
+      Pedido,
+      {},
+      { 
+        populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario', 'fletero'],
+        orderBy: { fechaHora: 'DESC' }
+      }
+    );
+
+    // Filtrar pedidos cuyo último movimiento sea ANULADO (7)
+    const resultado = pedidos
+      .map(pedido => {
+        // Obtener todos los movimientos del pedido ordenados por fecha DESC
+        const movimientos = pedido.movimientos.getItems().sort((a, b) => 
+          b.fechaHora.getTime() - a.fechaHora.getTime()
+        );
+
+        // Si no hay movimientos, no incluir este pedido
+        if (movimientos.length === 0) {
+          return null;
+        }
+
+        const ultimoMovimiento = movimientos[0];
+
+        // Verificar si el estado final del último movimiento es ANULADO (7)
+        if (ultimoMovimiento.estadoFinal.id !== 7) {
+          return null;
+        }
+
+        // Retornar la información del pedido con su último movimiento y fletero
+        return {
+          pedido: {
+            fechaHora: pedido.fechaHora,
+            idPedido: pedido.idPedido,
+            cobrado: pedido.cobrado,
+            fletero: {
+              idFletero: pedido.fletero.idFletero,
+              dsFletero: pedido.fletero.dsFletero,
+              seguimiento: pedido.fletero.seguimiento,
+            },
+          },
+          ultimoMovimiento: {
+            fechaHora: ultimoMovimiento.fechaHora,
+            estadoInicial: {
+              id: ultimoMovimiento.estadoInicial.id,
+              nombreEstado: ultimoMovimiento.estadoInicial.nombreEstado,
+            },
+            estadoFinal: {
+              id: ultimoMovimiento.estadoFinal.id,
+              nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado,
+            },
+            usuario: {
+              id: ultimoMovimiento.usuario.id,
+              nombre: ultimoMovimiento.usuario.nombre,
+              apellido: ultimoMovimiento.usuario.apellido,
+            },
+            motivoAnulacion: ultimoMovimiento.motivoAnulacion,
+          },
+        };
+      })
+      .filter(item => item !== null) // Eliminar nulls
+      .sort((a, b) => b!.ultimoMovimiento.fechaHora.getTime() - a!.ultimoMovimiento.fechaHora.getTime()); // Ordenar por fecha más reciente primero
+
+    return resultado as any[];
   }
 }

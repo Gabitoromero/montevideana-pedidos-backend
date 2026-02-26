@@ -7,26 +7,16 @@ import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js'
 const router = Router();
 const controller = new UsuarioController();
 
-// Todas las rutas de usuarios requieren autenticación y permisos de admin
+// Todas las rutas requieren autenticación
 router.use(authMiddleware);
-router.use(authorize('ADMIN', 'CHESS'));
 
-// Crear usuario (solo admin)
-router.post(
-  '/',
-  validateSchema(createUsuarioSchema, 'body'),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await controller.create(req.body);
-      res.status(201).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// ========== RUTAS DE LECTURA (ADMIN, CHESS, EXPEDICION) ==========
 
 // Obtener todos los usuarios
-router.get( '/', async (req: Request, res: Response, next: NextFunction) => {
+router.get(
+  '/',
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await controller.findAll();
       res.status(200).json({ success: true, data: result });
@@ -39,6 +29,7 @@ router.get( '/', async (req: Request, res: Response, next: NextFunction) => {
 // Obtener usuario por ID
 router.get(
   '/:id',
+  authorize('ADMIN', 'CHESS', 'EXPEDICION'),
   validateSchema(usuarioIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -50,9 +41,27 @@ router.get(
   }
 );
 
+// ========== RUTAS DE ESCRITURA (SOLO ADMIN Y CHESS) ==========
+
+// Crear usuario
+router.post(
+  '/',
+  authorize('ADMIN', 'CHESS'),
+  validateSchema(createUsuarioSchema, 'body'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await controller.create(req.body);
+      res.status(201).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Actualizar usuario
 router.put(
   '/:id',
+  authorize('ADMIN', 'CHESS'),
   validateSchema(usuarioIdSchema, 'params'),
   validateSchema(updateUsuarioSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -65,9 +74,10 @@ router.put(
   }
 );
 
-// Eliminar usuario (solo admin)
+// Eliminar usuario
 router.delete(
   '/:id',
+  authorize('ADMIN', 'CHESS'),
   validateSchema(usuarioIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -82,6 +92,7 @@ router.delete(
 // Cambiar estado usuario (activar/desactivar)
 router.patch(
   '/:id/activar',
+  authorize('ADMIN', 'CHESS'),
   validateSchema(usuarioIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -420,9 +420,9 @@ export class ChessService {
       throw new Error(`Formato inválido de planillaCarga. Esperado: "XXXX - XXXXXXXX", recibido: "${planillaCarga}"`);
     }
     
-    if(match[1] < '00286227'){
-      throw new Error(`PlanillaCarga inválida. Esperado menor a "0000 - 00286227", recibido: "${planillaCarga}"`);
-    }
+    // if(match[1] < '00286227'){
+    //   throw new Error(`PlanillaCarga inválida. Esperado menor a "0000 - 00286227", recibido: "${planillaCarga}"`);
+    // }
 
     return match[1];
   }

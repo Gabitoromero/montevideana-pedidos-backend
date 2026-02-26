@@ -20,10 +20,7 @@ router.use((req, res, next) => {
   RequestContext.create(getORM().em, next);
 });
 
-// Todas las rutas requieren autenticación
-//router.use(authMiddleware);
-
-// Test de conexión a CHESS (temporal - para validar autenticación)
+// Test de conexión a CHESS
 router.post(
   '/test-connection',
   async (req: Request, res: Response, next: NextFunction) => {
@@ -36,7 +33,7 @@ router.post(
   }
 );
 
-// Sincronización manual de ventas CHESS
+// Sincronización manual completa (subproceso 1 + subproceso 2)
 router.post(
   '/sync',
   async (req: Request, res: Response, next: NextFunction) => {
@@ -48,31 +45,7 @@ router.post(
   }
 );
 
-// Sincronización de ventas del día anterior
-router.post(
-  '/sync-dia-anterior',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await getController().syncDiaAnterior(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// Verificar liquidaciones comparando CHESS vs base de datos
-router.get(
-  '/verificar-liquidaciones',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await getController().verificarLiquidaciones(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// Obtener ventas desde CHESS con filtros
+// Obtener ventas desde CHESS con filtros (debug)
 router.get(
   '/ventas',
   async (req: Request, res: Response, next: NextFunction) => {
@@ -94,7 +67,7 @@ router.get(
   }
 );
 
-// Test Discord webhook alert - solo para pruebas
+// Test Discord webhook alert
 router.get(
   '/test-discord-alert',
   async (req: Request, res: Response, next: NextFunction) => {

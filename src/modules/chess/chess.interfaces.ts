@@ -40,21 +40,36 @@ export interface ChessAPIResponse {
   cantComprobantesVentas: string; // "Numero de lote obtenido: 1/21. Cantidad de comprobantes totales: 20989"
 }
 
-// Resultado de la sincronización
+// Resultado parcial de cada subproceso
+export interface SubprocesoResult {
+  pedidosCreados: number;
+  movimientosCreados: number;
+  movimientosTesoreriaCreados: number;
+  errors: string[];
+}
+
+// Resultado completo de la sincronización (ambos subprocesos)
 export interface ChessSyncResult {
   success: boolean;
   timestamp: string;
+
+  // Subproceso 1: Detección de nuevos pedidos
   totalVentasObtenidas: number;
   totalVentasFiltradas: number;
   totalFleterosCreados: number;
   totalFleterosActualizados: number;
   totalPedidosDescartadosPorSeguimiento: number;
+  totalDuplicadosEliminados: number;
   totalPedidosCreados: number;
-  totalPedidosActualizadosConLiquidacion: number;
   totalMovimientosCreados: number;
   totalMovimientosTesoreriaCreados: number;
   lotesProcesados: number;
+
+  // Subproceso 2: Seguimiento de pendientes de liquidación
+  totalPendientesLiquidacion: number;
+  totalPendientesLiquidacionProcesados: number;
+  totalPendientesLiquidacionRestantes: number;
+  totalFechasConsultadas: number;
+
   errors: string[];
 }
-
-

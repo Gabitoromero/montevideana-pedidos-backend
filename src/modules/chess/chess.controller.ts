@@ -38,62 +38,15 @@ export class ChessController {
   }
 
   /**
-   * Endpoint manual para sincronizar ventas de CHESS
+   * Endpoint manual para ejecutar la sincronización completa con CHESS
+   * (Subproceso 1: nuevos pedidos + Subproceso 2: seguimiento de pendientes)
    */
   async sync(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.chessService.syncVentas();
+      const result = await this.chessService.syncConChess();
       res.status(200).json({
         success: true,
         data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Endpoint para sincronizar ventas del día anterior
-   * Se ejecuta automáticamente a las 6:00 AM vía cron
-   */
-  async syncDiaAnterior(req: Request, res: Response, next: NextFunction) {
-    try {
-      const ayer = new Date();
-      ayer.setDate(ayer.getDate() - 1);
-      
-      const result = await this.chessService.syncVentas(ayer);
-      res.status(200).json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Endpoint para verificar liquidaciones
-   * Compara CHESS vs base de datos para detectar inconsistencias
-   */
-  async verificarLiquidaciones(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { fecha } = req.query;
-      
-      let fechaVerificar: Date;
-      if (fecha) {
-        fechaVerificar = new Date(fecha as string);
-      } else {
-        // Por defecto, verificar ayer
-        fechaVerificar = new Date();
-        fechaVerificar.setDate(fechaVerificar.getDate() - 1);
-      }
-      
-      const result = await this.chessService.verificarLiquidaciones(fechaVerificar);
-      
-      res.status(200).json({
-        success: true,
-        data: result,
-        fecha: fechaVerificar.toISOString().split('T')[0],
       });
     } catch (error) {
       next(error);

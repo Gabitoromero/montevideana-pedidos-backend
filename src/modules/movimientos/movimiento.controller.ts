@@ -22,6 +22,7 @@ import {
   puedeRealizarMovimientoExpedicion,
 } from "../../shared/constants/estados.js";
 import { formatInTimeZone } from "date-fns-tz";
+import { WahaService } from "../waha/waha.service.js";
 
 export class MovimientoController {
   private reglaController = new ReglaController();
@@ -248,6 +249,24 @@ export class MovimientoController {
 
       return nuevoMovimiento;
     });
+
+    // Notificar al fletero por WhatsApp cuando el pedido queda PREPARADO.
+    // Fire-and-forget: si WAHA no está disponible, el movimiento ya fue guardado.
+    if (data.estadoFinal === ESTADO_IDS.PREPARADO) {
+      const telefonoDestino = pedido.fletero.telefono1 ?? pedido.fletero.telefono2;
+
+      if (telefonoDestino) {
+        //const hora = formatInTimeZone(movimiento.fechaHora, 'America/Argentina/Buenos_Aires', 'HH:mm');
+        const mensaje = `✅ Pedido *${pedido.idPedido}* listo para retirar.`;
+        const wahaService = new WahaService();
+
+        wahaService.enviarMensaje(telefonoDestino, mensaje).catch((err) =>
+          console.error(`[WAHA] Error al notificar al fletero ${pedido.fletero.dsFletero}:`, err)
+        );
+      } else {
+        console.warn(`[WAHA] Fletero ${pedido.fletero.dsFletero} no tiene teléfono configurado, se omite la notificación`);
+      }
+    }
 
     return {
       fechaHora: movimiento.fechaHora,

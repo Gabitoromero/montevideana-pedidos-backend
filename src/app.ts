@@ -15,6 +15,7 @@ import movimientoRoutes from './modules/movimientos/movimiento.routes.js';
 import chessRoutes from './modules/chess/chess.routes.js';
 import pedidoRoutes from './modules/pedidos/pedido.routes.js';
 import fleteroRoutes from './modules/fleteros/fletero.routes.js';
+import wahaRoutes from './modules/waha/waha.routes.js';
 import { AppError } from './shared/errors/AppError.js';
 
 // Rate limiting configuration
@@ -145,6 +146,7 @@ export const createApp = (): Application => {
   app.use('/api/chess', chessRoutes);
   app.use('/api/pedidos', pedidoRoutes);
   app.use('/api/fleteros', fleteroRoutes);
+  app.use('/api/waha', wahaRoutes);
 
   // 404 Handler
   app.use((req: Request, res: Response) => {

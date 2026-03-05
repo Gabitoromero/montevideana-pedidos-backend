@@ -1,0 +1,13 @@
+services:
+  waha:
+    image: devlikeapro/waha
+    container_name: waha_monthelado
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./sessions:/app/sessions
+    environment:
+      # API key requerida para autenticar requests al servidor WAHA.
+      # Debe coincidir con WAHA_API_KEY en el .env del backend.
+      - WHATSAPP_API_KEY=728f0f3da7824f8a8244c4977dc58b58
+    restart: unless-stopped

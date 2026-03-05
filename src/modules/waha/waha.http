@@ -1,0 +1,7 @@
+### Notificar developer
+POST http://localhost:3001/api/waha/notificar-developer
+Content-Type: application/json
+
+{
+    "mensaje": "Notificación de prueba"
+}

@@ -93,7 +93,7 @@ router.use(authMiddleware);
  */
 router.post(
   '/notificar-developer',
-  authorize('ADMIN', 'CHESS'),
+  //authorize('ADMIN', 'CHESS'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { mensaje } = req.body;

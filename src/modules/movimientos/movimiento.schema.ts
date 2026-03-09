@@ -81,6 +81,22 @@ export const exportMovimientosQuerySchema = z.object({
   path: ['fechaHasta'],
 });
 
+// Schema para la búsqueda dinámica general
+export const busquedaDinamicaQuerySchema = z.object({
+  fechaInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de inicio debe tener el formato YYYY-MM-DD').optional(),
+  fechaFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de fin debe tener el formato YYYY-MM-DD').optional(),
+  idPedido: z.string().regex(/^\d{8}$/, 'El ID de pedido debe ser un string de 8 dígitos').optional(),
+  idUsuario: z.string().regex(/^\d+$/).transform(Number).optional(),
+  sector: z.string().optional(),
+  estado: z.string().regex(/^\d+$/).transform(Number).optional(),
+  search: z.string().optional(),
+  page: z.string().regex(/^\d+$/).transform(Number).optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+}).refine((data) => data.fechaInicio || data.idPedido, {
+  message: 'La fecha de inicio es obligatoria si no se proporciona un ID de pedido',
+  path: ['fechaInicio'],
+});
+
 export type CreateMovimientoDTO = z.infer<typeof createMovimientoSchema>;
 export type MovimientoIdDTO = z.infer<typeof movimientoIdSchema>;
 export type MovimientoPorPedidoDTO = z.infer<typeof movimientoPorPedidoSchema>;
@@ -91,3 +107,4 @@ export type MovimientosByUsuarioQueryDTO = z.infer<typeof movimientosByUsuarioQu
 export type MovimientosByEstadoParamsDTO = z.infer<typeof movimientosByEstadoParamsSchema>;
 export type MovimientosByEstadoQueryDTO = z.infer<typeof movimientosByEstadoQuerySchema>;
 export type ExportMovimientosQueryDTO = z.infer<typeof exportMovimientosQuerySchema>;
+export type BusquedaDinamicaQueryDTO = z.infer<typeof busquedaDinamicaQuerySchema>;

@@ -1,4 +1,5 @@
 import { fork } from "../../shared/db/orm.js";
+import { SqlEntityManager } from '@mikro-orm/mysql';
 import { Movimiento } from "./movimiento.entity.js";
 import { Usuario } from "../usuarios/usuario.entity.js";
 import { TipoEstado } from "../estados/tipoEstado.entity.js";
@@ -9,6 +10,7 @@ import {
   CreateMovimientoDTO,
   MovimientoQueryDTO,
   ExportMovimientosQueryDTO,
+  BusquedaDinamicaQueryDTO,
 } from "./movimiento.schema.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { DateUtil } from "../../shared/utils/date.js";
@@ -1085,5 +1087,114 @@ export class MovimientoController {
     // Generar buffer del archivo Excel
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
+  }
+
+  /**
+   * Búsqueda dinámica de movimientos con múltiples filtros opcionales
+   */
+  async buscarDinamico(filters: BusquedaDinamicaQueryDTO) {
+    const em = fork() as SqlEntityManager;
+    const qb = em.createQueryBuilder(Movimiento, "m");
+
+    const page = filters.page || 1;
+    const limit = filters.limit || 50;
+
+    qb.select("*")
+      .leftJoinAndSelect("m.usuario", "u")
+      .leftJoinAndSelect("m.estadoInicial", "ei")
+      .leftJoinAndSelect("m.estadoFinal", "ef")
+      .leftJoinAndSelect("m.pedido", "p")
+      .leftJoinAndSelect("p.fletero", "f");
+
+    // Filtrar por ID de pedido (suele anular las fechas)
+    if (filters.idPedido) {
+      qb.andWhere({ "p.idPedido": filters.idPedido });
+    } else if (filters.fechaInicio) {
+      // Filtrar por fechas (obligatorias si no hay idPedido)
+      const fechaInicioStr = filters.fechaInicio + "T00:00:00.000";
+      // Si no tenemos fechaFin, buscamos hasta el final del dia de la fechaInicio
+      const fechaFinStr = filters.fechaFin 
+        ? filters.fechaFin + "T23:59:59.999" 
+        : filters.fechaInicio + "T23:59:59.999";
+
+      qb.andWhere({
+        fechaHora: {
+          $gte: new Date(fechaInicioStr),
+          $lte: new Date(fechaFinStr),
+        },
+      });
+    }
+
+    // Filtros opcionales
+    if (filters.idUsuario) {
+      qb.andWhere({ "u.id": filters.idUsuario });
+    }
+
+    if (filters.sector) {
+      qb.andWhere({ "u.sector": filters.sector });
+    }
+
+    if (filters.estado) {
+      qb.andWhere({ "ef.id": filters.estado });
+    }
+
+    // Búsqueda libre (ej. número o nombre del fletero)
+    if (filters.search) {
+      qb.andWhere({ "f.dsFletero": { $like: `%${filters.search}%` } });
+    }
+
+    qb.orderBy({ "m.fechaHora": "DESC" });
+
+    // Clonamos el QueryBuilder para contar el total antes de paginar
+    const countQb = qb.clone();
+    
+    // Obtenemos los totales y luego paginamos para traer la data
+    const total = await countQb.getCount();
+    
+    const movimientos = await qb
+      .limit(limit)
+      .offset((page - 1) * limit)
+      .getResult();
+
+    if (total === 0) {
+      throw AppError.notFound(
+        `No se encontraron movimientos que coincidan con los criterios de búsqueda`
+      );
+    }
+
+    return {
+      data: movimientos.map((m: any) => ({
+        fechaHora: m.fechaHora,
+        pedido: {
+          idPedido: m.pedido.idPedido,
+          fechaHora: m.pedido.fechaHora,
+          fletero: {
+            idFletero: m.pedido.fletero.idFletero,
+            dsFletero: m.pedido.fletero.dsFletero,
+            seguimiento: m.pedido.fletero.seguimiento,
+          },
+        },
+        estadoInicial: {
+            idEstado: m.estadoInicial.id,
+            nombreEstado: m.estadoInicial.nombreEstado,
+        },
+        estadoFinal: {
+            idEstado: m.estadoFinal.id,
+            nombreEstado: m.estadoFinal.nombreEstado,
+        },
+        usuario: {
+          id: m.usuario.id,
+          nombre: m.usuario.nombre,
+          apellido: m.usuario.apellido,
+          sector: m.usuario.sector,
+        },
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }

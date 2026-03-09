@@ -12,6 +12,7 @@ import {
   movimientosByEstadoParamsSchema,
   movimientosByEstadoQuerySchema,
   exportMovimientosQuerySchema,
+  busquedaDinamicaQuerySchema,
 } from './movimiento.schema.js';
 import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js';
 
@@ -45,6 +46,20 @@ router.get(
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
       const result = await controller.findAll(req.query as any, page, limit);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Búsqueda dinámica de movimientos (nueva funcionalidad)
+router.get(
+  '/buscar',
+  validateSchema(busquedaDinamicaQuerySchema, 'query'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await controller.buscarDinamico(req.query as any);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);

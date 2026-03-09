@@ -9,5 +9,19 @@ services:
     environment:
       # API key requerida para autenticar requests al servidor WAHA.
       # Debe coincidir con WAHA_API_KEY en el .env del backend.
-      - WHATSAPP_API_KEY=728f0f3da7824f8a8244c4977dc58b58
+      - WHATSAPP_API_KEY=${WAHA_API_KEY}
+
+      # Motor de ejecución. WEBJS es el más estable para producción.
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+
+      # URL que WAHA llamará (POST) cuando cambie el estado de la sesión.
+      # Docker Compose lee estas variables automáticamente del archivo .env
+      # que está en la misma carpeta que este docker-compose.yml.
+      # Desarrollo : http://host.docker.internal:3001/api/waha/webhook
+      # Producción : https://api.montheladoturnero.com/api/waha/webhook
+      - WHATSAPP_HOOK_URL=${WAHA_HOOK_URL}
+
+      # Solo disparar el webhook para eventos de estado de sesión
+      - WHATSAPP_HOOK_EVENTS=session.status
+
     restart: unless-stopped

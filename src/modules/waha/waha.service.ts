@@ -28,7 +28,42 @@ export class WahaService {
   }
 
   /**
-   * Envía un mensaje de texto a un número de WhatsApp.
+   * Espera un tiempo aleatorio entre minMs y maxMs milisengundos.
+   * Simula comportamiento humano para reducir el riesgo de bloqueo por parte de WhatsApp.
+   */
+  private esperarDelayAleatorio(minMs: number = 1000, maxMs: number = 5000): Promise<void> {
+    const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    console.log(`[WAHA] ⏳ Esperando ${(delay / 1000).toFixed(1)}s antes de enviar (anti-ban)...`);
+    return new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  /**
+   * Cambia el estado de "escribiendo" en el chat.
+   * Útil para simular comportamiento humano (anti-ban).
+   */
+  private async setTyping(chatId: string, isTyping: boolean): Promise<void> {
+    const endpoint = isTyping ? '/api/startTyping' : '/api/stopTyping';
+    try {
+      await axios.post(
+        `${this.baseUrl}${endpoint}`,
+        {
+          chatId,
+          session: this.sessionName,
+        },
+        {
+          headers: {
+            ...(this.apiKey ? { 'X-Api-Key': this.apiKey } : {}),
+          },
+        }
+      );
+    } catch (error) {
+      // Errores de typing son menores, solo los ignoramos
+      console.warn(`[WAHA] No se pudo cambiar estado typing para ${chatId}`);
+    }
+  }
+
+  /**
+   * Envía un mensaje de texto a un número de WhatsApp simulando ser un humano.
    * Si WAHA no está disponible o la sesión no está activa, loguea el error sin lanzarlo.
    *
    * @param telefono - Número en cualquier formato (se limpia internamente)
@@ -38,6 +73,16 @@ export class WahaService {
     const chatId = this.formatearChatId(telefono);
 
     try {
+      // 1. Mostrar "escribiendo..."
+      await this.setTyping(chatId, true);
+
+      // 2. Delay aleatorio proporcional simulando el tiempo de tipeo
+      await this.esperarDelayAleatorio();
+
+      // 3. Detener "escribiendo..."
+      await this.setTyping(chatId, false);
+
+      // 4. Enviar el mensaje real
       await axios.post(
         `${this.baseUrl}/api/sendText`,
         {

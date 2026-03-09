@@ -256,8 +256,14 @@ export class MovimientoController {
       const telefonoDestino = pedido.fletero.telefono1 ?? pedido.fletero.telefono2;
 
       if (telefonoDestino) {
-        //const hora = formatInTimeZone(movimiento.fechaHora, 'America/Argentina/Buenos_Aires', 'HH:mm');
-        const mensaje = `✅ Pedido *${pedido.idPedido}* listo para retirar.`;
+        // Incluir el número de planilla y nombre del fletero para que el mensaje sea
+        // siempre único — WhatsApp detecta mensajes idénticos repetidos (anti-ban).
+        
+        // dsFletero tiene formato: "nro - nombre - desc". Extraemos el nombre (la segunda parte).
+        const partesFletero = pedido.fletero.dsFletero.split('-');
+        const nombreFletero = partesFletero.length >= 2 ? partesFletero[1].trim() : pedido.fletero.dsFletero.trim();
+
+        const mensaje = `Buenas ${nombreFletero}! Tu carga está lista ✅ ${pedido.idPedido}!`;
         const wahaService = new WahaService();
 
         wahaService.enviarMensaje(telefonoDestino, mensaje).catch((err) =>

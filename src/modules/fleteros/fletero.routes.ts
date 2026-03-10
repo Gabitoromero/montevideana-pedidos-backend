@@ -1,6 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { FleterosController } from './fletero.controller.js';
 import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js';
+import { validateSchema } from '../../shared/middlewares/validateSchema.js';
+import { 
+  fleteroIdSchema, 
+  updateTelefonosSchema, 
+  updateLiquidacionSchema, 
+  updateSeguimientoSchema 
+} from './fletero.schema.js';
 
 const router = Router();
 const controller = new FleterosController();
@@ -61,6 +68,7 @@ router.get(
 router.get(
   '/:id',
   authorize('ADMIN', 'CHESS', 'EXPEDICION'),
+  validateSchema(fleteroIdSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await controller.findOne(req, res);
@@ -78,6 +86,8 @@ router.get(
 router.patch(
   '/:id/liquidacion',
   authorize('ADMIN', 'CHESS'),
+  validateSchema(fleteroIdSchema, 'params'),
+  validateSchema(updateLiquidacionSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await controller.updateLiquidacion(req, res);
@@ -93,6 +103,8 @@ router.patch(
 router.patch(
   '/:id/telefonos',
   authorize('ADMIN', 'CHESS'),
+  validateSchema(fleteroIdSchema, 'params'),
+  validateSchema(updateTelefonosSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await controller.updateTelefonos(req, res);
@@ -108,6 +120,8 @@ router.patch(
 router.patch(
   '/:id',
   authorize('ADMIN', 'CHESS'),
+  validateSchema(fleteroIdSchema, 'params'),
+  validateSchema(updateSeguimientoSchema, 'body'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await controller.update(req, res);

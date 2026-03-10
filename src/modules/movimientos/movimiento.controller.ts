@@ -264,13 +264,24 @@ export class MovimientoController {
         // dsFletero tiene formato: "nro - nombre - desc". Extraemos el nombre (la segunda parte).
         const partesFletero = pedido.fletero.dsFletero.split('-');
         const nombreFletero = partesFletero.length >= 2 ? partesFletero[1].trim() : pedido.fletero.dsFletero.trim();
-
-        const mensaje = `Buenas ${nombreFletero}! Tu carga está lista ✅ ${pedido.idPedido}!`;
+        //detectar mañana tarde noche
+        const horaActual = new Date().getHours();
+        let saludo = '';
+        if (horaActual >= 5 && horaActual < 12) {
+          saludo = 'Buenos días';
+        } else if (horaActual >= 12 && horaActual < 20) {
+          saludo = 'Buenas tardes';
+        } else {
+          saludo = 'Buenas noches';
+        }
+        const mensaje = `${saludo} ${nombreFletero}! Tu carga está lista ✅ ${pedido.idPedido}!`;
         const wahaService = new WahaService();
 
-        wahaService.enviarMensaje(telefonoDestino, mensaje).catch((err) =>
-          console.error(`[WAHA] Error al notificar al fletero ${pedido.fletero.dsFletero}:`, err)
-        );
+        if(horaActual < 18 && horaActual > 7){
+          wahaService.enviarMensaje(telefonoDestino, mensaje).catch((err) =>
+            console.error(`[WAHA] Error al notificar al fletero ${pedido.fletero.dsFletero}:`, err)
+          );
+        }
       } else {
         console.warn(`[WAHA] Fletero ${pedido.fletero.dsFletero} no tiene teléfono configurado, se omite la notificación`);
       }
@@ -481,29 +492,6 @@ export class MovimientoController {
     }));
   }
 
-  // async getEstadoActual(nroPedido: string) {
-  //   const em = fork();
-  //   const ultimoMovimiento = await em.find(
-  //     Movimiento,
-  //     { nroPedido },
-  //     {
-  //       populate: ['estadoFinal'],
-  //       orderBy: { fechaHora: 'DESC' },
-  //       limit: 1
-  //     }
-  //   );
-
-  //   if (!ultimoMovimiento) {
-  //     throw AppError.notFound(`No se encontraron movimientos para el pedido ${nroPedido}`);
-  //   }
-
-  //   return {
-  //     nroPedido,
-  //     estadoActual: ultimoMovimiento.estadoFinal,
-  //     nombreEstadoActual: ultimoMovimiento.estadoFinal.nombreEstado,
-  //     fechaUltimoMovimiento: ultimoMovimiento.fechaHora,
-  //   };
-  // }
   async getEstadoActual(idPedido: string) {
     const em = fork();
 

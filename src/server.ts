@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { initORM, RequestContext } from './shared/db/orm.js';
 import { initChessScheduler } from './modules/chess/chess.scheduler.js';
+import { initWahaScheduler } from './modules/waha/waha.scheduler.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -36,12 +37,18 @@ async function bootstrap() {
       const chessScheduler = await initChessScheduler(orm);
       console.log('✅ Scheduler CHESS activo');
 
+      // Iniciar scheduler de WAHA
+      console.log('⏰ Iniciando scheduler de monitoreo WAHA...');
+      const wahaScheduler = initWahaScheduler();
+      console.log('✅ Scheduler WAHA activo');
+
       // Manejo de señales de cierre con scheduler
       const gracefulShutdown = async (signal: string) => {
         console.log(`\n${signal} recibido. Cerrando servidor...`);
         
-        // Detener scheduler
+        // Detener schedulers
         chessScheduler.stop();
+        wahaScheduler.stop();
         
         // Cerrar conexión a BD
         await orm.close();

@@ -3,15 +3,13 @@
 -- Descripción: Agrega el estado ANULADO (ID: 7) y el campo motivoAnulacion a la tabla movimientos
 
 -- 1. Agregar estado ANULADO a tipos_estado
-INSERT INTO
-    tipos_estado (id, nombreEstado)
-VALUES (7, 'ANULADO')
-ON DUPLICATE KEY UPDATE
-    nombreEstado = 'ANULADO';
-
+start transaction;
+    INSERT INTO
+        tipos_estado (id, nombre_estado)
+    VALUES (7, 'ANULADO');
+commit;
 -- 2. Agregar columna motivoAnulacion a movimientos
-ALTER TABLE movimientos
-ADD COLUMN motivoAnulacion TEXT NULL COMMENT 'Motivo de anulación del pedido';
+ALTER TABLE movimientos ADD COLUMN motivo_anulacion;
 
 -- Agregar columna telefono1
 ALTER TABLE fleteros

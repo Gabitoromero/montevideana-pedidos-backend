@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { WahaService } from './waha.service.js';
 import { authMiddleware, authorize } from '../../shared/auth/auth.middleware.js';
 import { AppError } from '../../shared/errors/AppError.js';
+import { sendDiscordAlert } from '../../shared/utils/discord.js';
 
 const router = Router();
 const wahaService = new WahaService();
@@ -20,8 +21,7 @@ const wahaService = new WahaService();
  * Eventos relevantes que maneja este webhook:
  *  - session.status: Cambio de estado de la sesión (WORKING, STOPPED, FAILED, SCAN_QR_CODE)
  *
- * Si la sesión se cae (STOPPED / FAILED), envía una alerta WhatsApp al developer
- * para que reescanee el QR antes de que los fleteros dejen de recibir notificaciones.
+ * Si la sesión se cae (STOPPED / FAILED), envía una alerta a Discord y WhatsApp al developer.
  */
 router.post(
   '/webhook',
@@ -53,21 +53,23 @@ router.post(
 
     if (requiereEscanearQR) {
       const mensaje =
-        `⚠️ *WAHA - QR Requerido*\n` +
+        `⚠️ **WAHA - QR Requerido**\n` +
         `La sesión de WhatsApp "_${sesion}_" requiere escanear el QR nuevamente.\n\n` +
-        `Ingresá a la interfaz de WAHA y escaneá el código QR para restaurar la conexión.`;
+        `Acción: Ingresá a la interfaz de WAHA y escaneá el código QR.`;
 
-      console.warn(`[WAHA Webhook] ⚠️  Sesión requiere QR. Notificando al developer...`);
-      await wahaService.notificarDeveloper(mensaje);
+      console.warn(`[WAHA Webhook] ⚠️  Sesión requiere QR. Notificando...`);
+      await sendDiscordAlert(mensaje, 'CRITICO');
+      await wahaService.notificarDeveloper(mensaje.replace(/\*\*/g, '*'));
 
     } else if (estadosCriticos.includes(status)) {
       const mensaje =
-        `🚨 *WAHA - Sesión Caída*\n` +
-        `La sesión de WhatsApp "_${sesion}_" cambió a estado *${status}*.\n\n` +
-        `Los fleteros NO están recibiendo notificaciones. Revisá el servidor WAHA.`;
+        `🚨 **WAHA - Sesión Caída**\n` +
+        `La sesión de WhatsApp "_${sesion}_" cambió a estado **${status}**.\n\n` +
+        `Los fleteros NO están recibiendo notificaciones.`;
 
-      console.error(`[WAHA Webhook] ❌ Sesión en estado crítico (${status}). Notificando al developer...`);
-      await wahaService.notificarDeveloper(mensaje);
+      console.error(`[WAHA Webhook] ❌ Sesión en estado crítico (${status}). Notificando...`);
+      await sendDiscordAlert(mensaje, 'CRITICO');
+      await wahaService.notificarDeveloper(mensaje.replace(/\*\*/g, '*'));
 
     } else if (status === 'WORKING') {
       console.log(`[WAHA Webhook] ✅ Sesión "${sesion}" operativa (WORKING)`);

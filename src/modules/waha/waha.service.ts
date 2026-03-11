@@ -106,6 +106,29 @@ export class WahaService {
 
 
   /**
+   * Obtiene el estado actual de la sesión desde WAHA.
+   * @returns El estado de la sesión (ej: 'WORKING', 'SCAN_QR_CODE', 'STOPPED', etc.) o 'UNKNOWN' si falla.
+   */
+  async getSessionStatus(): Promise<string> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/sessions`, {
+        headers: {
+          ...(this.apiKey ? { 'X-Api-Key': this.apiKey } : {}),
+        },
+      });
+
+      // WAHA devuelve un array de sesiones. Buscamos la nuestra.
+      const sesiones = response.data;
+      const miSesion = sesiones.find((s: any) => s.name === this.sessionName);
+
+      return miSesion?.status ?? 'STOPPED';
+    } catch (error: any) {
+      console.error(`[WAHA] ❌ Error al obtener estado de sesión: ${error.message}`);
+      return 'UNKNOWN';
+    }
+  }
+
+  /**
    * Envía una notificación al teléfono del developer (TELEFONO_DEVELOPER en .env).
    * Útil para alertas internas del sistema que solo le interesan al administrador.
    * Si la variable de entorno no está configurada, loguea un warning y no hace nada.

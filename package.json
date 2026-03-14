@@ -25,7 +25,7 @@
   ],
   "author": "RomeroSoft",
   "license": "ISC",
-  "packageManager": "pnpm@10.26.0",
+  "packageManager": "pnpm@10.32.1",
   "dependencies": {
     "@mikro-orm/reflection": "^6.3.13",
     "@types/node-cron": "^3.0.11",

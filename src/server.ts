@@ -21,23 +21,23 @@ async function bootstrap() {
       RequestContext.create(orm.em, next);
     });
 
-    // Iniciar servidor
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
-      console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
-      console.log(`📦 Entorno: ${process.env.NODE_ENV || 'development'}`);
-    });
-
     // Iniciar scheduler de CHESS solo si no está desactivado
     const disableScheduler = process.env.DISABLE_SCHEDULER === 'true';
-    
-    if (!disableScheduler) {
+
+    if (disableScheduler) {
+      // SOY UN WORKER DE LA API: Levanto Express
+      app.listen(PORT, () => {
+        console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+        console.log(`📊 Health check: http://localhost:${PORT}/health`);
+        console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
+        console.log(`📦 Entorno: ${process.env.NODE_ENV || 'development'}`);
+      });
+    } else {
+      // SOY EL SCHEDULER: NO levanto Express, solo crons
       console.log('⏰ Iniciando scheduler de sincronización CHESS...');
       const chessScheduler = await initChessScheduler(orm);
       console.log('✅ Scheduler CHESS activo');
 
-      // Iniciar scheduler de WAHA
       console.log('⏰ Iniciando scheduler de monitoreo WAHA...');
       const wahaScheduler = initWahaScheduler();
       console.log('✅ Scheduler WAHA activo');
@@ -45,26 +45,11 @@ async function bootstrap() {
       // Manejo de señales de cierre con scheduler
       const gracefulShutdown = async (signal: string) => {
         console.log(`\n${signal} recibido. Cerrando servidor...`);
-        
+
         // Detener schedulers
         chessScheduler.stop();
         wahaScheduler.stop();
-        
-        // Cerrar conexión a BD
-        await orm.close();
-        console.log('✅ Conexión a base de datos cerrada');
-        process.exit(0);
-      };
 
-      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    } else {
-      console.log('⏭️  Scheduler CHESS desactivado (modo cluster worker)');
-
-      // Manejo de señales de cierre sin scheduler
-      const gracefulShutdown = async (signal: string) => {
-        console.log(`\n${signal} recibido. Cerrando servidor...`);
-        
         // Cerrar conexión a BD
         await orm.close();
         console.log('✅ Conexión a base de datos cerrada');

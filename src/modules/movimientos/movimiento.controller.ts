@@ -274,7 +274,7 @@ export class MovimientoController {
         } else {
           saludo = 'Buenas noches';
         }
-        const mensaje = `${saludo} ${nombreFletero}! Tu carga está lista ✅ ${pedido.idPedido}!`;
+        const mensaje = `${saludo} ${nombreFletero}! Tu carga está lista ✅ ${pedido.idPedido}! Esta respuesta es automática sin monitoreo, por favor no responder.`;
         const wahaService = new WahaService();
 
         if(horaActual < 18 && horaActual > 7){

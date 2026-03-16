@@ -4,7 +4,7 @@ import { initORM, RequestContext } from './shared/db/orm.js';
 import { initChessScheduler } from './modules/chess/chess.scheduler.js';
 import { initWahaScheduler } from './modules/waha/waha.scheduler.js';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 async function bootstrap() {
   try {

@@ -152,7 +152,7 @@ export class ChessScheduler {
     });
 
     console.log('✅ Scheduler CHESS iniciado:');
-    console.log('   - Sincronización: cada 1 minuto, 24/7');
+    console.log('   - Sincronización: cada 5 minuto, 24/7');
     console.log('   - Subproceso 1: Detección de nuevos pedidos');
     console.log('   - Subproceso 2: Seguimiento de pendientes de liquidación');
   }

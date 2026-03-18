@@ -105,10 +105,10 @@ export class ChessScheduler {
   }
 
   /**
-   * Iniciar el scheduler — un único cron job cada 5 minutos, 24/7
+   * Iniciar el scheduler — un único cron job cada 3 minutos, 24/7
    */
   start() {
-    this.taskSync = cron.schedule('*/5 * * * *', async () => {
+    this.taskSync = cron.schedule('*/3 * * * *', async () => {
       if (this.isRunningYet) {
         console.log('⏭️ Sincronización anterior aún en progreso, omitiendo...');
         return;

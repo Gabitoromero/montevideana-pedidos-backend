@@ -746,7 +746,7 @@ export class ChessService {
 
           if (debeCrearTesoreria) {
             // Esperar 1 segundo para evitar colisión de PK en MySQL (fechaHora se redondea a segundos)
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // await new Promise(resolve => setTimeout(resolve, 1000));
             
             // Crear movimiento PENDIENTE → TESORERÍA
             const movimientoTesoreria = transactionalEm.create(Movimiento, {

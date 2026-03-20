@@ -26,6 +26,7 @@ export class WahaScheduler {
       
       try {
         const status = await this.wahaService.getSessionStatus();
+        console.log(`🔍 [WAHA Scheduler] Estado actual: ${status}, Último estado alertado: ${this.lastAlertedStatus}`);
         
         if (status === 'WORKING') {
           // Si volvió a la normalidad después de un error, avisamos o reseteamos
@@ -33,8 +34,16 @@ export class WahaScheduler {
             console.log('✅ [WAHA Scheduler] La sesión volvió a estado WORKING');
             this.lastAlertedStatus = 'WORKING';
             const mensaje = `La sesión de WhatsApp volvió a estado WORKING`;
-            await sendDiscordAlert(mensaje, 'INFO');
-            await this.wahaService.notificarDeveloper(mensaje);
+            try {
+              await sendDiscordAlert(mensaje, 'INFO');
+            } catch (error) {
+              console.error('❌ Error al enviar alerta a Discord', );
+            }
+            try {
+              await this.wahaService.notificarDeveloper(mensaje);
+            } catch (error) {
+              console.error('❌ Error al notificar al desarrollador', );
+            }
           }
           return;
         }
@@ -46,13 +55,16 @@ export class WahaScheduler {
             const mensaje = `La sesión de WhatsApp no está operativa.\n` +
                           `Estado actual: **${status}**\n\n` +
                           `Acción sugerida: Revisar el contenedor WAHA y reescanear el código QR si es necesario.`;
-            
-            await sendDiscordAlert(mensaje, 'CRITICO');
+            try {
+              await sendDiscordAlert(mensaje, 'CRITICO');
+            } catch (error) {
+              console.error('❌ Error al enviar alerta de estado anómalo', );
+            }
             this.lastAlertedStatus = status;
         }
 
       } catch (error: any) {
-        console.error('❌ [WAHA Scheduler] Error al procesar health check:', error.message);
+        console.error('❌ [WAHA Scheduler] Error al procesar health check', );
       }
     }, {
       timezone: "America/Argentina/Buenos_Aires"

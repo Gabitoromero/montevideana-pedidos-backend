@@ -4,10 +4,10 @@ module.exports = {
       name: 'montevideana-api',
       script: './dist/server.js',
       instances: 1,
-      exec_mode: 'cluster',
+      exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        DISABLE_SCHEDULER: 'true', // Desactivar scheduler en workers del cluster
+        DISABLE_SCHEDULER: 'true',
         ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174',
         TZ: 'America/Argentina/Buenos_Aires'
       },
@@ -32,7 +32,7 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        DISABLE_SCHEDULER: 'false', // Activar scheduler solo en este proceso
+        DISABLE_SCHEDULER: 'false',
         ALLOWED_ORIGINS: 'https://montheladoturnero.com,https://www.montheladoturnero.com,http://localhost:5174',
         TZ: 'America/Argentina/Buenos_Aires'
       },

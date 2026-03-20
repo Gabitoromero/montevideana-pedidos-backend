@@ -31,7 +31,7 @@ orm = await MikroORM.init<MySqlDriver>({
         // MikroORM maneja el pool directamente, no dentro de driverOptions
         pool: {
             min: 2,
-            max: 10,
+            max: 5,
             idleTimeoutMillis: 30000,
             acquireTimeoutMillis: 10000 // Aquí es donde debe ir el acquireTimeout
         },

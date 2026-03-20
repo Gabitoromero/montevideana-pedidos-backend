@@ -72,8 +72,14 @@ router.get(
   '/pedido/:idPedido/fecha/:fechaHora',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idPedido = req.params.idPedido;
-      const fechaHora = new Date(req.params.fechaHora);
+      const idPedido = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
+      const fechaHoraParam = Array.isArray(req.params.fechaHora) ? req.params.fechaHora[0] : req.params.fechaHora;
+      const fechaHora = new Date(fechaHoraParam);
+
+      if (isNaN(fechaHora.getTime())) {
+        throw new Error('Invalid date format');
+      }
+
       const result = await controller.findByPedidoAndFecha(idPedido, fechaHora);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -88,7 +94,7 @@ router.get(
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idPedido = req.params.idPedido;
+      const idPedido = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
       const result = await controller.findByIdPedido(idPedido);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -103,7 +109,7 @@ router.get(
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idPedido = req.params.idPedido;
+      const idPedido = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
       const result = await controller.getEstadoActual(idPedido);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -119,7 +125,7 @@ router.get(
   validateSchema(movimientoPorPedidoSchema, 'params'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idPedido = req.params.idPedido;
+      const idPedido = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
       const result = await controller.findMovimientosByPedido(idPedido);
       res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -136,13 +142,23 @@ router.get(
   validateSchema(movimientosByUsuarioQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const idUsuario = parseInt(req.params.idUsuario);
+      const idUsuarioParam = Array.isArray(req.params.idUsuario) ? req.params.idUsuario[0] : req.params.idUsuario;
+      const idUsuario = parseInt(idUsuarioParam, 10);
+
+      if (isNaN(idUsuario)) {
+        throw new Error('Invalid user ID');
+      }
+
       const { fechaInicio, fechaFin, page } = req.query as any;
+      const fechaInicioStr = Array.isArray(fechaInicio) ? fechaInicio[0] : fechaInicio;
+      const fechaFinStr = Array.isArray(fechaFin) ? fechaFin[0] : fechaFin;
+      const pageNum = Array.isArray(page) ? parseInt(page[0], 10) : parseInt(page, 10) || 1;
+
       const result = await controller.findMovimientosByUsuario(
         idUsuario,
-        fechaInicio,
-        fechaFin,
-        page || 1
+        fechaInicioStr,
+        fechaFinStr,
+        pageNum
       );
       res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -159,13 +175,21 @@ router.get(
   validateSchema(movimientosByEstadoQuerySchema, 'query'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { estado } = req.params;
+      const estadoParam = Array.isArray(req.params.estado) ? req.params.estado[0] : req.params.estado;
       const { fechaInicio, fechaFin, page } = req.query as any;
+      const fechaInicioStr = Array.isArray(fechaInicio) ? fechaInicio[0] : fechaInicio;
+      const fechaFinStr = Array.isArray(fechaFin) ? fechaFin[0] : fechaFin;
+      const pageNum = Array.isArray(page) ? parseInt(page[0], 10) : parseInt(page, 10) || 1;
+
+      if (typeof fechaInicioStr !== 'string' || typeof fechaFinStr !== 'string') {
+        throw new Error('Invalid date range');
+      }
+
       const result = await controller.findMovimientosByEstado(
-        estado,
-        fechaInicio,
-        fechaFin,
-        page || 1
+        estadoParam,
+        fechaInicioStr,
+        fechaFinStr,
+        pageNum
       );
       res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -207,5 +231,28 @@ router.post(
     }
   }
 );
+/*
 
+// Obtener movimiento por pedido y estado final
+router.get(
+  '/pedido/:idPedido/estado-final/:idEstadoFinal',
+  validateSchema(movimientoPorPedidoSchema, 'params'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const idPedidoParam = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
+      const idEstadoFinalParam = Array.isArray(req.params.idEstadoFinal) ? req.params.idEstadoFinal[0] : req.params.idEstadoFinal;
+      const idEstadoFinal = parseInt(idEstadoFinalParam, 10);
+
+      if (isNaN(idEstadoFinal)) {
+        throw new Error('Invalid final state ID');
+      }
+
+      const result = await controller.findByPedidoAndEstadoFinal(idPedidoParam, idEstadoFinal);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+*/
 export default router;

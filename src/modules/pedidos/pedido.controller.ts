@@ -29,7 +29,7 @@ export class PedidoController {
    */
   findOne = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { idPedido } = req.params;
+      const idPedido = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
       
       const pedido = await this.pedidoService.findByIdPedidoSimple(idPedido);
 
@@ -73,7 +73,7 @@ export class PedidoController {
    */
   findByEstadoFinal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { idEstado } = req.params;
+      const idEstado = Array.isArray(req.params.idEstado) ? req.params.idEstado[0] : req.params.idEstado;
       const idEstadoNum = parseInt(idEstado, 10);
 
       if (isNaN(idEstadoNum)) {
@@ -102,7 +102,7 @@ export class PedidoController {
    */
   findByEstadoFinalOrdered = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { idEstado } = req.params;
+      const idEstado = Array.isArray(req.params.idEstado) ? req.params.idEstado[0] : req.params.idEstado;
       const idEstadoNum = parseInt(idEstado, 10);
 
       if (isNaN(idEstadoNum)) {
@@ -130,7 +130,7 @@ export class PedidoController {
    */
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { idPedido } = req.params;
+      const idPedido = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
 
       await this.pedidoService.delete(idPedido);
 
@@ -150,7 +150,7 @@ export class PedidoController {
    */
   actualizarCalificacion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { idPedido } = req.params;
+      const idPedido = Array.isArray(req.params.idPedido) ? req.params.idPedido[0] : req.params.idPedido;
       const { calificacion, pin } = req.body;
 
       const pedidoActualizado = await this.pedidoService.actualizarCalificacion(idPedido, calificacion, pin);
@@ -182,4 +182,34 @@ export class PedidoController {
       next(error);
     }
   };
+
+  /**
+   * GET /api/pedidos/:idPedido/estado/:idEstadoFinal
+   * Obtener movimientos de un pedido cuyo último movimiento tenga un estado final específico
+   */
+  /*
+  findMovimientosByPedidoAndEstadoFinal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { idPedido, idEstadoFinal } = req.params;
+      const idEstadoFinalNum = parseInt(idEstadoFinal, 10);
+
+      if (isNaN(idEstadoFinalNum)) {
+        res.status(400).json({
+          success: false,
+          message: 'El ID del estado final debe ser un número válido',
+        });
+        return;
+      }
+
+      const movimientos = await this.pedidoService.findMovimientosByPedidoAndEstadoFinal(idPedido, idEstadoFinalNum);
+
+      res.status(200).json({
+        success: true,
+        data: movimientos,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+  */
 }

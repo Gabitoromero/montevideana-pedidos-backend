@@ -37,3 +37,5 @@ node_modules
 
 # WAHA (WhatsApp Web API) - sesiones del browser, no deben trackearse
 sessions/
+
+logs/*

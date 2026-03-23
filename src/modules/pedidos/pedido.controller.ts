@@ -88,7 +88,7 @@ export class PedidoController {
       
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const sortBy = (req.query.sortBy as string) || 'm.fecha_hora';
+      const sortBy = (req.query.sortBy as string) || 'm.fechaHora';
       const sortOrder = (req.query.sortOrder as 'ASC' | 'DESC') || 'ASC';
 
       if (isNaN(idEstadoNum)) {
@@ -210,7 +210,7 @@ export class PedidoController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const sortBy = (req.query.sortBy as string) || 'm.fecha_hora';
+      const sortBy = (req.query.sortBy as string) || 'm.fechaHora';
       const sortOrder = (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC';
 
       const { items, total } = await this.pedidoService.findAnulados(page, limit, sortBy, sortOrder);

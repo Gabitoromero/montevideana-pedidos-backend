@@ -105,25 +105,18 @@ export class PedidoService {
    * Buscar todos los pedidos cuyo último movimiento tenga un estado final específico
    * Soporta paginación
    */
-  async findByEstadoFinal(idEstado: number, page = 1, limit = 50, sortBy = 'm.fecha_hora', sortOrder: 'ASC' | 'DESC' = 'ASC'): Promise<{ items: any[], total: number }> {
+  async findByEstadoFinal(idEstado: number, page = 1, limit = 50, sortBy = 'm.fechaHora', sortOrder: 'ASC' | 'DESC' = 'ASC'): Promise<{ items: any[], total: number }> {
     const offset = (page - 1) * limit;
 
     const qb = this.em.createQueryBuilder(Pedido, 'p');
     
     // Solo seleccionamos los campos necesarios para evitar overhead de datos
-    qb.select([
-      'p.idPedido', 'p.fechaHora', 'p.cobrado',
-      'f.id_fletero', 'f.ds_fletero', 'f.seguimiento',
-      'm.fecha_hora',
-      'ef.id', 'ef.nombre_estado',
-      'ei.id', 'ei.nombre_estado',
-      'u.id', 'u.nombre', 'u.apellido'
-    ])
-    .join('p.fletero', 'f')
-    .join('p.movimientos', 'm')
-    .join('m.estadoFinal', 'ef')
-    .join('m.estadoInicial', 'ei')
-    .join('m.usuario', 'u')
+    qb.select('p.*')
+    .innerJoinAndSelect('p.fletero', 'f')
+    .innerJoinAndSelect('p.movimientos', 'm')
+    .innerJoinAndSelect('m.estadoFinal', 'ef')
+    .innerJoinAndSelect('m.estadoInicial', 'ei')
+    .innerJoinAndSelect('m.usuario', 'u')
     .where({ 'ef.id': idEstado })
     // Subconsulta para asegurar que el movimiento 'm' es el último del pedido (excluyendo estado 5 - PAGADO)
     .andWhere('m.fecha_hora = (SELECT MAX(m2.fecha_hora) FROM movimientos m2 WHERE m2.pedido_id_pedido = p.id_pedido AND m2.estado_final_id != 5)')
@@ -175,19 +168,12 @@ export class PedidoService {
 
     const qb = this.em.createQueryBuilder(Pedido, 'p');
     
-    qb.select([
-      'p.idPedido', 'p.fechaHora', 'p.cobrado',
-      'f.id_fletero', 'f.ds_fletero', 'f.seguimiento',
-      'm.fecha_hora',
-      'ef.id', 'ef.nombre_estado',
-      'ei.id', 'ei.nombre_estado',
-      'u.id', 'u.nombre', 'u.apellido'
-    ])
-    .join('p.fletero', 'f')
-    .join('p.movimientos', 'm')
-    .join('m.estadoFinal', 'ef')
-    .join('m.estadoInicial', 'ei')
-    .join('m.usuario', 'u')
+    qb.select('p.*')
+    .innerJoinAndSelect('p.fletero', 'f')
+    .innerJoinAndSelect('p.movimientos', 'm')
+    .innerJoinAndSelect('m.estadoFinal', 'ef')
+    .innerJoinAndSelect('m.estadoInicial', 'ei')
+    .innerJoinAndSelect('m.usuario', 'u')
     .where({ 'ef.id': idEstado })
     .andWhere('m.fecha_hora = (SELECT MAX(m2.fecha_hora) FROM movimientos m2 WHERE m2.pedido_id_pedido = p.id_pedido AND m2.estado_final_id != 5)')
     .orderBy({ [sortBy]: sortOrder })
@@ -320,24 +306,17 @@ export class PedidoService {
    * Retorna pedidos cuyo último movimiento tenga estado final ANULADO (7)
    * Soporta paginación
    */
-  async findAnulados(page = 1, limit = 50, sortBy = 'm.fecha_hora', sortOrder: 'ASC' | 'DESC' = 'DESC'): Promise<{ items: any[], total: number }> {
+  async findAnulados(page = 1, limit = 50, sortBy = 'm.fechaHora', sortOrder: 'ASC' | 'DESC' = 'DESC'): Promise<{ items: any[], total: number }> {
     const offset = (page - 1) * limit;
 
     const qb = this.em.createQueryBuilder(Pedido, 'p');
     
-    qb.select([
-      'p.idPedido', 'p.fechaHora', 'p.cobrado',
-      'f.id_fletero', 'f.ds_fletero', 'f.seguimiento',
-      'm.fecha_hora', 'm.motivo_anulacion',
-      'ef.id', 'ef.nombre_estado',
-      'ei.id', 'ei.nombre_estado',
-      'u.id', 'u.nombre', 'u.apellido'
-    ])
-    .join('p.fletero', 'f')
-    .join('p.movimientos', 'm')
-    .join('m.estadoFinal', 'ef')
-    .join('m.estadoInicial', 'ei')
-    .join('m.usuario', 'u')
+    qb.select('p.*')
+    .innerJoinAndSelect('p.fletero', 'f')
+    .innerJoinAndSelect('p.movimientos', 'm')
+    .innerJoinAndSelect('m.estadoFinal', 'ef')
+    .innerJoinAndSelect('m.estadoInicial', 'ei')
+    .innerJoinAndSelect('m.usuario', 'u')
     .where({ 'ef.id': 7 })
     // Para anulados, el último movimiento DEBE ser el 7 (no aplicamos la exclusión del 5 aquí ya que buscamos específicamente el 7 como final)
     .andWhere('m.fecha_hora = (SELECT MAX(m2.fecha_hora) FROM movimientos m2 WHERE m2.pedido_id_pedido = p.id_pedido)')

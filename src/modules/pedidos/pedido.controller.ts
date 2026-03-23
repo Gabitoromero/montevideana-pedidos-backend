@@ -10,13 +10,23 @@ export class PedidoController {
    */
   findAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { fecha } = req.query;
+      const fecha = req.query.fecha as string;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
 
-      const pedidos = await this.pedidoService.findAll(fecha as string | undefined);
+      const { items, total } = await this.pedidoService.findAll(fecha, page, limit);
 
       res.status(200).json({
         success: true,
-        data: pedidos,
+        data: {
+          data: items,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        },
       });
     } catch (error) {
       next(error);
@@ -75,6 +85,11 @@ export class PedidoController {
     try {
       const idEstado = Array.isArray(req.params.idEstado) ? req.params.idEstado[0] : req.params.idEstado;
       const idEstadoNum = parseInt(idEstado, 10);
+      
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const sortBy = (req.query.sortBy as string) || 'm.fecha_hora';
+      const sortOrder = (req.query.sortOrder as 'ASC' | 'DESC') || 'ASC';
 
       if (isNaN(idEstadoNum)) {
         res.status(400).json({
@@ -84,11 +99,19 @@ export class PedidoController {
         return;
       }
 
-      const pedidos = await this.pedidoService.findByEstadoFinal(idEstadoNum);
+      const { items, total } = await this.pedidoService.findByEstadoFinal(idEstadoNum, page, limit, sortBy, sortOrder);
 
       res.status(200).json({
         success: true,
-        data: pedidos,
+        data: {
+          data: items,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+          }
+        }
       });
     } catch (error) {
       next(error);
@@ -105,6 +128,11 @@ export class PedidoController {
       const idEstado = Array.isArray(req.params.idEstado) ? req.params.idEstado[0] : req.params.idEstado;
       const idEstadoNum = parseInt(idEstado, 10);
 
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const sortBy = (req.query.sortBy as string) || 'p.idPedido';
+      const sortOrder = (req.query.sortOrder as 'ASC' | 'DESC') || 'ASC';
+
       if (isNaN(idEstadoNum)) {
         res.status(400).json({
           success: false,
@@ -113,11 +141,19 @@ export class PedidoController {
         return;
       }
 
-      const pedidos = await this.pedidoService.findByEstadoFinalOrderedByIdPedido(idEstadoNum);
+      const { items, total } = await this.pedidoService.findByEstadoFinalOrderedByIdPedido(idEstadoNum, page, limit, sortBy, sortOrder);
 
       res.status(200).json({
         success: true,
-        data: pedidos,
+        data: {
+          data: items,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+          }
+        }
       });
     } catch (error) {
       next(error);
@@ -172,44 +208,27 @@ export class PedidoController {
    */
   findAnulados = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const pedidos = await this.pedidoService.findAnulados();
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const sortBy = (req.query.sortBy as string) || 'm.fecha_hora';
+      const sortOrder = (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC';
+
+      const { items, total } = await this.pedidoService.findAnulados(page, limit, sortBy, sortOrder);
 
       res.status(200).json({
         success: true,
-        data: pedidos,
+        data: {
+          data: items,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+          }
+        }
       });
     } catch (error) {
       next(error);
     }
   };
-
-  /**
-   * GET /api/pedidos/:idPedido/estado/:idEstadoFinal
-   * Obtener movimientos de un pedido cuyo último movimiento tenga un estado final específico
-   */
-  /*
-  findMovimientosByPedidoAndEstadoFinal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { idPedido, idEstadoFinal } = req.params;
-      const idEstadoFinalNum = parseInt(idEstadoFinal, 10);
-
-      if (isNaN(idEstadoFinalNum)) {
-        res.status(400).json({
-          success: false,
-          message: 'El ID del estado final debe ser un número válido',
-        });
-        return;
-      }
-
-      const movimientos = await this.pedidoService.findMovimientosByPedidoAndEstadoFinal(idPedido, idEstadoFinalNum);
-
-      res.status(200).json({
-        success: true,
-        data: movimientos,
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
-  */
 }

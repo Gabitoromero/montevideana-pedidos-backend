@@ -1,4 +1,4 @@
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager } from '@mikro-orm/mysql';
 import { Pedido } from './pedido.entity.js';
 import { AppError } from '../../shared/errors/AppError.js';
 
@@ -55,24 +55,35 @@ export class PedidoService {
   /**
    * Listar todos los pedidos o filtrar por fecha
    */
-  async findAll(fecha?: string): Promise<Pedido[]> {
+  async findAll(fecha?: string, page = 1, limit = 50): Promise<{ items: any[], total: number }> {
     if (fecha) {
-      return this.findByDate(new Date(fecha));
+      return this.findByDate(new Date(fecha), page, limit);
     }
-    return this.em.find(Pedido, {}, { populate: ['movimientos', 'fletero'] });
+    // Optimización: No cargamos movimientos por defecto para evitar performance pobre en listas grandes
+    const [items, total] = await this.em.findAndCount(
+      Pedido, 
+      {}, 
+      { 
+        populate: ['fletero'], 
+        orderBy: { idPedido: 'ASC' },
+        limit,
+        offset: (page - 1) * limit
+      }
+    );
+    return { items, total };
   }
 
   /**
    * Buscar pedidos por fecha
    */
-  async findByDate(fecha: Date): Promise<Pedido[]> {
+  async findByDate(fecha: Date, page = 1, limit = 50): Promise<{ items: any[], total: number }> {
     const startOfDay = new Date(fecha);
     startOfDay.setHours(0, 0, 0, 0);
     
     const endOfDay = new Date(fecha);
     endOfDay.setHours(23, 59, 59, 999);
 
-    return this.em.find(
+    const [items, total] = await this.em.findAndCount(
       Pedido,
       {
         fechaHora: {
@@ -80,164 +91,141 @@ export class PedidoService {
           $lte: endOfDay,
         },
       },
-      { populate: ['movimientos', 'fletero'] }
+      { 
+        populate: ['fletero'], 
+        orderBy: { idPedido: 'ASC' },
+        limit,
+        offset: (page - 1) * limit
+      }
     );
+    return { items, total };
   }
 
   /**
    * Buscar todos los pedidos cuyo último movimiento tenga un estado final específico
+   * Soporta paginación
    */
-  async findByEstadoFinal(idEstado: number): Promise<any[]> {
-    // Buscar todos los pedidos con sus movimientos y fletero
-    const pedidos = await this.em.find(
-      Pedido,
-      {},
-      { 
-        populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario', 'fletero'],
-        orderBy: { fechaHora: 'ASC' }
-      }
-    );
+  async findByEstadoFinal(idEstado: number, page = 1, limit = 50, sortBy = 'm.fecha_hora', sortOrder: 'ASC' | 'DESC' = 'ASC'): Promise<{ items: any[], total: number }> {
+    const offset = (page - 1) * limit;
 
-    // Filtrar pedidos cuyo último movimiento tenga el estado final buscado
-    const resultado = pedidos
-      .map(pedido => {
-        // Obtener todos los movimientos del pedido ordenados por fecha DESC
-        const movimientos = pedido.movimientos.getItems().sort((a, b) => 
-          b.fechaHora.getTime() - a.fechaHora.getTime()
-        );
+    const qb = this.em.createQueryBuilder(Pedido, 'p');
+    
+    // Solo seleccionamos los campos necesarios para evitar overhead de datos
+    qb.select([
+      'p.idPedido', 'p.fechaHora', 'p.cobrado',
+      'f.id_fletero', 'f.ds_fletero', 'f.seguimiento',
+      'm.fecha_hora',
+      'ef.id', 'ef.nombre_estado',
+      'ei.id', 'ei.nombre_estado',
+      'u.id', 'u.nombre', 'u.apellido'
+    ])
+    .join('p.fletero', 'f')
+    .join('p.movimientos', 'm')
+    .join('m.estadoFinal', 'ef')
+    .join('m.estadoInicial', 'ei')
+    .join('m.usuario', 'u')
+    .where({ 'ef.id': idEstado })
+    // Subconsulta para asegurar que el movimiento 'm' es el último del pedido (excluyendo estado 5 - PAGADO)
+    .andWhere('m.fecha_hora = (SELECT MAX(m2.fecha_hora) FROM movimientos m2 WHERE m2.pedido_id_pedido = p.id_pedido AND m2.estado_final_id != 5)')
+    .orderBy({ [sortBy]: sortOrder })
+    .limit(limit)
+    .offset(offset);
 
-        // Si no hay movimientos, no incluir este pedido
-        if (movimientos.length === 0) {
-          return null;
-        }
+    const [pedidosRaw, total] = await qb.getResultAndCount();
 
-        // Buscar el último movimiento que NO sea "Pagado" (id: 5) NI "Anulado" (id: 7)
-        const ultimoMovimiento = movimientos.find(mov => 
-          mov.estadoFinal.id !== 5 && mov.estadoFinal.id !== 7
-        );
+    const result = pedidosRaw.map((p: any) => ({
+      pedido: {
+        fechaHora: (p as any).fechaHora,
+        idPedido: p.idPedido,
+        cobrado: p.cobrado,
+        fletero: {
+          idFletero: (p as any).fletero.idFletero,
+          dsFletero: (p as any).fletero.dsFletero,
+          seguimiento: (p as any).fletero.seguimiento,
+        },
+      },
+      ultimoMovimiento: {
+        fechaHora: (p as any).movimientos[0].fechaHora,
+        estadoInicial: {
+          id: (p as any).movimientos[0].estadoInicial.id,
+          nombreEstado: (p as any).movimientos[0].estadoInicial.nombreEstado,
+        },
+        estadoFinal: {
+          id: (p as any).movimientos[0].estadoFinal.id,
+          nombreEstado: (p as any).movimientos[0].estadoFinal.nombreEstado,
+        },
+        usuario: {
+          id: (p as any).movimientos[0].usuario.id,
+          nombre: (p as any).movimientos[0].usuario.nombre,
+          apellido: (p as any).movimientos[0].usuario.apellido,
+        },
+      },
+    }));
 
-        // Si todos los movimientos son "Pagado", no incluir este pedido
-        if (!ultimoMovimiento) {
-          return null;
-        }
-
-        // Verificar si el estado final del último movimiento coincide
-        if (ultimoMovimiento.estadoFinal.id !== idEstado) {
-          return null;
-        }
-
-        // Retornar la información del pedido con su último movimiento y fletero
-        return {
-          pedido: {
-            fechaHora: pedido.fechaHora,
-            idPedido: pedido.idPedido,
-            cobrado: pedido.cobrado,
-            fletero: {
-              idFletero: pedido.fletero.idFletero,
-              dsFletero: pedido.fletero.dsFletero,
-              seguimiento: pedido.fletero.seguimiento,
-            },
-          },
-          ultimoMovimiento: {
-            fechaHora: ultimoMovimiento.fechaHora,
-            estadoInicial: {
-              id: ultimoMovimiento.estadoInicial.id,
-              nombreEstado: ultimoMovimiento.estadoInicial.nombreEstado,
-            },
-            estadoFinal: {
-              id: ultimoMovimiento.estadoFinal.id,
-              nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado,
-            },
-            usuario: {
-              id: ultimoMovimiento.usuario.id,
-              nombre: ultimoMovimiento.usuario.nombre,
-              apellido: ultimoMovimiento.usuario.apellido,
-            },
-          },
-        };
-      })
-      .filter(item => item !== null) // Eliminar nulls
-      .sort((a, b) => a!.ultimoMovimiento.fechaHora.getTime() - b!.ultimoMovimiento.fechaHora.getTime()); // Ordenar por fecha más antigua primero (ASC)
-
-    return resultado as any[];
+    return { items: result, total };
   }
 
   /**
    * Buscar todos los pedidos cuyo último movimiento tenga un estado final específico
    * Ordenados por idPedido (ASC)
+   * Soporta paginación
    */
-  async findByEstadoFinalOrderedByIdPedido(idEstado: number): Promise<any[]> {
-    // Buscar todos los pedidos con sus movimientos y fletero
-    const pedidos = await this.em.find(
-      Pedido,
-      {},
-      { 
-        populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario', 'fletero'],
-        orderBy: { idPedido: 'ASC' }
-      }
-    );
+  async findByEstadoFinalOrderedByIdPedido(idEstado: number, page = 1, limit = 50, sortBy = 'p.idPedido', sortOrder: 'ASC' | 'DESC' = 'ASC'): Promise<{ items: any[], total: number }> {
+    const offset = (page - 1) * limit;
 
-    // Filtrar pedidos cuyo último movimiento tenga el estado final buscado
-    const resultado = pedidos
-      .map(pedido => {
-        // Obtener todos los movimientos del pedido ordenados por fecha DESC
-        const movimientos = pedido.movimientos.getItems().sort((a, b) => 
-          b.fechaHora.getTime() - a.fechaHora.getTime()
-        );
+    const qb = this.em.createQueryBuilder(Pedido, 'p');
+    
+    qb.select([
+      'p.idPedido', 'p.fechaHora', 'p.cobrado',
+      'f.id_fletero', 'f.ds_fletero', 'f.seguimiento',
+      'm.fecha_hora',
+      'ef.id', 'ef.nombre_estado',
+      'ei.id', 'ei.nombre_estado',
+      'u.id', 'u.nombre', 'u.apellido'
+    ])
+    .join('p.fletero', 'f')
+    .join('p.movimientos', 'm')
+    .join('m.estadoFinal', 'ef')
+    .join('m.estadoInicial', 'ei')
+    .join('m.usuario', 'u')
+    .where({ 'ef.id': idEstado })
+    .andWhere('m.fecha_hora = (SELECT MAX(m2.fecha_hora) FROM movimientos m2 WHERE m2.pedido_id_pedido = p.id_pedido AND m2.estado_final_id != 5)')
+    .orderBy({ [sortBy]: sortOrder })
+    .limit(limit)
+    .offset(offset);
 
-        // Si no hay movimientos, no incluir este pedido
-        if (movimientos.length === 0) {
-          return null;
-        }
+    const [pedidosRaw, total] = await qb.getResultAndCount();
 
-        // Buscar el último movimiento que NO sea "Pagado" (id: 5) NI "Anulado" (id: 7)
-        const ultimoMovimiento = movimientos.find(mov => 
-          mov.estadoFinal.id !== 5
-        );
+    const result = pedidosRaw.map((p: any) => ({
+      pedido: {
+        fechaHora: (p as any).fechaHora,
+        idPedido: p.idPedido,
+        cobrado: p.cobrado,
+        fletero: {
+          idFletero: (p as any).fletero.idFletero,
+          dsFletero: (p as any).fletero.dsFletero,
+          seguimiento: (p as any).fletero.seguimiento,
+        },
+      },
+      ultimoMovimiento: {
+        fechaHora: (p as any).movimientos[0].fechaHora,
+        estadoInicial: {
+          id: (p as any).movimientos[0].estadoInicial.id,
+          nombreEstado: (p as any).movimientos[0].estadoInicial.nombreEstado,
+        },
+        estadoFinal: {
+          id: (p as any).movimientos[0].estadoFinal.id,
+          nombreEstado: (p as any).movimientos[0].estadoFinal.nombreEstado,
+        },
+        usuario: {
+          id: (p as any).movimientos[0].usuario.id,
+          nombre: (p as any).movimientos[0].usuario.nombre,
+          apellido: (p as any).movimientos[0].usuario.apellido,
+        },
+      },
+    }));
 
-        // Si todos los movimientos son "Pagado", no incluir este pedido
-        if (!ultimoMovimiento) {
-          return null;
-        }
-
-        // Verificar si el estado final del último movimiento coincide
-        if (ultimoMovimiento.estadoFinal.id !== idEstado) {
-          return null;
-        }
-
-        // Retornar la información del pedido con su último movimiento y fletero
-        return {
-          pedido: {
-            fechaHora: pedido.fechaHora,
-            idPedido: pedido.idPedido,
-            cobrado: pedido.cobrado,
-            fletero: {
-              idFletero: pedido.fletero.idFletero,
-              dsFletero: pedido.fletero.dsFletero,
-              seguimiento: pedido.fletero.seguimiento,
-            },
-          },
-          ultimoMovimiento: {
-            fechaHora: ultimoMovimiento.fechaHora,
-            estadoInicial: {
-              id: ultimoMovimiento.estadoInicial.id,
-              nombreEstado: ultimoMovimiento.estadoInicial.nombreEstado,
-            },
-            estadoFinal: {
-              id: ultimoMovimiento.estadoFinal.id,
-              nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado,
-            },
-            usuario: {
-              id: ultimoMovimiento.usuario.id,
-              nombre: ultimoMovimiento.usuario.nombre,
-              apellido: ultimoMovimiento.usuario.apellido,
-            },
-          },
-        };
-      })
-      .filter(item => item !== null); // Eliminar nulls (ya está ordenado por idPedido desde la query)
-
-    return resultado as any[];
+    return { items: result, total };
   }
 
   /**
@@ -302,7 +290,7 @@ export class PedidoService {
     }
 
     // Obtener último movimiento
-    const movimientos = pedido.movimientos.getItems().sort((a, b) => 
+    const movimientos = pedido.movimientos.getItems().sort((a: any, b: any) => 
       b.fechaHora.getTime() - a.fechaHora.getTime()
     );
 
@@ -330,72 +318,65 @@ export class PedidoService {
   /**
    * Obtener todos los pedidos anulados
    * Retorna pedidos cuyo último movimiento tenga estado final ANULADO (7)
+   * Soporta paginación
    */
-  async findAnulados(): Promise<any[]> {
-    // Buscar todos los pedidos con sus movimientos y fletero
-    const pedidos = await this.em.find(
-      Pedido,
-      {},
-      { 
-        populate: ['movimientos', 'movimientos.estadoFinal', 'movimientos.estadoInicial', 'movimientos.usuario', 'fletero'],
-        orderBy: { fechaHora: 'DESC' }
-      }
-    );
+  async findAnulados(page = 1, limit = 50, sortBy = 'm.fecha_hora', sortOrder: 'ASC' | 'DESC' = 'DESC'): Promise<{ items: any[], total: number }> {
+    const offset = (page - 1) * limit;
 
-    // Filtrar pedidos cuyo último movimiento sea ANULADO (7)
-    const resultado = pedidos
-      .map(pedido => {
-        // Obtener todos los movimientos del pedido ordenados por fecha DESC
-        const movimientos = pedido.movimientos.getItems().sort((a, b) => 
-          b.fechaHora.getTime() - a.fechaHora.getTime()
-        );
+    const qb = this.em.createQueryBuilder(Pedido, 'p');
+    
+    qb.select([
+      'p.idPedido', 'p.fechaHora', 'p.cobrado',
+      'f.id_fletero', 'f.ds_fletero', 'f.seguimiento',
+      'm.fecha_hora', 'm.motivo_anulacion',
+      'ef.id', 'ef.nombre_estado',
+      'ei.id', 'ei.nombre_estado',
+      'u.id', 'u.nombre', 'u.apellido'
+    ])
+    .join('p.fletero', 'f')
+    .join('p.movimientos', 'm')
+    .join('m.estadoFinal', 'ef')
+    .join('m.estadoInicial', 'ei')
+    .join('m.usuario', 'u')
+    .where({ 'ef.id': 7 })
+    // Para anulados, el último movimiento DEBE ser el 7 (no aplicamos la exclusión del 5 aquí ya que buscamos específicamente el 7 como final)
+    .andWhere('m.fecha_hora = (SELECT MAX(m2.fecha_hora) FROM movimientos m2 WHERE m2.pedido_id_pedido = p.id_pedido)')
+    .orderBy({ [sortBy]: sortOrder })
+    .limit(limit)
+    .offset(offset);
 
-        // Si no hay movimientos, no incluir este pedido
-        if (movimientos.length === 0) {
-          return null;
-        }
+    const [pedidosRaw, total] = await qb.getResultAndCount();
 
-        const ultimoMovimiento = movimientos[0];
+    const result = pedidosRaw.map((p: any) => ({
+      pedido: {
+        fechaHora: p.fechaHora,
+        idPedido: p.idPedido,
+        cobrado: p.cobrado,
+        fletero: {
+          idFletero: p.fletero.idFletero,
+          dsFletero: p.dsFletero,
+          seguimiento: p.fletero.seguimiento,
+        },
+      },
+      ultimoMovimiento: {
+        fechaHora: p.movimientos[0].fechaHora,
+        estadoInicial: {
+          id: p.movimientos[0].estadoInicial.id,
+          nombreEstado: p.movimientos[0].estadoInicial.nombreEstado,
+        },
+        estadoFinal: {
+          id: p.movimientos[0].estadoFinal.id,
+          nombreEstado: p.movimientos[0].estadoFinal.nombreEstado,
+        },
+        usuario: {
+          id: p.movimientos[0].usuario.id,
+          nombre: p.movimientos[0].usuario.nombre,
+          apellido: p.movimientos[0].usuario.apellido,
+        },
+        motivoAnulacion: p.movimientos[0].motivoAnulacion,
+      },
+    }));
 
-        // Verificar si el estado final del último movimiento es ANULADO (7)
-        if (ultimoMovimiento.estadoFinal.id !== 7) {
-          return null;
-        }
-
-        // Retornar la información del pedido con su último movimiento y fletero
-        return {
-          pedido: {
-            fechaHora: pedido.fechaHora,
-            idPedido: pedido.idPedido,
-            cobrado: pedido.cobrado,
-            fletero: {
-              idFletero: pedido.fletero.idFletero,
-              dsFletero: pedido.fletero.dsFletero,
-              seguimiento: pedido.fletero.seguimiento,
-            },
-          },
-          ultimoMovimiento: {
-            fechaHora: ultimoMovimiento.fechaHora,
-            estadoInicial: {
-              id: ultimoMovimiento.estadoInicial.id,
-              nombreEstado: ultimoMovimiento.estadoInicial.nombreEstado,
-            },
-            estadoFinal: {
-              id: ultimoMovimiento.estadoFinal.id,
-              nombreEstado: ultimoMovimiento.estadoFinal.nombreEstado,
-            },
-            usuario: {
-              id: ultimoMovimiento.usuario.id,
-              nombre: ultimoMovimiento.usuario.nombre,
-              apellido: ultimoMovimiento.usuario.apellido,
-            },
-            motivoAnulacion: ultimoMovimiento.motivoAnulacion,
-          },
-        };
-      })
-      .filter(item => item !== null) // Eliminar nulls
-      .sort((a, b) => b!.ultimoMovimiento.fechaHora.getTime() - a!.ultimoMovimiento.fechaHora.getTime()); // Ordenar por fecha más reciente primero
-
-    return resultado as any[];
+    return { items: result, total };
   }
 }

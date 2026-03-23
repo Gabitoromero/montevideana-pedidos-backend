@@ -11,6 +11,7 @@ import { TipoEstado } from '../estados/tipoEstado.entity.js';
 import { FleterosService } from '../fleteros/fletero.service.js';
 import { Fletero } from '../fleteros/fletero.entity.js';
 import { ESTADO_IDS, ESTADO_NOMBRES } from '../../shared/constants/estados.js';
+import { sendDiscordAlert } from '../../shared/utils/discord.js';
 
 // Configuración de timeouts diferenciados
 const CHESS_TIMEOUTS = {
@@ -19,10 +20,6 @@ const CHESS_TIMEOUTS = {
   BATCH_REQUEST: 300000   // 5 minutos para operaciones con múltiples lotes
 } as const;
 
-const DISCORD_USER_ID = '368473961190916113';
-
-// Niveles de severidad para alertas de Discord
-type DiscordAlertSeverity = 'CRITICO' | 'ADVERTENCIA';
 
 export class ChessService {
   private api: AxiosInstance;
@@ -63,66 +60,6 @@ export class ChessService {
   // ============================================================
   //  INFRAESTRUCTURA DE CONEXIÓN CON CHESS
   // ============================================================
-
-  /**
-   * Enviar una alerta a Discord desde el servicio de sincronización.
-   * - CRITICO (rojo): errores graves que requieren atención inmediata.
-   * - ADVERTENCIA (amarillo): situaciones anómalas pero no bloqueantes.
-   */
-  private async sendDiscordAlert(mensaje: string, severidad: DiscordAlertSeverity): Promise<void> {
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-    
-    if (!webhookUrl) {
-      console.warn('⚠️ DISCORD_WEBHOOK_URL no configurado, no se pudo enviar alerta');
-      return;
-    }
-
-    const esCritico = severidad === 'CRITICO';
-    const color = esCritico ? 15158332 : 16776960; // rojo : amarillo
-    const emoji = esCritico ? '🚨' : '⚠️';
-    const titulo = esCritico 
-      ? `${emoji} ERROR CRÍTICO en Sincronización CHESS` 
-      : `${emoji} Advertencia en Sincronización CHESS`;
-
-    try {
-      const body = {
-        content: esCritico ? `<@${DISCORD_USER_ID}>` : undefined,
-        username: 'Montevideana Sync',
-        avatar_url: 'https://cdn-icons-png.flaticon.com/512/2099/2099190.png',
-        embeds: [{
-          title: titulo,
-          description: `\`\`\`${mensaje.substring(0, 1500)}\`\`\``,
-          color,
-          fields: [
-            {
-              name: '📅 Fecha y Hora',
-              value: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
-              inline: true,
-            },
-            {
-              name: '🏷️ Severidad',
-              value: severidad,
-              inline: true,
-            },
-          ],
-          timestamp: new Date().toISOString(),
-          footer: { text: 'Sistema de Pedidos Montevideana' },
-        }],
-      };
-
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        console.error(`❌ Discord respondió con status ${response.status}`);
-      }
-    } catch (fetchError: any) {
-      console.error(`❌ No se pudo enviar alerta a Discord: ${fetchError.message}`);
-    }
-  }
 
   public async testConnection(): Promise<{ 
     success: boolean; 
@@ -428,19 +365,18 @@ export class ChessService {
   }
 
   /**
-   * Filtrar ventas válidas según los criterios base de negocio.
+   * Verificar si una venta cumple los criterios base de negocio para ser procesada.
+   * Se usa como guardia inline en el loop de filtrado y deduplicación.
    */
-  private filterValidSales(ventas: ChessVentaRaw[]): ChessVentaRaw[] {
-    return ventas.filter((venta) => {
-      if (venta.idEmpresa !== 1) return false;
-      if (venta.dsEmpresa !== 'MONTHELADO S.A.') return false;
-      if (venta.anulado !== 'NO') return false;
-      if (venta.idDeposito !== 1) return false;
-      if (venta.planillaCarga === "") return false;
-      if (venta.idFleteroCarga === 0) return false;
-      if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') return false;
-      return true;
-    });
+  private isVentaValida(venta: ChessVentaRaw): boolean {
+    if (venta.idEmpresa !== 1) return false;
+    if (venta.dsEmpresa !== 'MONTHELADO S.A.') return false;
+    if (venta.anulado !== 'NO') return false;
+    if (venta.idDeposito !== 1) return false;
+    if (!venta.planillaCarga) return false;
+    if (!venta.idFleteroCarga) return false;
+    if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') return false;
+    return true;
   }
 
   /**
@@ -547,7 +483,7 @@ export class ChessService {
       result.errors.push(errorMsg);
       console.error(`\n❌ ${errorMsg}`);
       console.error(error);
-      await this.sendDiscordAlert(errorMsg, 'CRITICO');
+      await sendDiscordAlert(errorMsg, 'CRITICO');
     }
 
     // Resumen final
@@ -593,8 +529,11 @@ export class ChessService {
    *
    * Pasos:
    *  1. Obtención de ventas del día (todos los lotes)
-   *  2. Filtro (ventas válidas, fleteros con seguimiento, deduplicación, ventas nuevas)
-   *  3. Creación de pedidos y movimientos según tipo de liquidación del fletero
+   *  2. Sincronizar fleteros (crea los nuevos con seguimiento=false)
+   *  3. Filtrado y deduplicación en una sola pasada en memoria
+   *  4. Precarga de pedidos y fleteros existentes (queries batch)
+   *  5. Construcción de entidades nuevas (sin queries individuales)
+   *  6. Persistencia en una única transacción batch
    */
   private async detectarNuevosPedidos(
     result: ChessSyncResult,
@@ -612,173 +551,184 @@ export class ChessService {
     result.totalVentasObtenidas = todasLasVentas.length;
     result.lotesProcesados = lotesProcesados;
 
-    // ── Paso 2: Filtro ──
-
-    // 2a. Filtro base de ventas válidas
-    const ventasFiltradas = this.filterValidSales(todasLasVentas);
-    result.totalVentasFiltradas = ventasFiltradas.length;
-    console.log(`🔍 Ventas filtradas (válidas): ${ventasFiltradas.length}/${todasLasVentas.length}`);
-
-    // 2b. Sincronizar fleteros (nuevos se crean con seguimiento=false, liquidacion=false)
+    // ── Paso 2: Sincronizar fleteros ──
+    // Se ejecuta antes del filtrado para que los fleteros nuevos queden en BD
+    // (aunque queden con seguimiento=false y no generen pedidos en este sync).
     console.log(`\n📦 Sincronizando fleteros...`);
     const fleteroService = new FleterosService(this.em);
-    
+
     const uniqueFleteros = new Map<number, string>();
-    ventasFiltradas.forEach(venta => {
+    for (const venta of todasLasVentas) {
       if (venta.idFleteroCarga && venta.dsFleteroCarga) {
         uniqueFleteros.set(venta.idFleteroCarga, venta.dsFleteroCarga);
       }
-    });
+    }
     console.log(`🚚 Fleteros únicos encontrados: ${uniqueFleteros.size}`);
-    
+
     const syncFleteros = await fleteroService.syncFromChess(Array.from(uniqueFleteros.entries()));
     result.totalFleterosCreados = syncFleteros.created;
     result.totalFleterosActualizados = syncFleteros.updated;
 
-    // 2c. Filtrar por fleteros con seguimiento activo
+    // ── Paso 3: Filtrado y deduplicación en una sola pasada ──
+    // Precargamos los ids de fleteros activos para hacer lookup O(1) en el loop.
     const fleterosActivos = await fleteroService.findActivos();
     const idsFleterosActivos = new Set(fleterosActivos.map(f => f.idFletero));
     console.log(`✅ Fleteros con seguimiento activo: ${idsFleterosActivos.size}`);
-    
-    const ventasConSeguimiento = ventasFiltradas.filter(venta => 
-      venta.idFleteroCarga && idsFleterosActivos.has(venta.idFleteroCarga)
-    );
-    
-    result.totalPedidosDescartadosPorSeguimiento = ventasFiltradas.length - ventasConSeguimiento.length;
-    console.log(`📊 Ventas con seguimiento: ${ventasConSeguimiento.length}/${ventasFiltradas.length}`);
 
-    // 2d. Deduplicar por planillaCarga, PREFIRIENDO la versión con liquidación
-    console.log(`\n🔄 Eliminando duplicados (prefiriendo versiones con liquidación)...`);
+    // ventasUnicas: idPedido → ChessVentaRaw
+    // Una sola pasada sobre el dataset: aplica filtro base, seguimiento y deduplicación.
     const ventasUnicas = new Map<string, ChessVentaRaw>();
-    let duplicadosEliminados = 0;
-    
-    for (const venta of ventasConSeguimiento) {
+    let totalDescartadosPorSeguimiento = 0;
+    let totalDuplicados = 0;
+
+    for (const venta of todasLasVentas) {
+      // Filtro base de validez de la venta
+      if (!this.isVentaValida(venta)) continue;
+
+      // Filtro por seguimiento del fletero
+      if (!idsFleterosActivos.has(venta.idFleteroCarga!)) {
+        totalDescartadosPorSeguimiento++;
+        continue;
+      }
+
+      // Extraer idPedido — si el formato es inválido, descartar silenciosamente
+      let idPedido: string;
       try {
-        if (!venta.planillaCarga) continue;
-        const idPedido = this.extractIdPedido(venta.planillaCarga);
-        
-        const ventaExistente = ventasUnicas.get(idPedido);
-        if (!ventaExistente) {
-          // Primera vez que vemos esta planillaCarga
+        idPedido = this.extractIdPedido(venta.planillaCarga!);
+      } catch {
+        continue;
+      }
+
+      // Deduplicación: quedarse con la versión CON liquidación cuando hay duplicados
+      const ventaExistente = ventasUnicas.get(idPedido);
+      if (!ventaExistente) {
+        ventasUnicas.set(idPedido, venta);
+      } else {
+        totalDuplicados++;
+        const nuevaTieneLiquidacion = this.hasLiquidacionData(venta);
+        const existenteTieneLiquidacion = this.hasLiquidacionData(ventaExistente);
+
+        if (nuevaTieneLiquidacion && !existenteTieneLiquidacion) {
           ventasUnicas.set(idPedido, venta);
-        } else {
-          // Duplicado detectado: preferir la versión CON liquidación
-          duplicadosEliminados++;
-          const nuevaTieneLiquidacion = this.hasLiquidacionData(venta);
-          const existenteTieneLiquidacion = this.hasLiquidacionData(ventaExistente);
-
-          if (nuevaTieneLiquidacion && !existenteTieneLiquidacion) {
-            // La nueva tiene liquidación y la existente no → reemplazar
-            ventasUnicas.set(idPedido, venta);
-            console.log(`🔄 Duplicado ${idPedido}: reemplazado por versión CON liquidación`);
-          }
+          console.log(`🔄 Duplicado ${idPedido}: reemplazado por versión CON liquidación`);
         }
-      } catch (error) {
-        // Ignorar ventas con formato inválido de planillaCarga
-        continue;
       }
     }
-    
-    const ventasSinDuplicados = Array.from(ventasUnicas.values());
-    result.totalDuplicadosEliminados = duplicadosEliminados;
-    console.log(`✅ Ventas únicas: ${ventasSinDuplicados.length}`);
-    console.log(`🗑️  Duplicados eliminados: ${duplicadosEliminados}`);
 
-    // 2e. Filtrar solo ventas nuevas (que no existen como pedidos en el sistema)
-    const ventasNuevas: Array<{ venta: ChessVentaRaw; idPedido: string }> = [];
+    result.totalVentasFiltradas = ventasUnicas.size;
+    result.totalPedidosDescartadosPorSeguimiento = totalDescartadosPorSeguimiento;
+    result.totalDuplicadosEliminados = totalDuplicados;
 
-    for (const venta of ventasSinDuplicados) {
-      try {
-        const idPedido = this.extractIdPedido(venta.planillaCarga!);
-        const pedidoExistente = await this.em.findOne(Pedido, { idPedido });
-        
-        if (!pedidoExistente) {
-          ventasNuevas.push({ venta, idPedido });
-        }
-      } catch (error) {
-        continue;
-      }
+    console.log(`🔍 Ventas filtradas (válidas, únicas, con seguimiento): ${ventasUnicas.size}/${todasLasVentas.length}`);
+    console.log(`⏭️  Descartados por seguimiento: ${totalDescartadosPorSeguimiento}`);
+    console.log(`🗑️  Duplicados eliminados: ${totalDuplicados}`);
+
+    if (ventasUnicas.size === 0) {
+      console.log(`\n✅ Subproceso 1 finalizado: sin ventas nuevas para procesar`);
+      return;
     }
+
+    // ── Paso 4: Precarga batch —
+
+    // 4a. Determinar qué pedidos ya existen en BD (1 sola query con IN)
+    const idsPedidosCandidatos = Array.from(ventasUnicas.keys());
+    const pedidosExistentes = await this.em.find(Pedido, { idPedido: { $in: idsPedidosCandidatos } });
+    const idsPedidosExistentes = new Set(pedidosExistentes.map(p => p.idPedido));
+
+    // Filtrar solo las ventas que aún no tienen pedido en BD
+    const ventasNuevas = idsPedidosCandidatos
+      .filter(idPedido => !idsPedidosExistentes.has(idPedido))
+      .map(idPedido => ({ idPedido, venta: ventasUnicas.get(idPedido)! }));
 
     console.log(`🆕 Ventas nuevas a procesar: ${ventasNuevas.length}`);
 
-    // ── Paso 3: Creación de pedidos y movimientos ──
-    console.log(`\n📝 Creando pedidos y movimientos...`);
+    if (ventasNuevas.length === 0) {
+      console.log(`\n✅ Subproceso 1 finalizado: todos los pedidos ya existen en el sistema`);
+      return;
+    }
+
+    // 4b. Precargar los fleteros necesarios para las ventas nuevas (1 sola query con IN)
+    const idsFleterosCandidatos = [...new Set(ventasNuevas.map(({ venta }) => venta.idFleteroCarga!))];
+    const fleterosCargados = await this.em.find(Fletero, { idFletero: { $in: idsFleterosCandidatos } });
+    const fleterosMap = new Map(fleterosCargados.map(f => [f.idFletero, f]));
+
+    // ── Paso 5: Construcción de entidades nuevas (sin queries individuales) ──
+    console.log(`\n📝 Construyendo pedidos y movimientos...`);
+
+    const entidadesACrear: (Pedido | Movimiento)[] = [];
 
     for (const { venta, idPedido } of ventasNuevas) {
-      try {
-        const fletero = await this.em.findOne(Fletero, { idFletero: venta.idFleteroCarga! });
-        if (!fletero) {
-          const advertencia = `Fletero ${venta.idFleteroCarga} no encontrado para pedido ${idPedido}`;
-          console.error(`❌ ${advertencia}`);
-          await this.sendDiscordAlert(advertencia, 'ADVERTENCIA');
-          continue;
-        }
+      const fletero = fleterosMap.get(venta.idFleteroCarga!);
 
-        const tieneLiquidacion = this.hasLiquidacionData(venta);
-        const fleteroTieneLiquidacionManual = fletero.liquidacion;
-
-        // Determinar si se debe crear movimiento a TESORERÍA:
-        // - Fletero con liquidación automática (liquidacion=false): SIEMPRE crear TESORERÍA
-        // - Fletero con liquidación manual (liquidacion=true) + venta CON liquidación: crear TESORERÍA
-        // - Fletero con liquidación manual (liquidacion=true) + venta SIN liquidación: solo PENDIENTE
-        const debeCrearTesoreria = !fleteroTieneLiquidacionManual || tieneLiquidacion;
-
-        await this.em.transactional(async (transactionalEm) => {
-          // Crear el pedido
-          const nuevoPedido = transactionalEm.create(Pedido, {
-            fechaHora: new Date(),
-            idPedido: idPedido,
-            fletero: fletero,
-            cobrado: debeCrearTesoreria,
-          });
-
-          // Crear movimiento CHESS → PENDIENTE
-          const movimientoPendiente = transactionalEm.create(Movimiento, {
-            fechaHora: new Date(),
-            estadoInicial: estadoChess,
-            estadoFinal: estadoPendiente,
-            usuario: usuarioSistema,
-            pedido: nuevoPedido,
-          });
-
-          result.totalMovimientosCreados++;
-
-          if (debeCrearTesoreria) {
-            // Esperar 1 segundo para evitar colisión de PK en MySQL (fechaHora se redondea a segundos)
-            // await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Crear movimiento PENDIENTE → TESORERÍA
-            const movimientoTesoreria = transactionalEm.create(Movimiento, {
-              fechaHora: new Date(),
-              estadoInicial: estadoPendiente,
-              estadoFinal: estadoTesoreria,
-              usuario: usuarioSistema,
-              pedido: nuevoPedido,
-            });
-
-            result.totalMovimientosTesoreriaCreados++;
-            result.totalMovimientosCreados++;
-
-            await transactionalEm.persist([nuevoPedido, movimientoPendiente, movimientoTesoreria]).flush();
-
-            const motivo = !fleteroTieneLiquidacionManual 
-              ? 'liquidación automática (fletero.liquidacion=false)' 
-              : 'venta con liquidación (fletero.liquidacion=true)';
-            console.log(`✅ Pedido ${idPedido} creado con TESORERÍA — ${motivo}`);
-          } else {
-            // Solo PENDIENTE: el pedido queda pendiente de liquidación
-            await transactionalEm.persist([nuevoPedido, movimientoPendiente]).flush();
-            console.log(`⏳ Pedido ${idPedido} creado como PENDIENTE (sin liquidación, fletero con liquidación manual)`);
-          }
-        });
-
-        result.totalPedidosCreados++;
-      } catch (error: any) {
-        const errorMsg = `Error creando pedido ${idPedido}: ${error.message}`;
+      if (!fletero) {
+        const errorMsg = `Fletero ${venta.idFleteroCarga} no encontrado para pedido ${idPedido} — se reintentará en el próximo sync`;
         console.error(`❌ ${errorMsg}`);
         result.errors.push(errorMsg);
-        await this.sendDiscordAlert(errorMsg, 'CRITICO');
+        void sendDiscordAlert(errorMsg, 'ADVERTENCIA');
+        continue;
+      }
+
+      const tieneLiquidacion = this.hasLiquidacionData(venta);
+      const fleteroTieneLiquidacionManual = fletero.liquidacion;
+
+      // Determinar si se debe crear movimiento a TESORERÍA:
+      // - Fletero con liquidación automática (liquidacion=false): SIEMPRE crear TESORERÍA
+      // - Fletero con liquidación manual (liquidacion=true) + venta CON liquidación: crear TESORERÍA
+      // - Fletero con liquidación manual (liquidacion=true) + venta SIN liquidación: solo PENDIENTE
+      const debeCrearTesoreria = !fleteroTieneLiquidacionManual || tieneLiquidacion;
+
+      const nuevoPedido = this.em.create(Pedido, {
+        fechaHora: new Date(),
+        idPedido,
+        fletero,
+        cobrado: debeCrearTesoreria,
+      });
+
+      const movimientoPendiente = this.em.create(Movimiento, {
+        fechaHora: new Date(),
+        estadoInicial: estadoChess,
+        estadoFinal: estadoPendiente,
+        usuario: usuarioSistema,
+        pedido: nuevoPedido,
+      });
+
+      entidadesACrear.push(nuevoPedido, movimientoPendiente);
+      result.totalMovimientosCreados++;
+      result.totalPedidosCreados++;
+
+      if (debeCrearTesoreria) {
+        const movimientoTesoreria = this.em.create(Movimiento, {
+          fechaHora: new Date(),
+          estadoInicial: estadoPendiente,
+          estadoFinal: estadoTesoreria,
+          usuario: usuarioSistema,
+          pedido: nuevoPedido,
+        });
+
+        entidadesACrear.push(movimientoTesoreria);
+        result.totalMovimientosCreados++;
+        result.totalMovimientosTesoreriaCreados++;
+
+        const motivo = !fleteroTieneLiquidacionManual
+          ? 'liquidación automática (fletero.liquidacion=false)'
+          : 'venta con liquidación (fletero.liquidacion=true)';
+        console.log(`✅ Pedido ${idPedido} → TESORERÍA (${motivo})`);
+      } else {
+        console.log(`⏳ Pedido ${idPedido} → PENDIENTE (sin liquidación, fletero con liquidación manual)`);
+      }
+    }
+
+    // ── Paso 6: Persistencia en una única transacción batch ──
+    if (entidadesACrear.length > 0) {
+      try {
+        await this.em.persist(entidadesACrear).flush();
+        console.log(`💾 Commit batch: ${result.totalPedidosCreados} pedidos, ${result.totalMovimientosCreados} movimientos`);
+      } catch (error: any) {
+        const errorMsg = `Error en flush batch del subproceso 1: ${error.message}`;
+        console.error(`❌ ${errorMsg}`);
+        result.errors.push(errorMsg);
+        await sendDiscordAlert(errorMsg, 'CRITICO');
+        throw error;
       }
     }
 
@@ -887,7 +837,7 @@ export class ChessService {
             if (movimientos.length === 0) {
               const errorMsg = `Pedido ${idPedido} no tiene movimientos - dato inconsistente en BD`;
               console.error(`❌ ${errorMsg}`);
-              await this.sendDiscordAlert(errorMsg, 'CRITICO');
+              await sendDiscordAlert(errorMsg, 'CRITICO');
               continue;
             }
 
@@ -917,14 +867,14 @@ export class ChessService {
             const errorMsg = `Error procesando liquidación de pedido ${idPedido}: ${error.message}`;
             console.error(`❌ ${errorMsg}`);
             result.errors.push(errorMsg);
-            await this.sendDiscordAlert(errorMsg, 'CRITICO');
+            await sendDiscordAlert(errorMsg, 'CRITICO');
           }
         }
       } catch (error: any) {
         const errorMsg = `Error consultando CHESS para fecha ${fechaStr}: ${error.message}`;
         console.error(`❌ ${errorMsg}`);
         result.errors.push(errorMsg);
-        await this.sendDiscordAlert(errorMsg, 'ADVERTENCIA');
+        await sendDiscordAlert(errorMsg, 'ADVERTENCIA');
       }
     }
 

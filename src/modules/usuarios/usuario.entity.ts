@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, OneToMany, Collection } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, OneToMany, Collection, Unique } from '@mikro-orm/core';
 import { Movimiento } from '../movimientos/movimiento.entity.js';
 
 @Entity({ tableName: 'usuarios' })
@@ -20,6 +20,10 @@ export class Usuario {
 
   @Property({ nullable: false, unique: false, type: 'string' })
   passwordHash!: string;
+
+  @Property({ nullable: true, type: 'string' })
+  @Unique()
+  pinMovimiento?: string;
 
   @Property({ nullable: false, unique: false, type: 'bool' })
   activo!: boolean;

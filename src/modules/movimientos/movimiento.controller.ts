@@ -32,8 +32,11 @@ export class MovimientoController {
   async create(data: CreateMovimientoDTO) {
     const em = fork();
 
-    // 1. Buscar TODOS los usuarios activos de sectores operativos (CAMARA, EXPEDICION, ADMIN, CHESS)
-    const usuariosOperativos = await em.find(Usuario, {
+    // 1. Identificar al usuario mediante búsqueda indexada por hash de PIN (O(1))
+    const pinHash = HashUtil.fastHash(data.pin);
+    const usuario = await em.findOne(Usuario, {
+      pinMovimiento: pinHash,
+      activo: true,
       sector: {
         $in: [
           SECTORES.CAMARA,
@@ -42,26 +45,9 @@ export class MovimientoController {
           SECTORES.CHESS,
         ],
       },
-      activo: true,
     });
 
-    if (usuariosOperativos.length === 0) {
-      throw AppError.badRequest(
-        "No hay usuarios activos en los sectores operativos"
-      );
-    }
-
-    // 2. Buscar el usuario cuyo password hasheado coincida con el PIN
-    let usuario: Usuario | null = null;
-    for (const u of usuariosOperativos) {
-      const pinValido = await HashUtil.compare(data.pin, u.passwordHash);
-      if (pinValido) {
-        usuario = u;
-        break;
-      }
-    }
-
-    // 3. Si no se encontró usuario con ese PIN
+    // 2. Si no se encontró usuario o no tiene permisos
     if (!usuario) {
       throw AppError.badRequest(
         "PIN inválido o usuario no autorizado para crear movimientos"

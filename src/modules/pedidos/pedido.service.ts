@@ -240,16 +240,12 @@ export class PedidoService {
     const Usuario = (await import('../usuarios/usuario.entity.js')).Usuario;
     const { HashUtil } = await import('../../shared/utils/hash.js');
     
-    const usuariosActivos = await this.em.find(Usuario, { activo: true });
-    
-    let usuarioAutenticado = null;
-    for (const usuario of usuariosActivos) {
-      const pinValido = await HashUtil.compare(pin, usuario.passwordHash);
-      if (pinValido) {
-        usuarioAutenticado = usuario;
-        break;
-      }
-    }
+    // 1. Identificar al usuario mediante búsqueda indexada por hash de PIN (O(1))
+    const pinHash = HashUtil.fastHash(pin);
+    const usuarioAutenticado = await this.em.findOne(Usuario, {
+      pinMovimiento: pinHash,
+      activo: true
+    });
 
     if (!usuarioAutenticado) {
       throw new AppError('PIN incorrecto o usuario inactivo', 401);

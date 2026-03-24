@@ -137,22 +137,31 @@ export class PedidoService {
           seguimiento: (p as any).fletero.seguimiento,
         },
       },
-      ultimoMovimiento: {
-        fechaHora: (p as any).movimientos[0].fechaHora,
-        estadoInicial: {
-          id: (p as any).movimientos[0].estadoInicial.id,
-          nombreEstado: (p as any).movimientos[0].estadoInicial.nombreEstado,
-        },
-        estadoFinal: {
-          id: (p as any).movimientos[0].estadoFinal.id,
-          nombreEstado: (p as any).movimientos[0].estadoFinal.nombreEstado,
-        },
-        usuario: {
-          id: (p as any).movimientos[0].usuario.id,
-          nombre: (p as any).movimientos[0].usuario.nombre,
-          apellido: (p as any).movimientos[0].usuario.apellido,
-        },
-      },
+      ultimoMovimiento: (() => {
+        const movimientosList = Array.isArray(p.movimientos) ? p.movimientos : (p.movimientos?.getItems ? (p.movimientos as any).getItems() : []);
+        const movimientosValidos = movimientosList.filter((m: any) => m.estadoFinal?.id !== 5);
+        const sorted = movimientosValidos.sort((a: any, b: any) => 
+          new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
+        );
+        const last = sorted[0] || (movimientosList.length > 0 ? movimientosList[0] : null);
+        if (!last) throw new Error("No movement found for pedido " + p.idPedido);
+        return {
+          fechaHora: last.fechaHora,
+          estadoInicial: {
+            id: last.estadoInicial.id,
+            nombreEstado: last.estadoInicial.nombreEstado,
+          },
+          estadoFinal: {
+            id: last.estadoFinal.id,
+            nombreEstado: last.estadoFinal.nombreEstado,
+          },
+          usuario: {
+            id: last.usuario.id,
+            nombre: last.usuario.nombre,
+            apellido: last.usuario.apellido,
+          },
+        };
+      })(),
     }));
 
     return { items: result, total };
@@ -193,22 +202,31 @@ export class PedidoService {
           seguimiento: (p as any).fletero.seguimiento,
         },
       },
-      ultimoMovimiento: {
-        fechaHora: (p as any).movimientos[0].fechaHora,
-        estadoInicial: {
-          id: (p as any).movimientos[0].estadoInicial.id,
-          nombreEstado: (p as any).movimientos[0].estadoInicial.nombreEstado,
-        },
-        estadoFinal: {
-          id: (p as any).movimientos[0].estadoFinal.id,
-          nombreEstado: (p as any).movimientos[0].estadoFinal.nombreEstado,
-        },
-        usuario: {
-          id: (p as any).movimientos[0].usuario.id,
-          nombre: (p as any).movimientos[0].usuario.nombre,
-          apellido: (p as any).movimientos[0].usuario.apellido,
-        },
-      },
+      ultimoMovimiento: (() => {
+        const movimientosList = Array.isArray(p.movimientos) ? p.movimientos : (p.movimientos?.getItems ? (p.movimientos as any).getItems() : []);
+        const movimientosValidos = movimientosList.filter((m: any) => m.estadoFinal?.id !== 5);
+        const sorted = movimientosValidos.sort((a: any, b: any) => 
+          new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
+        );
+        const last = sorted[0] || (movimientosList.length > 0 ? movimientosList[0] : null);
+        if (!last) throw new Error("No movement found for pedido " + p.idPedido);
+        return {
+          fechaHora: last.fechaHora,
+          estadoInicial: {
+            id: last.estadoInicial.id,
+            nombreEstado: last.estadoInicial.nombreEstado,
+          },
+          estadoFinal: {
+            id: last.estadoFinal.id,
+            nombreEstado: last.estadoFinal.nombreEstado,
+          },
+          usuario: {
+            id: last.usuario.id,
+            nombre: last.usuario.nombre,
+            apellido: last.usuario.apellido,
+          },
+        };
+      })(),
     }));
 
     return { items: result, total };
@@ -322,35 +340,45 @@ export class PedidoService {
 
     const [pedidosRaw, total] = await qb.getResultAndCount();
 
-    const result = pedidosRaw.map((p: any) => ({
-      pedido: {
-        fechaHora: p.fechaHora,
-        idPedido: p.idPedido,
-        cobrado: p.cobrado,
-        fletero: {
-          idFletero: p.fletero.idFletero,
-          dsFletero: p.dsFletero,
-          seguimiento: p.fletero.seguimiento,
+    const result = pedidosRaw.map((p: any) => {
+      const movimientosList = Array.isArray(p.movimientos) ? p.movimientos : (p.movimientos?.getItems ? (p.movimientos as any).getItems() : []);
+      const sorted = movimientosList.sort((a: any, b: any) => 
+        new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
+      );
+      const lastMov = sorted[0];
+
+      if (!lastMov) return null;
+
+      return {
+        pedido: {
+          fechaHora: p.fechaHora,
+          idPedido: p.idPedido,
+          cobrado: p.cobrado,
+          fletero: {
+            idFletero: p.fletero.idFletero,
+            dsFletero: p.fletero.dsFletero,
+            seguimiento: p.fletero.seguimiento,
+          },
         },
-      },
-      ultimoMovimiento: {
-        fechaHora: p.movimientos[0].fechaHora,
-        estadoInicial: {
-          id: p.movimientos[0].estadoInicial.id,
-          nombreEstado: p.movimientos[0].estadoInicial.nombreEstado,
+        ultimoMovimiento: {
+          fechaHora: lastMov.fechaHora,
+          estadoInicial: {
+            id: lastMov.estadoInicial.id,
+            nombreEstado: lastMov.estadoInicial.nombreEstado,
+          },
+          estadoFinal: {
+            id: lastMov.estadoFinal.id,
+            nombreEstado: lastMov.estadoFinal.nombreEstado,
+          },
+          usuario: {
+            id: lastMov.usuario.id,
+            nombre: lastMov.usuario.nombre,
+            apellido: lastMov.usuario.apellido,
+          },
+          motivoAnulacion: lastMov.motivoAnulacion,
         },
-        estadoFinal: {
-          id: p.movimientos[0].estadoFinal.id,
-          nombreEstado: p.movimientos[0].estadoFinal.nombreEstado,
-        },
-        usuario: {
-          id: p.movimientos[0].usuario.id,
-          nombre: p.movimientos[0].usuario.nombre,
-          apellido: p.movimientos[0].usuario.apellido,
-        },
-        motivoAnulacion: p.movimientos[0].motivoAnulacion,
-      },
-    }));
+      };
+    }).filter(Boolean);
 
     return { items: result, total };
   }

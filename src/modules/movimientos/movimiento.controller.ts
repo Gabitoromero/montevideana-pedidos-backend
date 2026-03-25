@@ -260,13 +260,11 @@ export class MovimientoController {
     // Notificar al fletero por WhatsApp cuando el pedido queda PREPARADO.
     // Fire-and-forget: si WAHA no está disponible, el movimiento ya fue guardado.
     if (data.estadoFinal === ESTADO_IDS.PREPARADO) {
-      const telefonoDestino = pedido.fletero.telefono1 ?? pedido.fletero.telefono2;
+      const telefonos: string[] = [];
+      if (pedido.fletero.telefono1) telefonos.push(pedido.fletero.telefono1);
+      if (pedido.fletero.telefono2) telefonos.push(pedido.fletero.telefono2);
 
-      if (telefonoDestino) {
-        // Incluir el número de planilla y nombre del fletero para que el mensaje sea
-        // siempre único — WhatsApp detecta mensajes idénticos repetidos (anti-ban).
-        
-        // dsFletero tiene formato: "nro - nombre - desc". Extraemos el nombre (la segunda parte).
+      if (telefonos.length > 0) {
         const partesFletero = pedido.fletero.dsFletero.split('-');
         const nombreFletero = partesFletero.length >= 2 ? partesFletero[1].trim() : pedido.fletero.dsFletero.trim();
         //detectar mañana tarde noche
@@ -283,9 +281,11 @@ export class MovimientoController {
         const wahaService = new WahaService();
 
         if(horaActual < 18 && horaActual > 7){
-          wahaService.enviarMensaje(telefonoDestino, mensaje).catch((err) =>
-            console.error(`[WAHA] Error al notificar al fletero ${pedido.fletero.dsFletero}:`, err)
-          );
+          for (const telefono of telefonos) {
+            wahaService.enviarMensaje(telefono, mensaje).catch((err) =>
+              console.error(`[WAHA] Error al notificar al fletero ${pedido.fletero.dsFletero} al teléfono ${telefono}:`, err)
+            );
+          }
         }
       } else {
         console.warn(`[WAHA] Fletero ${pedido.fletero.dsFletero} no tiene teléfono configurado, se omite la notificación`);

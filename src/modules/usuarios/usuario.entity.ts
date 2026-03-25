@@ -21,10 +21,6 @@ export class Usuario {
   @Property({ nullable: false, unique: false, type: 'string' })
   passwordHash!: string;
 
-  @Property({ nullable: true, type: 'string' })
-  @Unique()
-  pinMovimiento?: string;
-
   @Property({ nullable: false, unique: false, type: 'bool' })
   activo!: boolean;
 

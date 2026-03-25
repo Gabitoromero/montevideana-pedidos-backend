@@ -1,6 +1,7 @@
 import { EntityManager } from '@mikro-orm/mysql';
 import { Pedido } from './pedido.entity.js';
 import { AppError } from '../../shared/errors/AppError.js';
+import { SECTORES } from "../../shared/constants/estados.js";
 
 export class PedidoService {
   constructor(private readonly em: EntityManager) {}
@@ -254,16 +255,33 @@ export class PedidoService {
       throw new AppError('La calificación debe estar entre 1 y 5', 400);
     }
 
-    // Buscar todos los usuarios activos y verificar PIN
+    // Importar UserCache dinámicamente o arriba. Dado que es un service, mejor arriba si es posible.
+    // Pero como el archivo ya usa imports dinámicos en esta función, seguiré la convención.
+    const { UserCache } = await import('../../shared/utils/userCache.js');
     const Usuario = (await import('../usuarios/usuario.entity.js')).Usuario;
-    const { HashUtil } = await import('../../shared/utils/hash.js');
+    const { HashUtil } = await import('../../shared/utils/hash.js')
+    const userCache = UserCache.getInstance();
     
-    // 1. Identificar al usuario mediante búsqueda indexada por hash de PIN (O(1))
-    const pinHash = HashUtil.fastHash(pin);
-    const usuarioAutenticado = await this.em.findOne(Usuario, {
-      pinMovimiento: pinHash,
-      activo: true
-    });
+    // 1. Intentar encontrar al usuario en el buffer de memoria
+    let usuarioAutenticado = await userCache.findInCache(pin);
+
+    // 2. Si no está en el buffer, buscar en la base de datos (Bcrypt)
+    if (!usuarioAutenticado) {
+      const usuariosActivos = await this.em.find(Usuario, { activo: true , sector: {
+                $in: [
+                  SECTORES.EXPEDICION,
+                  SECTORES.ADMIN,
+                  SECTORES.CHESS,
+                ],
+              } });
+      for (const u of usuariosActivos) {
+        if (await HashUtil.compare(pin, u.passwordHash)) {
+          usuarioAutenticado = u;
+          userCache.addToCache(usuarioAutenticado);
+          break;
+        }
+      }
+    }
 
     if (!usuarioAutenticado) {
       throw new AppError('PIN incorrecto o usuario inactivo', 401);

@@ -26,28 +26,47 @@ import {
 import { formatInTimeZone } from "date-fns-tz";
 import { WahaService } from "../waha/waha.service.js";
 
+import { UserCache } from "../../shared/utils/userCache.js";
+
 export class MovimientoController {
   private reglaController = new ReglaController();
+  private userCache = UserCache.getInstance();
 
   async create(data: CreateMovimientoDTO) {
     const em = fork();
 
-    // 1. Identificar al usuario mediante búsqueda indexada por hash de PIN (O(1))
-    const pinHash = HashUtil.fastHash(data.pin);
-    const usuario = await em.findOne(Usuario, {
-      pinMovimiento: pinHash,
-      activo: true,
-      sector: {
-        $in: [
-          SECTORES.CAMARA,
-          SECTORES.EXPEDICION,
-          SECTORES.ADMIN,
-          SECTORES.CHESS,
-        ],
-      },
-    });
+    // 1. Intentar encontrar al usuario en el buffer de memoria (O(1) aproximado)
+    let usuario = await this.userCache.findInCache(data.pin);
 
-    // 2. Si no se encontró usuario o no tiene permisos
+    // 2. Si no está en el buffer, buscar en la base de datos (O(N) comparaciones de Bcrypt)
+    if (!usuario) {
+      // Obtenemos todos los usuarios activos que pertenecen a sectores habilitados
+      const usuariosActivos = await em.find(Usuario, {
+        activo: true,
+        sector: {
+          $in: [
+            SECTORES.CAMARA,
+            SECTORES.EXPEDICION,
+            SECTORES.ADMIN,
+            SECTORES.CHESS,
+          ],
+        },
+      });
+
+      // Probamos el PIN contra cada usuario hasta encontrar uno
+      for (const u of usuariosActivos) {
+        if (await HashUtil.compare(data.pin, u.passwordHash)) {
+          usuario = u;
+          // Agregar al buffer para los próximos movimientos
+          this.userCache.addToCache(usuario);
+          break;
+        }
+      }
+    } else {
+      console.log(`[UserCache] Usuario ${usuario.nombre} ${usuario.apellido} encontrado en cache para el PIN proporcionado`);
+    }
+
+    // 3. Si no se encontró usuario o no tiene permisos
     if (!usuario) {
       throw AppError.badRequest(
         "PIN inválido o usuario no autorizado para crear movimientos"

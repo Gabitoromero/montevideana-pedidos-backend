@@ -375,14 +375,14 @@ export class ChessService {
     if (venta.idDeposito !== 1) return false;
     if (!venta.planillaCarga) return false;
     if (!venta.idFleteroCarga) return false;
-    if (venta.dsDocumento == "DEV. PRESUPUESTO 10.5") return false;
-    if (venta.dsDocumento == "DEV. PRESUPUESTO 5.2") return false;
-    if (venta.dsDocumento == "DEV.PRESUPUESTO 21") return false;
-    if (venta.dsDocumento == "DEVOLUCION PRESUPUESTO") return false;
-    if (venta.dsDocumento == "DEVOLUCION CONSIGNACION") return false;
-    if (venta.dsDocumento == "NOTA DE DEBITO") return false;
-    if (venta.dsDocumento == "NOTA DE CREDITO") return false;
-    if (venta.dsDocumento == "NOTA DE CREDITO MIPYME") return false;
+    if (venta.dsDocumento === "DEV. PRESUPUESTO 10.5") return false;
+    if (venta.dsDocumento === "DEV. PRESUPUESTO 5.2") return false;
+    if (venta.dsDocumento === "DEV.PRESUPUESTO 21") return false;
+    if (venta.dsDocumento === "DEVOLUCION PRESUPUESTO") return false;
+    if (venta.dsDocumento === "DEVOLUCION CONSIGNACION") return false;
+    if (venta.dsDocumento === "NOTA DE DEBITO") return false;
+    if (venta.dsDocumento === "NOTA DE CREDITO") return false;
+    if (venta.dsDocumento === "NOTA DE CREDITO MIPYME") return false;
     if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') return false;
     return true;
   }

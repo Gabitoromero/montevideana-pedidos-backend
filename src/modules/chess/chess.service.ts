@@ -375,6 +375,7 @@ export class ChessService {
     if (venta.idDeposito !== 1) return false;
     if (!venta.planillaCarga) return false;
     if (!venta.idFleteroCarga) return false;
+    //if (venta.planillaCarga <)
     if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') return false;
     return true;
   }
@@ -595,6 +596,10 @@ export class ChessService {
       let idPedido: string;
       try {
         idPedido = this.extractIdPedido(venta.planillaCarga!);
+        // Validación: idPedido debe ser mayor a 00240000
+        if (idPedido <= '00240000') {
+          continue;
+        }
       } catch {
         continue;
       }
@@ -818,7 +823,10 @@ export class ChessService {
 
           let idPedido: string;
           try {
-            idPedido = this.extractIdPedido(venta.planillaCarga);
+            idPedido = this.extractIdPedido(venta.planillaCarga!);
+            if (idPedido <= '00240000') {
+              continue;
+            }
           } catch {
             continue;
           }

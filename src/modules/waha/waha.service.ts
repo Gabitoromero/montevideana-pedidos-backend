@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { normalizarTelefonoArgentina } from '../../shared/utils/telefono.js';
 
 /**
  * Servicio para enviar mensajes de WhatsApp via WAHA (WhatsApp Web API).
@@ -11,27 +12,28 @@ export class WahaService {
   private readonly baseUrl: string;
   private readonly sessionName = 'default';
   private readonly apiKey: string | undefined;
+  private readonly simularTyping: boolean;
 
   constructor() {
     this.baseUrl = process.env.WAHA_BASE_URL ?? 'http://localhost:3000';
     this.apiKey = process.env.WAHA_API_KEY;
+    // Habilitar simulación de typing por defecto para protección anti-ban, configurable por env.
+    this.simularTyping = process.env.WAHA_SIMULATE_TYPING !== 'false';
   }
 
   /**
-   * Formatea un número de teléfono al chatId que espera WAHA.
-   * Elimina cualquier caracter no numérico y agrega el sufijo @c.us.
-   * Ejemplo: "+54 9 341-300-3003" → "5493413003003@c.us"
+   * Normaliza un número de teléfono al formato internacional de Argentina (549 + área + número)
+   * y devuelve el chatId esperado por WAHA (ej: 5493415555555@c.us) utilizando la utilidad común.
    */
   private formatearChatId(telefono: string): string {
-    const soloNumeros = telefono.replace(/\D/g, '');
-    return `${soloNumeros}@c.us`;
+    return normalizarTelefonoArgentina(telefono);
   }
 
   /**
-   * Espera un tiempo aleatorio entre minMs y maxMs milisengundos.
+   * Espera un tiempo aleatorio entre minMs y maxMs milisegundos.
    * Simula comportamiento humano para reducir el riesgo de bloqueo por parte de WhatsApp.
    */
-  private esperarDelayAleatorio(minMs: number = 1000, maxMs: number = 5000): Promise<void> {
+  private esperarDelayAleatorio(minMs: number = 1000, maxMs: number = 4000): Promise<void> {
     const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
     console.log(`[WAHA] ⏳ Esperando ${(delay / 1000).toFixed(1)}s antes de enviar (anti-ban)...`);
     return new Promise((resolve) => setTimeout(resolve, delay));
@@ -42,6 +44,8 @@ export class WahaService {
    * Útil para simular comportamiento humano (anti-ban).
    */
   private async setTyping(chatId: string, isTyping: boolean): Promise<void> {
+    if (!this.simularTyping) return;
+
     const endpoint = isTyping ? '/api/startTyping' : '/api/stopTyping';
     try {
       await axios.post(
@@ -57,7 +61,7 @@ export class WahaService {
         }
       );
     } catch (error) {
-      // Errores de typing son menores, solo los ignoramos
+      // Errores de typing son menores, solo los ignoramos silenciosamente
       console.warn(`[WAHA] No se pudo cambiar estado typing para ${chatId}`);
     }
   }
@@ -71,13 +75,19 @@ export class WahaService {
    */
   async enviarMensaje(telefono: string, mensaje: string): Promise<void> {
     const chatId = this.formatearChatId(telefono);
+    if (!chatId) {
+      console.warn(`[WAHA] ⚠️ Número de teléfono inválido o vacío para envío: "${telefono}"`);
+      return;
+    }
 
     try {
       // 1. Mostrar "escribiendo..."
       await this.setTyping(chatId, true);
 
       // 2. Delay aleatorio proporcional simulando el tiempo de tipeo
-      await this.esperarDelayAleatorio();
+      if (this.simularTyping) {
+        await this.esperarDelayAleatorio();
+      }
 
       // 3. Detener "escribiendo..."
       await this.setTyping(chatId, false);
@@ -97,7 +107,7 @@ export class WahaService {
         }
       );
 
-      console.log(`[WAHA] ✅ Mensaje enviado a ${chatId}`);
+      console.log(`[WAHA] ✅ Mensaje enviado exitosamente a ${chatId}`);
     } catch (error: any) {
       const detalle = error.response?.data ?? error.message;
       console.error(`[WAHA] ❌ Error al enviar mensaje a ${chatId}:`, detalle);

@@ -24,4 +24,8 @@ services:
       # Solo disparar el webhook para eventos de estado de sesión
       - WHATSAPP_HOOK_EVENTS=session.status
 
+      # Fijar credenciales para la UI de Swagger (Dashboard)
+      - WHATSAPP_SWAGGER_USERNAME=${WHATSAPP_SWAGGER_USERNAME}
+      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD}
+
     restart: unless-stopped

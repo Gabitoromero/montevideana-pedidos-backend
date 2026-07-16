@@ -2,6 +2,7 @@ import cron, { ScheduledTask } from 'node-cron';
 import { ChessService } from './chess.service.js';
 import { MikroORM } from '@mikro-orm/core';
 import type { MySqlDriver } from '@mikro-orm/mysql';
+import { Configuracion } from '../configuracion/configuracion.entity.js';
 
 /**
  * Scheduler para sincronización automática con CHESS.
@@ -122,7 +123,41 @@ export class ChessScheduler {
       const chessService = new ChessService(em);
       
       try {
-        await chessService.syncConChess();
+        let config = await em.findOne(Configuracion, { id: 1 });
+        if (!config) {
+          config = em.create(Configuracion, { id: 1, horaConsultaPreventaManana: '19:00', lastTriggeredDate: '', queriesRemaining: 0 });
+        }
+        
+        const now = new Date();
+        const timeFormatter = new Intl.DateTimeFormat('es-AR', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        const currentTimeStr = timeFormatter.format(now);
+        
+        const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/Argentina/Buenos_Aires',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        const todayStr = dateFormatter.format(now);
+
+        if (config.horaConsultaPreventaManana && currentTimeStr >= config.horaConsultaPreventaManana && config.lastTriggeredDate !== todayStr) {
+          config.queriesRemaining = 3;
+          config.lastTriggeredDate = todayStr;
+        }
+
+        let queryNextDay = false;
+        if (config.queriesRemaining && config.queriesRemaining > 0) {
+          config.queriesRemaining -= 1;
+          queryNextDay = true;
+        }
+
+        await chessService.syncConChess({ queryNextDay });
+        await em.flush();
         this.failureCount = 0; 
       } catch (error: any) {
         const errorType = this.classifyError(error);

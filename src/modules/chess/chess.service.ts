@@ -394,11 +394,14 @@ export class ChessService {
     return venta.idLiquidacion !== 0 && venta.fechaLiquidacion !== null;
   }
 
-  /**
-   * Convertir una fecha Date a string en formato "YYYY/MM/DD" para la API de CHESS.
-   */
   private formatFechaParaChess(fecha: Date): string {
-    return fecha.toISOString().split('T')[0].replace(/-/g, '/');
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(fecha).replace(/-/g, '/');
   }
 
   // ============================================================
@@ -411,7 +414,7 @@ export class ChessService {
    *   1. Detección de nuevos pedidos (ventas del día de hoy)
    *   2. Seguimiento de pendientes de liquidación
    */
-  public async syncConChess(): Promise<ChessSyncResult> {
+  public async syncConChess(options?: { queryNextDay?: boolean }): Promise<ChessSyncResult> {
     const startTime = new Date();
     console.log(`\n🚀 ========== INICIO SINCRONIZACIÓN CHESS ==========`);
     console.log(`⏰ Hora de inicio: ${startTime.toLocaleString('es-AR')}`);
@@ -471,7 +474,8 @@ export class ChessService {
         usuarioSistema,
         estadoChess,
         estadoPendiente,
-        estadoTesoreria
+        estadoTesoreria,
+        options
       );
 
       // ────────────────────────────────────────────
@@ -548,11 +552,16 @@ export class ChessService {
     usuarioSistema: Usuario,
     estadoChess: TipoEstado,
     estadoPendiente: TipoEstado,
-    estadoTesoreria: TipoEstado
+    estadoTesoreria: TipoEstado,
+    options?: { queryNextDay?: boolean }
   ): Promise<void> {
 
     // ── Paso 1: Obtención de ventas ──
-    const fechaHoy = this.formatFechaParaChess(new Date());
+    const fechaBase = new Date();
+    if (options?.queryNextDay) {
+      fechaBase.setDate(fechaBase.getDate() + 1);
+    }
+    const fechaHoy = this.formatFechaParaChess(fechaBase);
     console.log(`📅 Fecha de consulta: ${fechaHoy}`);
 
     const { ventas: todasLasVentas, lotesProcesados } = await this.getAllVentasDelDia(fechaHoy);

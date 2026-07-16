@@ -1,0 +1,687 @@
+{
+  "namespaces": [],
+  "tables": [
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "hora_consulta_preventa_manana": {
+          "name": "hora_consulta_preventa_manana",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "last_triggered_date": {
+          "name": "last_triggered_date",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "queries_remaining": {
+          "name": "queries_remaining",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "integer"
+        }
+      },
+      "name": "configuracion",
+      "indexes": [
+        {
+          "keyName": "PRIMARY",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id_fletero": {
+          "name": "id_fletero",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "ds_fletero": {
+          "name": "ds_fletero",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "seguimiento": {
+          "name": "seguimiento",
+          "type": "tinyint(1)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 1,
+          "default": "true",
+          "mappedType": "boolean"
+        },
+        "liquidacion": {
+          "name": "liquidacion",
+          "type": "tinyint(1)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 1,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "telefono1": {
+          "name": "telefono1",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "telefono2": {
+          "name": "telefono2",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        }
+      },
+      "name": "fleteros",
+      "indexes": [
+        {
+          "keyName": "PRIMARY",
+          "columnNames": [
+            "id_fletero"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id_pedido": {
+          "name": "id_pedido",
+          "type": "varchar(8)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 8,
+          "mappedType": "string"
+        },
+        "fecha_hora": {
+          "name": "fecha_hora",
+          "type": "datetime",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "datetime"
+        },
+        "cobrado": {
+          "name": "cobrado",
+          "type": "tinyint(1)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 1,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "calificacion": {
+          "name": "calificacion",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "fletero_id_fletero": {
+          "name": "fletero_id_fletero",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        }
+      },
+      "name": "pedidos",
+      "indexes": [
+        {
+          "columnNames": [
+            "fletero_id_fletero"
+          ],
+          "composite": false,
+          "keyName": "pedidos_fletero_id_fletero_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "pedidos_cobrado_index",
+          "columnNames": [
+            "cobrado"
+          ],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "pedidos_fecha_hora_index",
+          "columnNames": [
+            "fecha_hora"
+          ],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "PRIMARY",
+          "columnNames": [
+            "id_pedido"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "pedidos_fletero_id_fletero_foreign": {
+          "constraintName": "pedidos_fletero_id_fletero_foreign",
+          "columnNames": [
+            "fletero_id_fletero"
+          ],
+          "localTableName": "pedidos",
+          "referencedColumnNames": [
+            "id_fletero"
+          ],
+          "referencedTableName": "fleteros",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "nombre_estado": {
+          "name": "nombre_estado",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        }
+      },
+      "name": "tipos_estado",
+      "indexes": [
+        {
+          "columnNames": [
+            "nombre_estado"
+          ],
+          "composite": false,
+          "keyName": "tipos_estado_nombre_estado_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "keyName": "PRIMARY",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "id_estado_id": {
+          "name": "id_estado_id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "id_estado_necesario_id": {
+          "name": "id_estado_necesario_id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        }
+      },
+      "name": "reglas",
+      "indexes": [
+        {
+          "columnNames": [
+            "id_estado_id"
+          ],
+          "composite": false,
+          "keyName": "reglas_id_estado_id_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "id_estado_necesario_id"
+          ],
+          "composite": false,
+          "keyName": "reglas_id_estado_necesario_id_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "PRIMARY",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "reglas_id_estado_id_foreign": {
+          "constraintName": "reglas_id_estado_id_foreign",
+          "columnNames": [
+            "id_estado_id"
+          ],
+          "localTableName": "reglas",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "tipos_estado",
+          "updateRule": "cascade"
+        },
+        "reglas_id_estado_necesario_id_foreign": {
+          "constraintName": "reglas_id_estado_necesario_id_foreign",
+          "columnNames": [
+            "id_estado_necesario_id"
+          ],
+          "localTableName": "reglas",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "tipos_estado",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "apellido": {
+          "name": "apellido",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "sector": {
+          "name": "sector",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "activo": {
+          "name": "activo",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "unknown"
+        }
+      },
+      "name": "usuarios",
+      "indexes": [
+        {
+          "columnNames": [
+            "username"
+          ],
+          "composite": false,
+          "keyName": "usuarios_username_unique",
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "keyName": "PRIMARY",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "pedido_id_pedido": {
+          "name": "pedido_id_pedido",
+          "type": "varchar(8)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 8,
+          "mappedType": "string"
+        },
+        "estado_final_id": {
+          "name": "estado_final_id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "fecha_hora": {
+          "name": "fecha_hora",
+          "type": "datetime",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "datetime"
+        },
+        "estado_inicial_id": {
+          "name": "estado_inicial_id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "usuario_id": {
+          "name": "usuario_id",
+          "type": "int",
+          "unsigned": true,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": null,
+          "mappedType": "integer"
+        },
+        "motivo_anulacion": {
+          "name": "motivo_anulacion",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": null,
+          "mappedType": "text"
+        }
+      },
+      "name": "movimientos",
+      "indexes": [
+        {
+          "columnNames": [
+            "pedido_id_pedido"
+          ],
+          "composite": false,
+          "keyName": "movimientos_pedido_id_pedido_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "estado_final_id"
+          ],
+          "composite": false,
+          "keyName": "movimientos_estado_final_id_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "estado_inicial_id"
+          ],
+          "composite": false,
+          "keyName": "movimientos_estado_inicial_id_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "usuario_id"
+          ],
+          "composite": false,
+          "keyName": "movimientos_usuario_id_index",
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "idx_movimientos_fecha_hora",
+          "columnNames": [
+            "fecha_hora"
+          ],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "PRIMARY",
+          "columnNames": [
+            "pedido_id_pedido",
+            "estado_final_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "movimientos_pedido_id_pedido_foreign": {
+          "constraintName": "movimientos_pedido_id_pedido_foreign",
+          "columnNames": [
+            "pedido_id_pedido"
+          ],
+          "localTableName": "movimientos",
+          "referencedColumnNames": [
+            "id_pedido"
+          ],
+          "referencedTableName": "pedidos",
+          "updateRule": "cascade"
+        },
+        "movimientos_estado_final_id_foreign": {
+          "constraintName": "movimientos_estado_final_id_foreign",
+          "columnNames": [
+            "estado_final_id"
+          ],
+          "localTableName": "movimientos",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "tipos_estado",
+          "updateRule": "cascade"
+        },
+        "movimientos_estado_inicial_id_foreign": {
+          "constraintName": "movimientos_estado_inicial_id_foreign",
+          "columnNames": [
+            "estado_inicial_id"
+          ],
+          "localTableName": "movimientos",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "tipos_estado",
+          "updateRule": "cascade"
+        },
+        "movimientos_usuario_id_foreign": {
+          "constraintName": "movimientos_usuario_id_foreign",
+          "columnNames": [
+            "usuario_id"
+          ],
+          "localTableName": "movimientos",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "usuarios",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    }
+  ],
+  "nativeEnums": {}
+}

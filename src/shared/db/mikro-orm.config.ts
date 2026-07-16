@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { MikroORM } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import { MySqlDriver } from '@mikro-orm/mysql';

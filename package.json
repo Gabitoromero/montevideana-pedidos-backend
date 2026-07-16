@@ -17,7 +17,8 @@
     "test:coverage": "vitest --coverage",
     "bd": "mysql -u root -p montevideana_pedidos < scripts/init-sistema.sql",
     "seed": "tsx src/shared/db/seed.ts",
-    "waha:sync": "tsx scripts/sync-waha-env.ts"
+    "waha:sync": "tsx scripts/sync-waha-env.ts",
+    "diagnostico:preventa": "tsx scripts/diagnostico-preventa-manana.ts"
   },
   "keywords": [
     "montevideana",

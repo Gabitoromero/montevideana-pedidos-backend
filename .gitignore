@@ -39,3 +39,6 @@ node_modules
 sessions/
 
 logs/*
+
+# Log del script de diagnóstico de horario de preventas
+scripts/diagnostico-preventa-manana.log

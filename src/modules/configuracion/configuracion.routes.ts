@@ -5,7 +5,7 @@ import { getConfiguracion, updateConfiguracion } from './configuracion.controlle
 const router = Router();
 
 router.use(authMiddleware);
-router.use(authorize('ADMIN'));
+router.use(authorize('ADMIN', 'CHESS'));
 
 router.get('/', getConfiguracion);
 router.put('/', updateConfiguracion);

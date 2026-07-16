@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { getORM } from '../../shared/db/orm.js';
+import { fork } from '../../shared/db/orm.js';
 import { Configuracion } from './configuracion.entity.js';
 import { updateConfiguracionSchema } from './configuracion.schema.js';
 
 export const getConfiguracion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const orm = getORM();
-    const repo = orm.em.getRepository(Configuracion);
+    const em = fork();
+    const repo = em.getRepository(Configuracion);
     
     let config = await repo.findOne({ id: 1 });
     if (!config) {
@@ -16,7 +16,7 @@ export const getConfiguracion = async (req: Request, res: Response, next: NextFu
         lastTriggeredDate: '',
         queriesRemaining: 0
       });
-      await orm.em.persistAndFlush(config);
+      await em.persistAndFlush(config);
     }
     
     res.json({
@@ -30,8 +30,8 @@ export const getConfiguracion = async (req: Request, res: Response, next: NextFu
 
 export const updateConfiguracion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const orm = getORM();
-    const repo = orm.em.getRepository(Configuracion);
+    const em = fork();
+    const repo = em.getRepository(Configuracion);
     
     const validatedData = updateConfiguracionSchema.parse(req.body);
     
@@ -48,7 +48,7 @@ export const updateConfiguracion = async (req: Request, res: Response, next: Nex
       repo.assign(config, validatedData);
     }
     
-    await orm.em.persistAndFlush(config);
+    await em.persistAndFlush(config);
     
     res.json({
       success: true,

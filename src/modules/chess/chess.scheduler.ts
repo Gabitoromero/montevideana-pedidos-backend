@@ -1,5 +1,6 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { ChessService } from './chess.service.js';
+import { ChessSyncResult } from './chess.interfaces.js';
 import { MikroORM } from '@mikro-orm/core';
 import type { MySqlDriver } from '@mikro-orm/mysql';
 import { Configuracion } from '../configuracion/configuracion.entity.js';
@@ -106,6 +107,61 @@ export class ChessScheduler {
   }
 
   /**
+   * Enviar resultados de preventa a Discord
+   */
+  private async sendDiscordSyncResult(result: ChessSyncResult): Promise<void> {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    
+    if (!webhookUrl) {
+      return;
+    }
+
+    try {
+      const diagStr = result.diagnosticoRechazos && Object.keys(result.diagnosticoRechazos).length > 0
+        ? Object.entries(result.diagnosticoRechazos).map(([k, v]) => `${k}: ${v}`).join('\n')
+        : 'Ninguno';
+
+      const message = {
+        username: 'Montevideana Preventa',
+        avatar_url: 'https://cdn-icons-png.flaticon.com/512/2099/2099190.png',
+        embeds: [{
+          title: '📊 Resultados Sincronización PREVENTA',
+          description: `Se ejecutó una consulta de preventa para el día de mañana.\n\n**Ventas procesadas:** ${result.totalVentasObtenidas}\n**Ventas válidas:** ${result.totalVentasFiltradas}\n**Pedidos nuevos creados:** ${result.totalPedidosCreados}\n**Movimientos creados:** ${result.totalMovimientosCreados}`,
+          color: 3447003, // Blue
+          fields: [
+            {
+              name: '🔬 Motivos de rechazo',
+              value: `\`\`\`\n${diagStr}\n\`\`\``,
+              inline: false
+            },
+            {
+              name: '📅 Fecha y Hora',
+              value: new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+              inline: true
+            }
+          ],
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: 'Sistema de Pedidos Montevideana'
+          }
+        }]
+      };
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message)
+      });
+
+      if (!response.ok) {
+        console.error('❌ Error al enviar resultado a Discord:', response.statusText);
+      }
+    } catch (fetchError: any) {
+      console.error('❌ Error al conectar con Discord para reporte:', fetchError.message);
+    }
+  }
+
+  /**
    * Iniciar el scheduler — un único cron job cada 3 minutos, 24/7
    */
   start() {
@@ -156,9 +212,13 @@ export class ChessScheduler {
           queryNextDay = true;
         }
 
-        await chessService.syncConChess({ queryNextDay });
+        const result = await chessService.syncConChess({ queryNextDay });
         await em.flush();
-        this.failureCount = 0; 
+        this.failureCount = 0;
+
+        if (queryNextDay) {
+          await this.sendDiscordSyncResult(result);
+        } 
       } catch (error: any) {
         const errorType = this.classifyError(error);
         

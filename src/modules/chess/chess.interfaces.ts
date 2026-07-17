@@ -71,5 +71,7 @@ export interface ChessSyncResult {
   totalPendientesLiquidacionRestantes: number;
   totalFechasConsultadas: number;
 
+  diagnosticoRechazos?: Record<string, number>;
+
   errors: string[];
 }

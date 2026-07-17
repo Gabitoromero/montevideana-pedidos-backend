@@ -680,7 +680,9 @@ export class ChessService {
     console.log(`🗑️  Duplicados eliminados: ${totalDuplicados}`);
 
     if (options?.queryNextDay && motivosRechazo.size > 0) {
-      console.log(`🔬 [Diagnóstico preventa] Motivos de rechazo:`, Object.fromEntries(motivosRechazo));
+      const diag = Object.fromEntries(motivosRechazo);
+      console.log(`🔬 [Diagnóstico preventa] Motivos de rechazo:`, diag);
+      result.diagnosticoRechazos = diag;
     }
 
     if (ventasUnicas.size === 0) {

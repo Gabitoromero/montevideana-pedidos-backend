@@ -121,17 +121,26 @@ export class ChessScheduler {
         ? Object.entries(result.diagnosticoRechazos).map(([k, v]) => `${k}: ${v}`).join('\n')
         : 'Ninguno';
 
+      const errorsStr = result.errors.length > 0
+        ? result.errors.join('\n')
+        : 'Ninguno';
+
       const message = {
         username: 'Montevideana Preventa',
         avatar_url: 'https://cdn-icons-png.flaticon.com/512/2099/2099190.png',
         embeds: [{
           title: '📊 Resultados Sincronización PREVENTA',
-          description: `Se ejecutó una consulta de preventa para el día de mañana.\n\n**Ventas procesadas:** ${result.totalVentasObtenidas}\n**Ventas válidas:** ${result.totalVentasFiltradas}\n**Pedidos nuevos creados:** ${result.totalPedidosCreados}\n**Movimientos creados:** ${result.totalMovimientosCreados}`,
+          description: `Se ejecutó una consulta de preventa para el día de mañana.\n\n**Ventas obtenidas de CHESS:** ${result.totalVentasObtenidas}\n**Ventas válidas:** ${result.totalVentasFiltradas}\n**Descartadas por seguimiento:** ${result.totalPedidosDescartadosPorSeguimiento}\n**Duplicados eliminados:** ${result.totalDuplicadosEliminados}\n**Fleteros creados:** ${result.totalFleterosCreados}\n**Fleteros actualizados:** ${result.totalFleterosActualizados}\n**Pedidos nuevos creados:** ${result.totalPedidosCreados}\n**Movimientos creados:** ${result.totalMovimientosCreados}\n**Movimientos a tesorería:** ${result.totalMovimientosTesoreriaCreados}\n**Lotes procesados:** ${result.lotesProcesados}`,
           color: 3447003, // Blue
           fields: [
             {
               name: '🔬 Motivos de rechazo',
               value: `\`\`\`\n${diagStr}\n\`\`\``,
+              inline: false
+            },
+            {
+              name: '❌ Errores',
+              value: `\`\`\`\n${errorsStr}\n\`\`\``,
               inline: false
             },
             {

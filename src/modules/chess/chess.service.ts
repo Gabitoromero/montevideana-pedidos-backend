@@ -417,7 +417,7 @@ export class ChessService {
   public async syncConChess(options?: { queryNextDay?: boolean }): Promise<ChessSyncResult> {
     const startTime = new Date();
     console.log(`\n🚀 ========== INICIO SINCRONIZACIÓN CHESS ==========`);
-    console.log(`⏰ Hora de inicio: ${startTime.toLocaleString('es-AR')}`);
+    console.log(`⏰ Hora de inicio: ${startTime.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`);
 
     const result: ChessSyncResult = {
       success: false,

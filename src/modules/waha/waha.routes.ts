@@ -32,7 +32,7 @@ router.post(
     const evento = req.body;
 
     // ── Log completo del payload recibido (útil para debugging) ──
-    console.log(`\n[WAHA Webhook] 📨 Evento recibido: ${new Date().toLocaleString('es-AR')}`);
+    console.log(`\n[WAHA Webhook] 📨 Evento recibido: ${new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}`);
     console.log(`[WAHA Webhook] Tipo de evento: ${evento?.event ?? 'desconocido'}`);
     console.log(`[WAHA Webhook] Payload completo:`, JSON.stringify(evento, null, 2));
 

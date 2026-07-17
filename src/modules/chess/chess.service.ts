@@ -388,6 +388,28 @@ export class ChessService {
   }
 
   /**
+   * Diagnóstico temporal: identifica el motivo puntual de rechazo de una venta.
+   * Sólo se invoca durante las corridas de preventa (queryNextDay) para investigar
+   * por qué las ventas de mañana no pasan el filtro de validez.
+   */
+  private diagnosticarMotivoRechazo(venta: ChessVentaRaw): string {
+    if (venta.idEmpresa !== 1) return `idEmpresa=${venta.idEmpresa}`;
+    if (venta.dsEmpresa !== 'MONTHELADO S.A.') return `dsEmpresa=${venta.dsEmpresa}`;
+    if (venta.anulado !== 'NO') return `anulado=${venta.anulado}`;
+    if (venta.idDeposito !== 1) return `idDeposito=${venta.idDeposito}`;
+    if (!venta.planillaCarga) return 'planillaCarga=vacio';
+    if (!venta.idFleteroCarga) return 'idFleteroCarga=vacio';
+    const documentosExcluidos = [
+      "DEV. PRESUPUESTO 10.5", "DEV. PRESUPUESTO 5.2", "DEV.PRESUPUESTO 21",
+      "DEVOLUCION PRESUPUESTO", "DEVOLUCION CONSIGNACION", "NOTA DE DEBITO",
+      "NOTA DE CREDITO", "NOTA DE CREDITO MIPYME"
+    ];
+    if (documentosExcluidos.includes(venta.dsDocumento!)) return `dsDocumento=${venta.dsDocumento}`;
+    if (venta.dsSucursal !== 'CASA CENTRAL ROSARIO') return `dsSucursal=${venta.dsSucursal}`;
+    return 'idPedido-o-extraccion';
+  }
+
+  /**
    * Verificar si una venta tiene datos de liquidación válidos.
    */
   private hasLiquidacionData(venta: ChessVentaRaw): boolean {
@@ -597,10 +619,17 @@ export class ChessService {
     const ventasUnicas = new Map<string, ChessVentaRaw>();
     let totalDescartadosPorSeguimiento = 0;
     let totalDuplicados = 0;
+    const motivosRechazo = new Map<string, number>();
 
     for (const venta of todasLasVentas) {
       // Filtro base de validez de la venta
-      if (!this.isVentaValida(venta)) continue;
+      if (!this.isVentaValida(venta)) {
+        if (options?.queryNextDay) {
+          const motivo = this.diagnosticarMotivoRechazo(venta);
+          motivosRechazo.set(motivo, (motivosRechazo.get(motivo) ?? 0) + 1);
+        }
+        continue;
+      }
 
       // Filtro por seguimiento del fletero
       if (!idsFleterosActivos.has(venta.idFleteroCarga!)) {
@@ -614,9 +643,15 @@ export class ChessService {
         idPedido = this.extractIdPedido(venta.planillaCarga!);
         // Validación: idPedido debe ser mayor a 00240000
         if (idPedido <= '00240000') {
+          if (options?.queryNextDay) {
+            motivosRechazo.set('idPedido<=00240000', (motivosRechazo.get('idPedido<=00240000') ?? 0) + 1);
+          }
           continue;
         }
       } catch {
+        if (options?.queryNextDay) {
+          motivosRechazo.set('extractIdPedido:error', (motivosRechazo.get('extractIdPedido:error') ?? 0) + 1);
+        }
         continue;
       }
 
@@ -643,6 +678,10 @@ export class ChessService {
     console.log(`🔍 Ventas filtradas (válidas, únicas, con seguimiento): ${ventasUnicas.size}/${todasLasVentas.length}`);
     console.log(`⏭️  Descartados por seguimiento: ${totalDescartadosPorSeguimiento}`);
     console.log(`🗑️  Duplicados eliminados: ${totalDuplicados}`);
+
+    if (options?.queryNextDay && motivosRechazo.size > 0) {
+      console.log(`🔬 [Diagnóstico preventa] Motivos de rechazo:`, Object.fromEntries(motivosRechazo));
+    }
 
     if (ventasUnicas.size === 0) {
       console.log(`\n✅ Subproceso 1 finalizado: sin ventas nuevas para procesar`);

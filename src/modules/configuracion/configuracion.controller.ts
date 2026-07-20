@@ -16,7 +16,8 @@ export const getConfiguracion = async (req: Request, res: Response, next: NextFu
         lastTriggeredDate: '',
         queriesRemaining: 0
       });
-      await em.persistAndFlush(config);
+      await em.persist(config);
+      await em.flush();
     }
     
     res.json({
@@ -48,7 +49,8 @@ export const updateConfiguracion = async (req: Request, res: Response, next: Nex
       repo.assign(config, validatedData);
     }
     
-    await em.persistAndFlush(config);
+    await em.persist(config);
+    await em.flush();
     
     res.json({
       success: true,
